@@ -1,0 +1,43 @@
+#!/bin/bash
+# Verify the non-mutating getopt interface of parameterized install scripts.
+set -euo pipefail
+
+REPOSITORY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+scripts=(
+    "src/_scripts/cmake.sh|--version"
+    "src/_scripts/cpptrace.sh|--version"
+    "src/_scripts/devshell.sh|--ros-distro"
+    "src/_scripts/iceoryx.sh|--version"
+    "src/_scripts/libdatachannel.sh|--version"
+    "src/_scripts/precommit.sh|--config"
+    "src/_scripts/ros2.sh|--distro"
+    "src/_scripts/rpclib.sh|--version"
+    "src/_scripts/ssh.sh|--username"
+    "src/_scripts/system.sh|--timezone"
+    "src/_scripts/user.sh|--username"
+)
+
+expect_usage_error() {
+    local script="$1"
+    shift
+    local status
+
+    set +e
+    bash "${script}" "$@" >/dev/null 2>&1
+    status=$?
+    set -e
+    if [ "${status}" -ne 64 ]; then
+        echo "expected exit 64 from ${script} $*, got ${status}" >&2
+        exit 1
+    fi
+}
+
+for specification in "${scripts[@]}"; do
+    script="${REPOSITORY_ROOT}/${specification%%|*}"
+    required_option="${specification##*|}"
+    bash "${script}" --help >/dev/null
+    expect_usage_error "${script}" --unknown-option
+    expect_usage_error "${script}" "${required_option}"
+    expect_usage_error "${script}" unexpected-positional
+done

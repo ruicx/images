@@ -13,9 +13,13 @@
 
 - Use English for code, identifiers, comments, and Conventional Commit messages.
 - Shell scripts use capability names, `#!/bin/bash`, `set -euo pipefail`, quoted variables,
-  architecture checks, deterministic temporary cleanup, and apt-list cleanup.
-- Python is typed and must pass Ruff, mypy, and pytest. User-facing errors identify the family,
-  variant, and field.
+  architecture checks, deterministic temporary cleanup, and apt-list cleanup. Build-time
+  configuration uses GNU `getopt` long options with `-h`/`--help`; environment variables are
+  reserved for runtime container configuration.
+- Python functions and methods declare parameter and return type hints. Public modules, classes,
+  functions, methods, and non-trivial test helpers use English NumPy-style docstrings. Comments
+  explain intent or constraints rather than restating code. Python must pass Ruff, mypy, and
+  pytest. User-facing errors identify the family, variant, and field.
 - Dockerfiles use BuildKit syntax, explicit non-interactive package installation, one cleanup layer,
   a non-root final user, and OCI labels supplied by Bake.
 - Do not use `latest`, `master`, floating LTS installers, unverified binary downloads, embedded
@@ -27,5 +31,5 @@
 
 English files are normative. Changes to a root guide or family README must update its `_zh`
 counterpart in the same pull request. User-visible changes update the affected family README.
-Removing a variant does not authorize deletion of published tags.
-
+Removing a variant does not authorize deletion of published tags. `images validate` enforces the
+required bilingual guide set. See the [lifecycle policy](lifecycle.md) for compatibility rules.

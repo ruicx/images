@@ -1,3 +1,5 @@
+"""Command-line interface for repository validation, planning, and publication."""
+
 from __future__ import annotations
 
 import argparse
@@ -12,6 +14,13 @@ from .repository import ImageRepository, RepositoryError, load_json, write_json
 
 
 def parser() -> argparse.ArgumentParser:
+    """Build the command-line parser.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+        Configured parser for the ``images`` command.
+    """
     result = argparse.ArgumentParser(prog="images")
     result.add_argument("--root", type=Path, default=Path.cwd(), help="repository root")
     subcommands = result.add_subparsers(dest="command", required=True)
@@ -65,10 +74,34 @@ def parser() -> argparse.ArgumentParser:
 
 
 def _published_items(plan: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return plan targets still marked for publication.
+
+    Parameters
+    ----------
+    plan:
+        Versioned build plan.
+
+    Returns
+    -------
+    list[dict[str, Any]]
+        Publishable target records.
+    """
     return [item for item in plan["targets"] if item["publish"]]
 
 
 def _remote_digest(reference: str) -> str | None:
+    """Inspect a remote image reference without failing when it is absent.
+
+    Parameters
+    ----------
+    reference:
+        Fully qualified container image reference.
+
+    Returns
+    -------
+    str or None
+        Remote manifest digest, or ``None`` when inspection fails.
+    """
     result = subprocess.run(
         [
             "docker",
@@ -87,8 +120,23 @@ def _remote_digest(reference: str) -> str | None:
 
 
 def _guard_tags(args: argparse.Namespace, plan: dict[str, Any]) -> None:
+    """Filter existing matching tags and reject immutable tag conflicts.
+
+    Parameters
+    ----------
+    args:
+        Parsed ``guard-tags`` arguments.
+    plan:
+        Build plan to filter for publication.
+
+    Raises
+    ------
+    RepositoryError
+        If local digest metadata is missing or a remote digest conflicts.
+    """
     metadata = load_json(args.metadata)
     short_revision = args.revision[:12].lower()
+    # Copy through JSON because plan records are intentionally JSON-compatible data.
     filtered = json.loads(json.dumps(plan))
     for item in filtered["targets"]:
         if not item["publish"]:
@@ -112,6 +160,15 @@ def _guard_tags(args: argparse.Namespace, plan: dict[str, Any]) -> None:
 
 
 def _promote(args: argparse.Namespace, plan: dict[str, Any]) -> None:
+    """Point floating variant tags at their immutable release tags.
+
+    Parameters
+    ----------
+    args:
+        Parsed ``promote`` arguments.
+    plan:
+        Successfully published build plan.
+    """
     short_revision = args.revision[:12].lower()
     for item in _published_items(plan):
         prefix = f"ghcr.io/{args.owner.lower()}/{item['family']}"
@@ -124,6 +181,17 @@ def _promote(args: argparse.Namespace, plan: dict[str, Any]) -> None:
 
 
 def _run_tests(repo: ImageRepository, args: argparse.Namespace, plan: dict[str, Any]) -> None:
+    """Run manifest-declared smoke tests against locally loaded images.
+
+    Parameters
+    ----------
+    repo:
+        Loaded repository model.
+    args:
+        Parsed command arguments containing owner and revision.
+    plan:
+        Plan whose targets should be tested.
+    """
     short_revision = args.revision[:12].lower()
     for item in plan["targets"]:
         variant = repo.variants[(item["family"], item["variant"])]
@@ -144,9 +212,29 @@ def _run_tests(repo: ImageRepository, args: argparse.Namespace, plan: dict[str, 
 def _build_and_test_components(
     repo: ImageRepository, args: argparse.Namespace, plan: dict[str, Any]
 ) -> None:
+    """Build and test every independent graph component.
+
+    A failed component is recorded while unrelated components continue, which
+    preserves diagnostic coverage for repositories with multiple image graphs.
+
+    Parameters
+    ----------
+    repo:
+        Loaded repository model.
+    args:
+        Parsed ``build-test`` arguments.
+    plan:
+        Complete build plan.
+
+    Raises
+    ------
+    RepositoryError
+        If one or more components fail to build or pass smoke tests.
+    """
     bake = load_json(args.bake)
     groups = sorted(name for name in bake.get("group", {}) if name.startswith("component-"))
     failures: list[str] = []
+    # Continue after a component failure to preserve diagnostics for unrelated graphs.
     for group in groups:
         target_names = set(bake["group"][group]["targets"])
         component_plan = dict(plan)
@@ -167,6 +255,18 @@ def _build_and_test_components(
 
 
 def run(arguments: Sequence[str] | None = None) -> int:
+    """Execute one CLI command.
+
+    Parameters
+    ----------
+    arguments:
+        Optional argument sequence. ``None`` reads from ``sys.argv``.
+
+    Returns
+    -------
+    int
+        Zero when the command completes successfully.
+    """
     args = parser().parse_args(arguments)
     repo = ImageRepository(args.root).load()
     if args.command == "validate":
@@ -220,6 +320,13 @@ def run(arguments: Sequence[str] | None = None) -> int:
 
 
 def main() -> int:
+    """Run the CLI with consistent user-facing error handling.
+
+    Returns
+    -------
+    int
+        Process exit status: zero on success and two on an operational error.
+    """
     try:
         return run()
     except (RepositoryError, subprocess.CalledProcessError) as error:

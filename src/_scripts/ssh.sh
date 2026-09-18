@@ -11,10 +11,47 @@
 #   - Prepares the non-root user's authorized_keys mount point.
 # Host keys are generated at runtime only when SSH_MODE=key-only.
 #
-# Reads USERNAME (default: luciole).
+# Options: --username (default: luciole).
 set -euo pipefail
 
-USERNAME_VAL="${USERNAME:-luciole}"
+usage() {
+    cat <<'EOF'
+Usage: ssh.sh [--username <name>]
+
+Options:
+  --username <value>  Existing non-root user (default: luciole)
+  -h, --help          Show this help
+EOF
+}
+
+USERNAME_VAL="luciole"
+
+if ! PARSED=$(getopt -o h -l help,username: -n "$(basename "$0")" -- "$@"); then
+    usage >&2
+    exit 64
+fi
+eval set -- "$PARSED"
+while true; do
+    case "$1" in
+        --username)
+            USERNAME_VAL="$2"
+            shift 2
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+    esac
+done
+if [ "$#" -ne 0 ]; then
+    echo "ssh.sh: unexpected positional arguments: $*" >&2
+    usage >&2
+    exit 64
+fi
 
 case "$(uname -m)" in
     x86_64) ;;

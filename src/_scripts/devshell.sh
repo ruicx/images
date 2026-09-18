@@ -1,10 +1,50 @@
 #!/bin/bash
 # Developer shell setup: zsh, oh-my-zsh, neovim (NvChad), nvm, fzf, eza, starship, sheldon, zoxide.
 # Must run as the target non-root user (USER directive before this RUN in the Dockerfile).
-# Reads ROS_DISTRO (default: jazzy).
+# Option: --ros-distro (default: jazzy).
 set -euo pipefail
 
-ROS_DISTRO_VAL=${ROS_DISTRO:-jazzy}
+usage() {
+    cat <<'EOF'
+Usage: devshell.sh [--ros-distro <name>]
+
+Options:
+  --ros-distro <value>  ROS distribution used by shell aliases (default: jazzy)
+  -h, --help             Show this help
+EOF
+}
+
+ROS_DISTRO_VAL="jazzy"
+if ! PARSED=$(getopt -o h -l help,ros-distro: -n "$(basename "$0")" -- "$@"); then
+    usage >&2
+    exit 64
+fi
+eval set -- "$PARSED"
+while true; do
+    case "$1" in
+        --ros-distro)
+            ROS_DISTRO_VAL="$2"
+            shift 2
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+    esac
+done
+if [ "$#" -ne 0 ]; then
+    echo "devshell.sh: unexpected positional arguments: $*" >&2
+    usage >&2
+    exit 64
+fi
+if [[ ! "${ROS_DISTRO_VAL}" =~ ^[a-z0-9-]+$ ]]; then
+    echo "devshell.sh: ROS distribution must contain lowercase letters, digits, and hyphens" >&2
+    exit 64
+fi
 
 # ─── Init Apt ─────────────────────────────────────────────────────────────────
 
@@ -26,19 +66,19 @@ git clone https://github.com/zsh-users/zsh-autosuggestions \
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git \
     "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting"
 
-sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="ys"/g' $HOME/.zshrc
-sed -i 's/plugins=(git)/plugins=(git zsh-syntax-highlighting zsh-autosuggestions zsh-completions)/g' $HOME/.zshrc
+sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="ys"/g' "${HOME}/.zshrc"
+sed -i 's/plugins=(git)/plugins=(git zsh-syntax-highlighting zsh-autosuggestions zsh-completions)/g' "${HOME}/.zshrc"
 
 # ── vimrc ────────────────────────────────────────────────────────────────────
 
-git clone --depth=1 https://github.com/amix/vimrc.git $HOME/.vim_runtime
-sh $HOME/.vim_runtime/install_awesome_vimrc.sh
-echo 'set mouse-=a' >> $HOME/.vim_runtime/my_configs.vim
+git clone --depth=1 https://github.com/amix/vimrc.git "${HOME}/.vim_runtime"
+sh "${HOME}/.vim_runtime/install_awesome_vimrc.sh"
+echo 'set mouse-=a' >>"${HOME}/.vim_runtime/my_configs.vim"
 
 # ── misc shell config ─────────────────────────────────────────────────────────
 
 # zsh configuration
-cat >> $HOME/.zshrc << 'ZSH_EOF'
+cat >>"${HOME}/.zshrc" <<'ZSH_EOF'
 
 setopt no_nomatch # disable * match
 
@@ -49,21 +89,21 @@ eval "$(uvx --generate-shell-completion zsh)"
 ZSH_EOF
 
 # bash color prompt
-sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' $HOME/.bashrc
+sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' "${HOME}/.bashrc"
 
 # vscode-server
-mkdir -p $HOME/.vscode-server/data/Machine
+mkdir -p "${HOME}/.vscode-server/data/Machine"
 
 # tmux
-echo 'set -g history-limit 1000000' >> $HOME/.tmux.conf
-echo '' >> $HOME/.tmux.conf
+echo 'set -g history-limit 1000000' >>"${HOME}/.tmux.conf"
+echo '' >>"${HOME}/.tmux.conf"
 
 # ── ROS2 aliases ─────────────────────────────────────────────────────────────
 
-echo "alias load_ros=\"source /opt/ros/${ROS_DISTRO_VAL}/setup.zsh\"" >> $HOME/.zshrc
-echo '' >> $HOME/.zshrc
-echo "alias load_ros=\"source /opt/ros/${ROS_DISTRO_VAL}/setup.bash\"" >> $HOME/.bashrc
-echo '' >> $HOME/.bashrc
+echo "alias load_ros=\"source /opt/ros/${ROS_DISTRO_VAL}/setup.zsh\"" >>"${HOME}/.zshrc"
+echo '' >>"${HOME}/.zshrc"
+echo "alias load_ros=\"source /opt/ros/${ROS_DISTRO_VAL}/setup.bash\"" >>"${HOME}/.bashrc"
+echo '' >>"${HOME}/.bashrc"
 
 # ── nvm + Node.js LTS ────────────────────────────────────────────────────────
 
@@ -85,7 +125,7 @@ set -u
 cd /tmp
 ARCH=$(uname -m)
 case $ARCH in
-    x86_64)  NVIM_ARCH="x86_64" ;;
+    x86_64) NVIM_ARCH="x86_64" ;;
     aarch64) NVIM_ARCH="arm64" ;;
     *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
 esac
@@ -96,10 +136,10 @@ rm "nvim-linux-${NVIM_ARCH}.tar.gz"
 sudo rsync -av --ignore-existing "nvim-linux-${NVIM_ARCH}/" /usr/local
 rm -rf "nvim-linux-${NVIM_ARCH}"
 
-git clone https://github.com/NvChad/starter $HOME/.config/nvim --depth 1
+git clone https://github.com/NvChad/starter "${HOME}/.config/nvim" --depth 1
 
 # disable mouse support
-cat >> $HOME/.config/nvim/init.lua << 'MOUSE_EOF'
+cat >>"${HOME}/.config/nvim/init.lua" <<'MOUSE_EOF'
 
 -- disable mouse support
 vim.opt.mouse = ""
@@ -107,7 +147,7 @@ vim.opt.mouse = ""
 MOUSE_EOF
 
 # add custom plugins
-cat > $HOME/.config/nvim/lua/plugins/custom.lua << 'LUA'
+cat >"${HOME}/.config/nvim/lua/plugins/custom.lua" <<'LUA'
 return {
   {
     "ibhagwan/fzf-lua",
@@ -125,7 +165,7 @@ nvim --headless "+Lazy! sync" +qa
 nvim --headless "+Lazy load nvim-treesitter" "+TSInstallSync! lua vim vimdoc c cpp python javascript" +qa
 
 # Mason LSP servers — MasonInstall is async; poll until all packages are installed
-cat > /tmp/mason_install.lua << 'LUA'
+cat >/tmp/mason_install.lua <<'LUA'
 local packages = {"lua-language-server", "stylua", "pyright", "clangd"}
 vim.defer_fn(function()
     local registry = require("mason-registry")
@@ -148,9 +188,9 @@ rm /tmp/mason_install.lua
 
 # ─── Fzf ──────────────────────────────────────────────────────────────────────
 
-git clone --depth 1 https://github.com/junegunn/fzf.git $HOME/.fzf
-$HOME/.fzf/install --all
-cat >> $HOME/.zshrc << 'FZF_EOF'
+git clone --depth 1 https://github.com/junegunn/fzf.git "${HOME}/.fzf"
+"${HOME}/.fzf/install" --all
+cat >>"${HOME}/.zshrc" <<'FZF_EOF'
 export FZF_CTRL_T_OPTS="
   --walker-skip .git,node_modules,target
   --preview 'bat -n --color=always {}'
@@ -162,7 +202,7 @@ FZF_EOF
 
 ARCH=$(uname -m)
 case $ARCH in
-    x86_64)  EZA_ARCH="x86_64-unknown-linux-gnu" ;;
+    x86_64) EZA_ARCH="x86_64-unknown-linux-gnu" ;;
     aarch64) EZA_ARCH="aarch64-unknown-linux-gnu" ;;
     *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
 esac
@@ -174,30 +214,30 @@ sudo mv eza /usr/local/bin/eza
 # ─── Starship ─────────────────────────────────────────────────────────────────
 
 curl -sS https://starship.rs/install.sh | POSIXLY_CORRECT=1 bash -s -- -y
-starship preset catppuccin-powerline -o $HOME/.config/starship.toml
+starship preset catppuccin-powerline -o "${HOME}/.config/starship.toml"
 
 # ─── Sheldon ──────────────────────────────────────────────────────────────────
 
-curl --proto '=https' -fLsS https://rossmacarthur.github.io/install/crate.sh \
-    | bash -s -- --repo rossmacarthur/sheldon --to $HOME/.local/bin
+curl --proto '=https' -fLsS https://rossmacarthur.github.io/install/crate.sh |
+    bash -s -- --repo rossmacarthur/sheldon --to "${HOME}/.local/bin"
 
-echo y | $HOME/.local/bin/sheldon init --shell zsh
+echo y | "${HOME}/.local/bin/sheldon" init --shell zsh
 
-$HOME/.local/bin/sheldon add omz-lib \
+"${HOME}/.local/bin/sheldon" add omz-lib \
     --github ohmyzsh/ohmyzsh \
     --dir lib \
     --use history.zsh key-bindings.zsh clipboard.zsh completion.zsh directories.zsh git.zsh
-$HOME/.local/bin/sheldon add omz-git \
+"${HOME}/.local/bin/sheldon" add omz-git \
     --github ohmyzsh/ohmyzsh \
     --dir plugins/git
-$HOME/.local/bin/sheldon add zsh-autosuggestions \
+"${HOME}/.local/bin/sheldon" add zsh-autosuggestions \
     --github zsh-users/zsh-autosuggestions
-$HOME/.local/bin/sheldon add zsh-completions \
+"${HOME}/.local/bin/sheldon" add zsh-completions \
     --github zsh-users/zsh-completions
-$HOME/.local/bin/sheldon add zsh-syntax-highlighting \
+"${HOME}/.local/bin/sheldon" add zsh-syntax-highlighting \
     --github zsh-users/zsh-syntax-highlighting
 
-$HOME/.local/bin/sheldon lock
+"${HOME}/.local/bin/sheldon" lock
 
 # ─── Zoxide ───────────────────────────────────────────────────────────────────
 
@@ -210,6 +250,8 @@ curl -fsSL https://raw.githubusercontent.com/pranshuparmar/witr/main/install.sh 
 # ─── Atuin ────────────────────────────────────────────────────────────────────
 
 curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh -s -- --non-interactive
+# The single-quoted sed expression intentionally writes a literal command.
+# shellcheck disable=SC2016
 sed -i 's/eval "$(atuin init zsh)"/eval "$(atuin init zsh --disable-up-arrow)"/' "$HOME/.zshrc"
 
 # ─── Apt Cache Clean ──────────────────────────────────────────────────────────

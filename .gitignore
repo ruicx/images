@@ -19,3 +19,6 @@ docker-bake.generated.json
 docker-bake.preflight.json
 docker-bake.publish.json
 build-metadata.json
+
+# test outputs
+.pytest-tmp*/

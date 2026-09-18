@@ -19,9 +19,11 @@ images bake --plan build-plan.json --owner example --revision 0123456789abcdef01
 images build-test --plan build-plan.json --bake docker-bake.generated.json --owner example --revision 0123456789abcdef0123456789abcdef01234567
 ```
 
-Read [Architecture](docs/architecture.md), [Development guide](docs/development.md), and
-[Release guide](docs/release.md) before adding an image. The Chinese version is in
-[README_zh.md](README_zh.md).
+Read [Architecture](docs/architecture.md), [Manifest reference](docs/manifest-reference.md),
+[CLI reference](docs/cli-reference.md), [CI/CD behavior](docs/ci-cd.md),
+[Development guide](docs/development.md), [Release guide](docs/release.md),
+[Lifecycle policy](docs/lifecycle.md), and [Troubleshooting](docs/troubleshooting.md) before adding
+an image. The Chinese version is in [README_zh.md](README_zh.md).
 
 ## Public GHCR bootstrap
 

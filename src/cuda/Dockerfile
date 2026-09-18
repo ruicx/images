@@ -23,9 +23,12 @@ COPY src/_scripts/system.sh src/_scripts/user.sh src/_scripts/ssh.sh \
 COPY src/_assets/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
 
 RUN chmod +x /tmp/image-scripts/*.sh /usr/local/bin/docker-entrypoint \
-    && /tmp/image-scripts/system.sh \
+    && /tmp/image-scripts/system.sh --timezone "${TZ}" \
     && /tmp/image-scripts/user.sh \
-    && /tmp/image-scripts/ssh.sh \
+       --username "${USERNAME}" \
+       --uid "${USER_UID}" \
+       --gid "${USER_GID}" \
+    && /tmp/image-scripts/ssh.sh --username "${USERNAME}" \
     && if [ "${PACKAGE_MIRROR}" = "aliyun" ]; then \
          /tmp/image-scripts/finalize-mirror.sh; \
        elif [ "${PACKAGE_MIRROR}" != "upstream" ]; then \

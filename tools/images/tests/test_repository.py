@@ -1,3 +1,5 @@
+"""Unit tests for manifest validation, graph planning, and Bake rendering."""
+
 from __future__ import annotations
 
 import shutil
@@ -11,6 +13,20 @@ from tools.images.repository import ImageRepository, RepositoryError
 
 
 def variant(identifier: str, dependencies: list[dict[str, str]] | None = None) -> dict[str, Any]:
+    """Create a minimal schema-valid variant for repository tests.
+
+    Parameters
+    ----------
+    identifier:
+        Variant identifier.
+    dependencies:
+        Optional internal dependency records.
+
+    Returns
+    -------
+    dict[str, Any]
+        Mutable variant manifest data.
+    """
     return {
         "id": identifier,
         "base": {
@@ -25,6 +41,20 @@ def variant(identifier: str, dependencies: list[dict[str, str]] | None = None) -
 
 
 def manifest(name: str, variants: list[dict[str, Any]]) -> dict[str, Any]:
+    """Create a minimal family manifest for repository tests.
+
+    Parameters
+    ----------
+    name:
+        Family and directory name.
+    variants:
+        Variant records to include.
+
+    Returns
+    -------
+    dict[str, Any]
+        Mutable family manifest data.
+    """
     return {
         "schema_version": 1,
         "name": name,
@@ -40,6 +70,17 @@ def manifest(name: str, variants: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def write_family(root: Path, name: str, data: dict[str, Any]) -> None:
+    """Write a temporary image family and its required files.
+
+    Parameters
+    ----------
+    root:
+        Temporary repository root.
+    name:
+        Family directory name.
+    data:
+        Manifest mapping to serialize.
+    """
     directory = root / "src" / name
     (directory / "tests").mkdir(parents=True)
     (directory / "Dockerfile").write_text("FROM scratch\n", encoding="utf-8")
@@ -51,6 +92,7 @@ def write_family(root: Path, name: str, data: dict[str, Any]) -> None:
 
 @pytest.fixture
 def repo_root(tmp_path: Path) -> Path:
+    """Create a temporary repository root containing the production schema."""
     source_schema = Path(__file__).parents[3] / "schemas" / "image.schema.json"
     schema_directory = tmp_path / "schemas"
     schema_directory.mkdir()
@@ -59,6 +101,7 @@ def repo_root(tmp_path: Path) -> Path:
 
 
 def test_loads_valid_repository(repo_root: Path) -> None:
+    """Load a repository whose manifest and files satisfy all contracts."""
     write_family(repo_root, "demo", manifest("demo", [variant("24.04")]))
     repository = ImageRepository(repo_root).load()
     assert list(repository.families) == ["demo"]
@@ -74,6 +117,7 @@ def test_loads_valid_repository(repo_root: Path) -> None:
 def test_schema_rejects_invalid_release_inputs(
     repo_root: Path, field: str, value: str, message: str
 ) -> None:
+    """Reject release identifiers and digests that violate the JSON Schema."""
     item = variant("24.04")
     if field == "digest":
         item["base"][field] = value
@@ -85,6 +129,7 @@ def test_schema_rejects_invalid_release_inputs(
 
 
 def test_requires_explicit_base_tag(repo_root: Path) -> None:
+    """Reject an external base image without an explicit version tag."""
     item = variant("one")
     item["base"]["image"] = "ubuntu"
     write_family(repo_root, "demo", manifest("demo", [item]))
@@ -93,6 +138,7 @@ def test_requires_explicit_base_tag(repo_root: Path) -> None:
 
 
 def test_rejects_secret_like_build_arguments(repo_root: Path) -> None:
+    """Reject build-argument keys that appear to contain secrets."""
     item = variant("one")
     item["build_args"] = {"API_TOKEN": "must-not-be-here"}
     write_family(repo_root, "demo", manifest("demo", [item]))
@@ -101,12 +147,14 @@ def test_rejects_secret_like_build_arguments(repo_root: Path) -> None:
 
 
 def test_rejects_duplicate_variant(repo_root: Path) -> None:
+    """Reject duplicate variant identifiers within one family."""
     write_family(repo_root, "demo", manifest("demo", [variant("one"), variant("one")]))
     with pytest.raises(RepositoryError, match="duplicate variant"):
         ImageRepository(repo_root).load()
 
 
 def test_rejects_unknown_dependency(repo_root: Path) -> None:
+    """Reject an internal dependency that does not identify a known target."""
     dependency = {"context": "base", "family": "missing", "variant": "one"}
     write_family(repo_root, "demo", manifest("demo", [variant("one", [dependency])]))
     with pytest.raises(RepositoryError, match="unknown target missing/one"):
@@ -114,6 +162,7 @@ def test_rejects_unknown_dependency(repo_root: Path) -> None:
 
 
 def test_rejects_dependency_cycle(repo_root: Path) -> None:
+    """Reject a dependency graph containing a cycle."""
     one_dep = {"context": "two", "family": "demo", "variant": "two"}
     two_dep = {"context": "one", "family": "demo", "variant": "one"}
     write_family(
@@ -126,6 +175,7 @@ def test_rejects_dependency_cycle(repo_root: Path) -> None:
 
 
 def test_change_propagates_to_dependents_and_bake_uses_target_context(repo_root: Path) -> None:
+    """Propagate base changes and connect consumers to same-build targets."""
     write_family(repo_root, "base", manifest("base", [variant("one")]))
     dependency = {"context": "internal_base", "family": "base", "variant": "one"}
     child = manifest("child", [variant("one", [dependency])])
@@ -143,6 +193,7 @@ def test_change_propagates_to_dependents_and_bake_uses_target_context(repo_root:
 
 
 def test_tags_use_family_variant_and_short_revision(repo_root: Path) -> None:
+    """Generate immutable and floating tags from the release contract."""
     write_family(repo_root, "demo", manifest("demo", [variant("24.04")]))
     repository = ImageRepository(repo_root).load()
     plan = repository.make_plan({("demo", "24.04")})
@@ -155,6 +206,7 @@ def test_tags_use_family_variant_and_short_revision(repo_root: Path) -> None:
 
 
 def test_independent_graph_branches_get_separate_bake_groups(repo_root: Path) -> None:
+    """Place disconnected image graphs in independent Bake groups."""
     write_family(repo_root, "one", manifest("one", [variant("base")]))
     write_family(repo_root, "two", manifest("two", [variant("base")]))
     repository = ImageRepository(repo_root).load()
@@ -165,6 +217,7 @@ def test_independent_graph_branches_get_separate_bake_groups(repo_root: Path) ->
 
 
 def test_infrastructure_changes_affect_all_but_docs_do_not(repo_root: Path) -> None:
+    """Apply global rebuild rules without rebuilding for unrelated docs."""
     write_family(repo_root, "demo", manifest("demo", [variant("one"), variant("two")]))
     repository = ImageRepository(repo_root).load()
     assert repository.affected(["tools/images/cli.py"]) == set(repository.variants)

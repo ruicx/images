@@ -5,6 +5,10 @@ Merges to `main` repeat validation, build and test locally, compare immutable ta
 artifacts, and finally promote floating tags. A manual run can select all images, one family, or one
 variant.
 
+The precise change-selection, cache, permission, idempotency, concurrency, and failure-isolation
+rules are defined in [CI/CD behavior](ci-cd.md). Operational recovery is covered by
+[Troubleshooting](troubleshooting.md).
+
 Required repository settings:
 
 - Allow GitHub Actions to publish packages with `GITHUB_TOKEN`.
@@ -14,4 +18,3 @@ Required repository settings:
 
 The first phase intentionally does not generate SBOMs, provenance attestations, or vulnerability
 gates. These can be added without changing `image.yml` or the tag contract.
-

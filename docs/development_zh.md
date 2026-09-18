@@ -13,8 +13,11 @@
 
 - 代码、标识符、注释和 Conventional Commit 信息使用英文。
 - Shell 脚本使用能力名称、`#!/bin/bash`、`set -euo pipefail`、变量引用、架构检查、确定性的
-  临时目录清理和 apt lists 清理。
-- Python 使用类型标注并通过 Ruff、mypy、pytest；面向用户的错误需指出镜像族、变体和字段。
+  临时目录清理和 apt lists 清理。构建期配置统一使用 GNU `getopt` 长选项并提供
+  `-h`/`--help`；环境变量只用于容器运行期配置。
+- Python 函数和方法必须声明入参与返回值 type hint。公共模块、类、函数、方法和非平凡测试
+  helper 使用英文 NumPy 风格 docstring；注释解释意图或约束，不复述代码。Python 必须通过
+  Ruff、mypy、pytest；面向用户的错误需指出镜像族、变体和字段。
 - Dockerfile 使用 BuildKit syntax、显式非交互安装、单一清理层、非 root 最终用户，并由 Bake
   提供 OCI 标签。
 - 禁止 `latest`、`master`、浮动 LTS 安装器、未校验的二进制下载、内置密码、root SSH 以及
@@ -25,4 +28,4 @@
 
 英文文件是规范源。修改根指南或镜像族 README 时，必须在同一个 PR 更新对应 `_zh` 文件。
 用户可见行为变化必须更新受影响镜像族的 README。移除变体不代表允许删除已发布标签。
-
+`images validate` 会强制校验所需的双语指南集合。兼容规则见[生命周期](lifecycle_zh.md)。

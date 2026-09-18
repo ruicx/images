@@ -1,3 +1,5 @@
+"""Repository domain model and Buildx Bake graph generation."""
+
 from __future__ import annotations
 
 import fnmatch
@@ -19,22 +21,59 @@ SENSITIVE_ARGUMENT_PATTERN = re.compile(r"(?:SECRET|PASSWORD|TOKEN|PRIVATE_KEY)"
 
 
 class RepositoryError(RuntimeError):
-    """A user-actionable repository configuration error."""
+    """Represent a user-actionable repository configuration error."""
 
 
 @dataclass(frozen=True)
 class Dependency:
+    """Describe an internal image dependency exposed as a BuildKit context.
+
+    Attributes
+    ----------
+    context:
+        Dockerfile context name used by the dependent image.
+    family:
+        Name of the image family that provides the dependency.
+    variant:
+        Variant identifier in the provider family.
+    """
+
     context: str
     family: str
     variant: str
 
     @property
     def key(self) -> TargetKey:
+        """Return the repository key of the dependency target."""
         return (self.family, self.variant)
 
 
 @dataclass(frozen=True)
 class Variant:
+    """Store the normalized build contract for one image variant.
+
+    Attributes
+    ----------
+    family:
+        Owning image family.
+    identifier:
+        Stable variant identifier and floating tag name.
+    base_image:
+        External base image including an explicit version tag.
+    base_digest:
+        Pinned digest for the external base image.
+    build_args:
+        Non-secret Docker build arguments declared by the manifest.
+    mirror:
+        Package mirror policy selected by the manifest.
+    ssh_mode:
+        Default runtime SSH policy.
+    dependencies:
+        Internal image targets provided as named BuildKit contexts.
+    tests:
+        Repository-relative smoke-test scripts.
+    """
+
     family: str
     identifier: str
     base_image: str
@@ -47,19 +86,46 @@ class Variant:
 
     @property
     def key(self) -> TargetKey:
+        """Return the unique repository key for this variant."""
         return (self.family, self.identifier)
 
     @property
     def target_name(self) -> str:
+        """Return the normalized Buildx Bake target name."""
         return sanitize_target(f"{self.family}--{self.identifier}")
 
     @property
     def base_reference(self) -> str:
+        """Return the immutable external base image reference."""
         return f"{self.base_image}@{self.base_digest}"
 
 
 @dataclass(frozen=True)
 class Family:
+    """Store a normalized image-family manifest.
+
+    Attributes
+    ----------
+    name:
+        Family name, which must match its directory name.
+    directory:
+        Absolute path to the family directory.
+    description:
+        Human-readable family description.
+    dockerfile:
+        Absolute path to the parameterized Dockerfile.
+    context:
+        Absolute Docker build context.
+    platforms:
+        Target platforms accepted by the current schema.
+    inputs:
+        Repository-relative glob patterns that trigger family rebuilds.
+    publish:
+        Whether selected variants may be published from the main branch.
+    variants:
+        Variants released by this family.
+    """
+
     name: str
     directory: Path
     description: str
@@ -72,19 +138,56 @@ class Family:
 
 
 def sanitize_target(value: str) -> str:
+    """Convert an arbitrary identifier into a Bake-compatible target name.
+
+    Parameters
+    ----------
+    value:
+        Identifier to normalize.
+
+    Returns
+    -------
+    str
+        Identifier with unsupported characters replaced by hyphens.
+    """
     return re.sub(r"[^a-zA-Z0-9_-]", "-", value)
 
 
 class ImageRepository:
-    """Load, validate, plan, and render a repository of image manifests."""
+    """Load, validate, plan, and render a repository of image manifests.
+
+    Parameters
+    ----------
+    root:
+        Repository root containing ``schemas/`` and ``src/``.
+    """
 
     def __init__(self, root: Path) -> None:
+        """Initialize an unloaded repository model.
+
+        Parameters
+        ----------
+        root:
+            Repository root to inspect.
+        """
         self.root = root.resolve()
         self.schema_path = self.root / "schemas" / "image.schema.json"
         self.families: dict[str, Family] = {}
         self.variants: dict[TargetKey, Variant] = {}
 
     def load(self) -> ImageRepository:
+        """Load and validate every image manifest.
+
+        Returns
+        -------
+        ImageRepository
+            This repository instance populated with families and variants.
+
+        Raises
+        ------
+        RepositoryError
+            If the schema, a manifest, a path, or the dependency graph is invalid.
+        """
         if not self.schema_path.is_file():
             raise RepositoryError(f"schema not found: {self.schema_path}")
         schema = json.loads(self.schema_path.read_text(encoding="utf-8"))
@@ -135,6 +238,20 @@ class ImageRepository:
         return self
 
     def _parse_family(self, path: Path, raw: dict[str, Any]) -> Family:
+        """Normalize a schema-valid manifest into immutable data models.
+
+        Parameters
+        ----------
+        path:
+            Path to the family manifest.
+        raw:
+            Parsed manifest mapping.
+
+        Returns
+        -------
+        Family
+            Normalized family definition.
+        """
         family_name = str(raw["name"])
         default_ssh = str(raw["runtime"]["ssh"]["default"])
         variants: list[Variant] = []
@@ -177,6 +294,13 @@ class ImageRepository:
         )
 
     def _validate_paths_and_dependencies(self) -> None:
+        """Validate repository paths, build arguments, tests, and dependency edges.
+
+        Raises
+        ------
+        RepositoryError
+            If any semantic constraint outside the JSON Schema is violated.
+        """
         for family in self.families.values():
             for label, path in (("dockerfile", family.dockerfile), ("context", family.context)):
                 if not path.exists():
@@ -228,11 +352,30 @@ class ImageRepository:
                         )
 
     def validate_documentation(self) -> None:
+        """Require every normative guide to have a non-empty Chinese counterpart.
+
+        Raises
+        ------
+        RepositoryError
+            If a required documentation file is missing or empty.
+        """
         pairs = [
             (self.root / "README.md", self.root / "README_zh.md"),
             (self.root / "docs" / "architecture.md", self.root / "docs" / "architecture_zh.md"),
+            (self.root / "docs" / "ci-cd.md", self.root / "docs" / "ci-cd_zh.md"),
+            (self.root / "docs" / "cli-reference.md", self.root / "docs" / "cli-reference_zh.md"),
             (self.root / "docs" / "development.md", self.root / "docs" / "development_zh.md"),
+            (self.root / "docs" / "lifecycle.md", self.root / "docs" / "lifecycle_zh.md"),
+            (
+                self.root / "docs" / "manifest-reference.md",
+                self.root / "docs" / "manifest-reference_zh.md",
+            ),
             (self.root / "docs" / "release.md", self.root / "docs" / "release_zh.md"),
+            (
+                self.root / "docs" / "troubleshooting.md",
+                self.root / "docs" / "troubleshooting_zh.md",
+            ),
+            (self.root / "CONTRIBUTING.md", self.root / "CONTRIBUTING_zh.md"),
         ]
         pairs.extend(
             (family.directory / "README.md", family.directory / "README_zh.md")
@@ -247,7 +390,15 @@ class ImageRepository:
                     )
 
     def shell_files(self) -> list[Path]:
+        """Return ShellCheck inputs used by manifests and repository tooling.
+
+        Returns
+        -------
+        list[pathlib.Path]
+            Sorted, de-duplicated absolute paths to shell scripts.
+        """
         paths: set[Path] = set()
+        paths.update(self.root.glob("tools/**/*.sh"))
         for family in self.families.values():
             for pattern in family.inputs:
                 paths.update(path for path in self.root.glob(pattern) if path.suffix == ".sh")
@@ -258,6 +409,23 @@ class ImageRepository:
         return sorted(paths)
 
     def topological_order(self, subset: Iterable[TargetKey] | None = None) -> list[TargetKey]:
+        """Order image variants so every dependency precedes its consumers.
+
+        Parameters
+        ----------
+        subset:
+            Optional target subset. Dependencies outside the subset are ignored.
+
+        Returns
+        -------
+        list[TargetKey]
+            Deterministic topological ordering.
+
+        Raises
+        ------
+        RepositoryError
+            If the selected graph contains a dependency cycle.
+        """
         selected = set(subset if subset is not None else self.variants)
         indegree = {key: 0 for key in selected}
         children: dict[TargetKey, list[TargetKey]] = defaultdict(list)
@@ -282,6 +450,18 @@ class ImageRepository:
         return result
 
     def component_groups(self, subset: Iterable[TargetKey]) -> list[set[TargetKey]]:
+        """Partition targets into independent undirected graph components.
+
+        Parameters
+        ----------
+        subset:
+            Targets to partition.
+
+        Returns
+        -------
+        list[set[TargetKey]]
+            Components that can be built and tested independently.
+        """
         selected = set(subset)
         adjacency: dict[TargetKey, set[TargetKey]] = {key: set() for key in selected}
         for key in selected:
@@ -307,6 +487,25 @@ class ImageRepository:
         return groups
 
     def changed_files(self, base: str, head: str) -> list[str]:
+        """List files changed between two Git revisions using merge-base semantics.
+
+        Parameters
+        ----------
+        base:
+            Base Git revision.
+        head:
+            Head Git revision.
+
+        Returns
+        -------
+        list[str]
+            Repository-relative paths using forward slashes.
+
+        Raises
+        ------
+        RepositoryError
+            If Git cannot calculate the diff.
+        """
         command = ["git", "diff", "--name-only", f"{base}...{head}"]
         result = subprocess.run(
             command,
@@ -320,6 +519,18 @@ class ImageRepository:
         return [line.strip().replace("\\", "/") for line in result.stdout.splitlines() if line]
 
     def affected(self, changed_files: Sequence[str]) -> set[TargetKey]:
+        """Calculate directly changed variants and all transitive consumers.
+
+        Parameters
+        ----------
+        changed_files:
+            Repository-relative changed paths.
+
+        Returns
+        -------
+        set[TargetKey]
+            Publish targets affected by the changes.
+        """
         infrastructure_prefixes = (
             ".github/workflows/",
             "schemas/",
@@ -343,6 +554,7 @@ class ImageRepository:
                 ):
                     direct.update(variant.key for variant in family.variants)
 
+        # Reverse edges let a changed base propagate to every transitive consumer.
         reverse: dict[TargetKey, set[TargetKey]] = defaultdict(set)
         for key, variant in self.variants.items():
             for dependency in variant.dependencies:
@@ -357,6 +569,19 @@ class ImageRepository:
         return affected
 
     def build_closure(self, publish_targets: Iterable[TargetKey]) -> set[TargetKey]:
+        """Add every transitive build dependency required by publish targets.
+
+        Parameters
+        ----------
+        publish_targets:
+            Variants selected for testing or publication.
+
+        Returns
+        -------
+        set[TargetKey]
+            Selected targets plus their transitive ancestors.
+        """
+        # Publication selection expands upward so internal bases are built from this commit.
         closure = set(publish_targets)
         queue = deque(closure)
         while queue:
@@ -371,6 +596,20 @@ class ImageRepository:
         publish_targets: Iterable[TargetKey],
         changed_files: Sequence[str] = (),
     ) -> dict[str, Any]:
+        """Create the stable JSON plan consumed by CI and Bake rendering.
+
+        Parameters
+        ----------
+        publish_targets:
+            Variants affected by a change or selected manually.
+        changed_files:
+            Optional changed paths retained for diagnostics.
+
+        Returns
+        -------
+        dict[str, Any]
+            Versioned plan containing topologically ordered build targets.
+        """
         publish_set = set(publish_targets)
         build_set = self.build_closure(publish_set)
         targets: list[dict[str, Any]] = []
@@ -395,6 +634,31 @@ class ImageRepository:
         mode: str,
         source_repository: str | None = None,
     ) -> dict[str, Any]:
+        """Render a Docker Buildx Bake definition for a build plan.
+
+        Parameters
+        ----------
+        plan:
+            Plan produced by :meth:`make_plan`.
+        owner:
+            GHCR namespace owner.
+        revision:
+            Full Git revision used for labels and immutable tags.
+        mode:
+            One of ``load``, ``preflight``, or ``publish``.
+        source_repository:
+            Optional ``owner/repository`` value for the OCI source label.
+
+        Returns
+        -------
+        dict[str, Any]
+            JSON-serializable Bake groups and targets.
+
+        Raises
+        ------
+        RepositoryError
+            If the revision or requested mode is invalid.
+        """
         normalized_owner = owner.lower()
         short_revision = revision[:12].lower()
         if not SHA_PATTERN.fullmatch(short_revision):
@@ -473,6 +737,25 @@ class ImageRepository:
         return {"group": groups, "target": targets}
 
     def select(self, family: str | None, variant: str | None) -> set[TargetKey]:
+        """Resolve a manual all, family, or variant selection.
+
+        Parameters
+        ----------
+        family:
+            Optional family name.
+        variant:
+            Optional variant identifier, valid only with ``family``.
+
+        Returns
+        -------
+        set[TargetKey]
+            Selected publish targets.
+
+        Raises
+        ------
+        RepositoryError
+            If the selection is incomplete or names an unknown target.
+        """
         if variant and not family:
             raise RepositoryError("--variant requires --family")
         if family:
@@ -488,6 +771,23 @@ class ImageRepository:
 
 
 def load_json(path: Path) -> dict[str, Any]:
+    """Load a JSON object from disk.
+
+    Parameters
+    ----------
+    path:
+        JSON file to read.
+
+    Returns
+    -------
+    dict[str, Any]
+        Parsed JSON object.
+
+    Raises
+    ------
+    RepositoryError
+        If the JSON root is not an object.
+    """
     loaded = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(loaded, dict):
         raise RepositoryError(f"JSON root must be an object: {path}")
@@ -495,6 +795,15 @@ def load_json(path: Path) -> dict[str, Any]:
 
 
 def write_json(data: Mapping[str, Any], output: Path | None) -> None:
+    """Write deterministic JSON to a file or standard output.
+
+    Parameters
+    ----------
+    data:
+        Mapping to serialize.
+    output:
+        Destination path, or ``None`` to print to standard output.
+    """
     text = json.dumps(data, indent=2, sort_keys=True) + "\n"
     if output:
         output.write_text(text, encoding="utf-8")

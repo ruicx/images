@@ -19,8 +19,11 @@ images bake --plan build-plan.json --owner example --revision 0123456789abcdef01
 images build-test --plan build-plan.json --bake docker-bake.generated.json --owner example --revision 0123456789abcdef0123456789abcdef01234567
 ```
 
-新增镜像前请阅读[架构](docs/architecture_zh.md)、[开发准则](docs/development_zh.md)和
-[发布指南](docs/release_zh.md)。英文入口见 [README.md](README.md)。
+新增镜像前请阅读[架构](docs/architecture_zh.md)、[清单参考](docs/manifest-reference_zh.md)、
+[CLI 参考](docs/cli-reference_zh.md)、[CI/CD 行为](docs/ci-cd_zh.md)、
+[开发准则](docs/development_zh.md)、[发布指南](docs/release_zh.md)、
+[生命周期](docs/lifecycle_zh.md)和[故障排查](docs/troubleshooting_zh.md)。英文入口见
+[README.md](README.md)。
 
 ## 公开 GHCR 初始化
 

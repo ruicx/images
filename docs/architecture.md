@@ -6,10 +6,20 @@ An image family is a directory under `src/` containing `image.yml`, one paramete
 bilingual documentation, and smoke tests. The manifest is the source of truth; workflows do not
 contain a hand-written image matrix.
 
+This separation keeps release intent declarative: manifests describe variants and dependency
+edges, Dockerfiles describe build order, shared scripts provide capability-level installation,
+and the Python tooling turns those inputs into one validated execution graph. See the
+[manifest reference](manifest-reference.md) for the complete contract.
+
 `images plan` maps changed files to families through each manifest's `inputs`, expands transitive
 dependents, and adds the ancestors needed to build the result. The generated Bake graph maps every
 internal dependency to a `target:<name>` build context. A pull request therefore tests the base
 image built from the same commit instead of a previously published GHCR image.
+
+Disconnected dependency graphs become independent Bake component groups. CI attempts every group
+before reporting the combined result, so a failure in one image family does not suppress useful
+results from unrelated families. Exact change-impact rules are documented in
+[CI/CD behavior](ci-cd.md).
 
 ## Tag lifecycle
 
@@ -28,4 +38,3 @@ secrets must use BuildKit secret mounts; they must never be passed through `ARG`
 
 SSH is an optional runtime capability. Images default to a locked non-root user and disabled SSH.
 The only supported enabled mode is `key-only`; it rejects startup without mounted authorized keys.
-

@@ -2,10 +2,51 @@
 # Minimal system bootstrap: package metadata, timezone, and locale.
 # Developer CLI tools are installed separately by dev-tools.sh, and GUI / WSLg
 # deps by wslg.sh, to keep each layer's cache independent.
-# Reads TZ (default: Asia/Shanghai).
+# Options: --timezone (default: Asia/Shanghai).
 set -euo pipefail
 
-TZ_VAL="${TZ:-Asia/Shanghai}"
+usage() {
+    cat <<'EOF'
+Usage: system.sh [--timezone <IANA timezone>]
+
+Options:
+  --timezone <value>  Container timezone (default: Asia/Shanghai)
+  -h, --help          Show this help
+EOF
+}
+
+TZ_VAL="Asia/Shanghai"
+
+if ! PARSED=$(getopt -o h -l help,timezone: -n "$(basename "$0")" -- "$@"); then
+    usage >&2
+    exit 64
+fi
+eval set -- "$PARSED"
+while true; do
+    case "$1" in
+        --timezone)
+            TZ_VAL="$2"
+            shift 2
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+    esac
+done
+if [ "$#" -ne 0 ]; then
+    echo "system.sh: unexpected positional arguments: $*" >&2
+    usage >&2
+    exit 64
+fi
+if [ ! -e "/usr/share/zoneinfo/${TZ_VAL}" ]; then
+    echo "system.sh: unknown timezone '${TZ_VAL}'" >&2
+    exit 64
+fi
 
 case "$(uname -m)" in
     x86_64) ;;

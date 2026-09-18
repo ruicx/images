@@ -44,17 +44,55 @@ Create `src/_scripts/<capability>.sh` following these conventions:
 #!/bin/bash
 # One-line description: what this script does and which images use it.
 # If the script must run as the target non-root user, state that here.
-# List all environment variables read and their defaults.
+# List all GNU getopt options and their defaults.
 set -euo pipefail
 
-# Accept parameters via environment variables with defaults
-MY_VAR="${MY_VAR:-default_value}"
+usage() {
+    cat <<'EOF'
+Usage: capability.sh [--my-option <value>]
+
+Options:
+  --my-option <value>  Description (default: default_value)
+  -h, --help           Show this help
+EOF
+}
+
+MY_VAR="default_value"
+if ! PARSED=$(getopt -o h -l help,my-option: -n "$(basename "$0")" -- "$@"); then
+    usage >&2
+    exit 64
+fi
+eval set -- "$PARSED"
+while true; do
+    case "$1" in
+        --my-option)
+            MY_VAR="$2"
+            shift 2
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+    esac
+done
+if [ "$#" -ne 0 ]; then
+    echo "capability.sh: unexpected positional arguments: $*" >&2
+    usage >&2
+    exit 64
+fi
 ```
 
 Rules:
 - `set -euo pipefail` is mandatory
 - After `apt-get install`, always clean up: `rm -rf /var/lib/apt/lists/*`
-- Pass build-time values via environment variables (`ARG` → `ENV`), never hardcode
+- Pass build-time values explicitly from Docker `ARG` to named script options; do
+  not persist them through `ENV` unless the running container also needs them
+- Reject unknown options, missing values, and positional arguments with exit 64
+- Provide `-h` / `--help` without performing installation work
 - Verify checksums for any downloaded external binaries
 
 ## Step 3 — Handle Static Assets (if any)
@@ -66,9 +104,9 @@ If the script depends on config files or templates:
    ```dockerfile
    COPY src/_assets/my-config.yaml /tmp/assets/my-config.yaml
    ```
-3. Reference the path in the script via an environment variable with a default:
+3. Pass the path to the script explicitly:
    ```bash
-   MY_CONFIG="${MY_CONFIG:-/tmp/assets/my-config.yaml}"
+   /tmp/scripts/capability.sh --config /tmp/assets/my-config.yaml
    ```
 
 ## Step 4 — Update the Dockerfile(s)
@@ -83,7 +121,8 @@ If the script depends on config files or templates:
 ```dockerfile
 COPY src/_scripts/system.sh /tmp/scripts/system.sh
 COPY src/_assets/my-config.yaml /tmp/assets/my-config.yaml
-RUN chmod +x /tmp/scripts/system.sh
+RUN chmod +x /tmp/scripts/system.sh \
+    && /tmp/scripts/system.sh --timezone "${TZ}"
 
 # --- root-level scripts ---
 
@@ -120,6 +159,7 @@ Per the documentation sync rules in `AGENTS.md`:
 
 - [ ] Script has `#!/bin/bash` and `set -euo pipefail`
 - [ ] Script has a stable capability name without a sequence number
+- [ ] Parameterized scripts use GNU `getopt`, expose `--help`, and reject positional arguments
 - [ ] All target Dockerfiles updated (base / dev / runtime as appropriate)
 - [ ] Every script and asset copied by a Dockerfile is declared in `image.yml.inputs`
 - [ ] Cleanup line `rm -rf /tmp/scripts /tmp/assets` covers all temp directories
