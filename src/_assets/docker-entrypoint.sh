@@ -1,35 +1,34 @@
 #!/bin/bash
-# Container entrypoint shared by every Tier 2 final image (and inherited from
-# the Tier 1 base). Single responsibility: bring sshd up at runtime, then exec
-# the user-supplied command.
+# Shared container entrypoint. SSH is disabled unless SSH_MODE=key-only.
+# Reads SSH_MODE (default: disabled) and USERNAME (default: luciole).
 #
-# Privilege model: this entrypoint runs as whatever user the image declared via
-# its trailing `USER` directive.
-#   - Tier 1 base   → no `USER`, so it's root (base is a build-stone, and smoke
-#     tests invoke `bash -lc '...'` overriding CMD; entrypoint is exercised but
-#     irrelevant there).
-#   - Tier 2 finals → `USER <appuser>` (luciole). The entrypoint uses luciole's
-#     passwordless sudo (NOPASSWD:ALL from user.sh) to start sshd, then execs
-#     the user command AS luciole — no gosu needed since PID 1 is already luciole.
-#     Critically, this means overriding ENTRYPOINT with `docker run --entrypoint`
-#     STILL leaves the container running as luciole (root is opt-in via sudo).
-set -eo pipefail
+# The image's USER directive keeps PID 1 non-root. Passwordless sudo is used
+# only for the runtime directories, host keys, and daemon required by the
+# explicitly enabled key-only SSH mode.
+set -euo pipefail
 
-# Start sshd using sudo (this entrypoint runs as the non-root user thanks to
-# the image's `USER <appuser>` directive). luciole has NOPASSWD:ALL via
-# sudoers, so `sudo -n service ssh start` works without a password. Doing it
-# here (instead of relying on a root entrypoint + gosu) keeps the container's
-# default identity as the non-root user even if someone overrides ENTRYPOINT
-# with `docker run --entrypoint …` — i.e. privilege is the default, root is
-# opt-in via explicit sudo.
-#
-# Idempotent: `/run/sshd` is tmpfs (empty on every boot) so create it first;
-# `service ssh start` is a no-op if sshd is already up.
-sudo -n mkdir -p /run/sshd 2>/dev/null || true
-sudo -n service ssh start >/dev/null 2>&1 \
-    || echo "[entrypoint] WARN: 'sudo service ssh start' failed (already running?)" >&2
+SSH_MODE_VAL="${SSH_MODE:-disabled}"
+USERNAME_VAL="${USERNAME:-luciole}"
 
-# Privilege drop is NOT needed here — the image's `USER <appuser>` directive
-# already makes PID 1 run as the non-root user. Just exec the user command so
-# signals (SIGTERM, …) propagate directly (`docker stop` is prompt).
+# Start sshd only after validating the explicit mode and mounted public key.
+case "${SSH_MODE_VAL}" in
+    disabled) ;;
+    key-only)
+        USER_HOME="$(getent passwd "${USERNAME_VAL}" | cut -d: -f6)"
+        AUTHORIZED_KEYS="${USER_HOME}/.ssh/authorized_keys"
+        if [ ! -s "${AUTHORIZED_KEYS}" ]; then
+            echo "[entrypoint] SSH_MODE=key-only requires a non-empty ${AUTHORIZED_KEYS}" >&2
+            exit 64
+        fi
+        sudo -n mkdir -p /run/sshd
+        sudo -n ssh-keygen -A >/dev/null
+        sudo -n /usr/sbin/sshd
+        ;;
+    *)
+        echo "[entrypoint] unsupported SSH_MODE '${SSH_MODE_VAL}'" >&2
+        exit 64
+        ;;
+esac
+
+# Preserve the user command as PID 1 so signals propagate directly.
 exec "$@"

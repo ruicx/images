@@ -42,10 +42,10 @@ fi
 
 DPKG_ARCH="$(dpkg --print-architecture 2>/dev/null || echo unknown)"
 case "$DPKG_ARCH" in
-    amd64|i386)
+    amd64 | i386)
         APT_ROOT="${ALIYUN_APT_HOST}/ubuntu"
         ;;
-    arm64|armhf|ppc64el|riscv64|s390x)
+    arm64 | armhf | ppc64el | riscv64 | s390x)
         APT_ROOT="${ALIYUN_APT_HOST}/ubuntu-ports"
         ;;
     *)
@@ -68,7 +68,7 @@ classic_file="/etc/apt/sources.list"
 
 write_deb822() {
     # Components present in modern Ubuntu main base image.
-    cat > "$deb822_file" <<EOF
+    cat >"$deb822_file" <<EOF
 Types: deb
 URIs: https://${APT_ROOT}/
 Suites: ${CODENAME} ${CODENAME}-updates ${CODENAME}-backports
@@ -84,7 +84,7 @@ EOF
 }
 
 write_classic() {
-    cat > "$classic_file" <<EOF
+    cat >"$classic_file" <<EOF
 deb https://${APT_ROOT}/ ${CODENAME} main restricted universe multiverse
 deb https://${APT_ROOT}/ ${CODENAME}-updates main restricted universe multiverse
 deb https://${APT_ROOT}/ ${CODENAME}-backports main restricted universe multiverse
@@ -101,7 +101,7 @@ if [ -n "$APT_ROOT" ]; then
         # Ensure no conflicting classic file overrides us.
         if [ -f "$classic_file" ]; then
             cp "$classic_file" "${classic_file}.ubuntu-orig" 2>/dev/null || true
-            : > "$classic_file"
+            : >"$classic_file"
         fi
     elif [ -f "$classic_file" ]; then
         echo "finalize-mirror.sh: rewriting classic source ($classic_file) → Aliyun (${APT_ROOT})"
@@ -136,7 +136,7 @@ fi
 # ─── 2. pip → Aliyun PyPI mirror ──────────────────────────────────────────────
 echo "finalize-mirror.sh: writing /etc/pip.conf → Aliyun PyPI mirror"
 install -d -m 0755 /etc
-cat > /etc/pip.conf <<EOF
+cat >/etc/pip.conf <<EOF
 [global]
 index-url = ${ALIYUN_PIP_URL}
 trusted-host = mirrors.aliyun.com

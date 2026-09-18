@@ -1,0 +1,151 @@
+name: Publish images
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      family:
+        description: "Image family; leave empty for all"
+        required: false
+        type: string
+      variant:
+        description: "Variant; requires family"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-images-main
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install repository tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+          sudo apt-get update
+          sudo apt-get install -y shellcheck shfmt
+
+      - name: Validate repository
+        run: |
+          python -m ruff check tools
+          python -m ruff format --check tools
+          python -m mypy tools/images
+          python -m pytest
+          python -m tools.images validate
+          mapfile -t shell_files < <(python -m tools.images files --kind shell)
+          shellcheck "${shell_files[@]}"
+          shfmt -d -i 4 -ci "${shell_files[@]}"
+
+      - name: Calculate affected images
+        id: plan
+        env:
+          BASE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+          INPUT_FAMILY: ${{ inputs.family }}
+          INPUT_VARIANT: ${{ inputs.variant }}
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            arguments=(--all)
+            if [[ -n "$INPUT_FAMILY" ]]; then
+              arguments=(--family "$INPUT_FAMILY")
+              if [[ -n "$INPUT_VARIANT" ]]; then
+                arguments+=(--variant "$INPUT_VARIANT")
+              fi
+            fi
+            python -m tools.images plan "${arguments[@]}" --output build-plan.json
+          elif [[ "$BASE_SHA" =~ ^0+$ ]]; then
+            python -m tools.images plan --all --output build-plan.json
+          else
+            python -m tools.images plan --base "$BASE_SHA" --head "$HEAD_SHA" --output build-plan.json
+          fi
+          count="$(python -c 'import json; print(len(json.load(open("build-plan.json"))["targets"]))')"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          cat build-plan.json
+
+      - name: Set up Docker Buildx
+        if: steps.plan.outputs.count != '0'
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Build images for tests
+        if: steps.plan.outputs.count != '0'
+        run: |
+          python -m tools.images bake \
+            --plan build-plan.json \
+            --owner "${{ github.repository_owner }}" \
+            --repository "${{ github.repository }}" \
+            --revision "${{ github.sha }}" \
+            --mode load \
+            --output docker-bake.generated.json
+          python -m tools.images build-test \
+            --plan build-plan.json \
+            --bake docker-bake.generated.json \
+            --owner "${{ github.repository_owner }}" \
+            --revision "${{ github.sha }}"
+
+      - name: Log in to GHCR
+        if: steps.plan.outputs.count != '0'
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Preflight immutable tags
+        if: steps.plan.outputs.count != '0'
+        id: guard
+        run: |
+          python -m tools.images bake \
+            --plan build-plan.json \
+            --owner "${{ github.repository_owner }}" \
+            --repository "${{ github.repository }}" \
+            --revision "${{ github.sha }}" \
+            --mode preflight \
+            --output docker-bake.preflight.json
+          docker buildx bake --file docker-bake.preflight.json --metadata-file build-metadata.json
+          python -m tools.images guard-tags \
+            --plan build-plan.json \
+            --metadata build-metadata.json \
+            --owner "${{ github.repository_owner }}" \
+            --revision "${{ github.sha }}" \
+            --output publish-plan.json
+          count="$(python -c 'import json; print(sum(x["publish"] for x in json.load(open("publish-plan.json"))["targets"]))')"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      - name: Publish missing immutable tags
+        if: steps.guard.outputs.count != '0'
+        run: |
+          python -m tools.images bake \
+            --plan publish-plan.json \
+            --owner "${{ github.repository_owner }}" \
+            --repository "${{ github.repository }}" \
+            --revision "${{ github.sha }}" \
+            --mode publish \
+            --output docker-bake.publish.json
+          docker buildx bake --file docker-bake.publish.json
+
+      - name: Promote floating variant tags
+        if: steps.plan.outputs.count != '0'
+        run: |
+          python -m tools.images promote \
+            --plan build-plan.json \
+            --owner "${{ github.repository_owner }}" \
+            --revision "${{ github.sha }}"

@@ -1,0 +1,231 @@
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Any
+
+from .repository import ImageRepository, RepositoryError, load_json, write_json
+
+
+def parser() -> argparse.ArgumentParser:
+    result = argparse.ArgumentParser(prog="images")
+    result.add_argument("--root", type=Path, default=Path.cwd(), help="repository root")
+    subcommands = result.add_subparsers(dest="command", required=True)
+
+    subcommands.add_parser("validate", help="validate all manifests and dependency edges")
+    subcommands.add_parser("list", help="list image families and variants")
+    files = subcommands.add_parser("files", help="list referenced files for repository checks")
+    files.add_argument("--kind", choices=("shell",), required=True)
+
+    plan = subcommands.add_parser("plan", help="calculate affected targets")
+    plan.add_argument("--base")
+    plan.add_argument("--head")
+    plan.add_argument("--all", action="store_true")
+    plan.add_argument("--family")
+    plan.add_argument("--variant")
+    plan.add_argument("--output", type=Path)
+
+    bake = subcommands.add_parser("bake", help="render a Docker Buildx Bake file")
+    bake.add_argument("--plan", type=Path, required=True)
+    bake.add_argument("--owner", required=True)
+    bake.add_argument("--revision", required=True)
+    bake.add_argument("--repository", help="GitHub owner/repository for the OCI source label")
+    bake.add_argument("--mode", choices=("load", "preflight", "publish"), required=True)
+    bake.add_argument("--output", type=Path)
+
+    test = subcommands.add_parser("test", help="run manifest smoke tests against loaded images")
+    test.add_argument("--plan", type=Path, required=True)
+    test.add_argument("--owner", required=True)
+    test.add_argument("--revision", required=True)
+
+    build_test = subcommands.add_parser(
+        "build-test", help="build and test every independent Bake component"
+    )
+    build_test.add_argument("--plan", type=Path, required=True)
+    build_test.add_argument("--bake", type=Path, required=True)
+    build_test.add_argument("--owner", required=True)
+    build_test.add_argument("--revision", required=True)
+
+    guard = subcommands.add_parser("guard-tags", help="reject conflicting immutable tags")
+    guard.add_argument("--plan", type=Path, required=True)
+    guard.add_argument("--metadata", type=Path, required=True)
+    guard.add_argument("--owner", required=True)
+    guard.add_argument("--revision", required=True)
+    guard.add_argument("--output", type=Path, required=True)
+
+    promote = subcommands.add_parser("promote", help="update floating tags from immutable tags")
+    promote.add_argument("--plan", type=Path, required=True)
+    promote.add_argument("--owner", required=True)
+    promote.add_argument("--revision", required=True)
+    return result
+
+
+def _published_items(plan: dict[str, Any]) -> list[dict[str, Any]]:
+    return [item for item in plan["targets"] if item["publish"]]
+
+
+def _remote_digest(reference: str) -> str | None:
+    result = subprocess.run(
+        [
+            "docker",
+            "buildx",
+            "imagetools",
+            "inspect",
+            reference,
+            "--format",
+            "{{.Manifest.Digest}}",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def _guard_tags(args: argparse.Namespace, plan: dict[str, Any]) -> None:
+    metadata = load_json(args.metadata)
+    short_revision = args.revision[:12].lower()
+    filtered = json.loads(json.dumps(plan))
+    for item in filtered["targets"]:
+        if not item["publish"]:
+            continue
+        reference = (
+            f"ghcr.io/{args.owner.lower()}/{item['family']}:{item['variant']}-{short_revision}"
+        )
+        remote = _remote_digest(reference)
+        if remote is None:
+            continue
+        local = metadata.get(item["target"], {}).get("containerimage.digest")
+        if not local:
+            raise RepositoryError(f"missing local digest metadata for {item['target']}")
+        if remote != local:
+            raise RepositoryError(
+                f"immutable tag conflict for {reference}: remote={remote}, local={local}"
+            )
+        item["publish"] = False
+        print(f"immutable tag already exists with matching digest; skipping: {reference}")
+    write_json(filtered, args.output)
+
+
+def _promote(args: argparse.Namespace, plan: dict[str, Any]) -> None:
+    short_revision = args.revision[:12].lower()
+    for item in _published_items(plan):
+        prefix = f"ghcr.io/{args.owner.lower()}/{item['family']}"
+        immutable = f"{prefix}:{item['variant']}-{short_revision}"
+        floating = f"{prefix}:{item['variant']}"
+        subprocess.run(
+            ["docker", "buildx", "imagetools", "create", "--tag", floating, immutable],
+            check=True,
+        )
+
+
+def _run_tests(repo: ImageRepository, args: argparse.Namespace, plan: dict[str, Any]) -> None:
+    short_revision = args.revision[:12].lower()
+    for item in plan["targets"]:
+        variant = repo.variants[(item["family"], item["variant"])]
+        image = (
+            f"ghcr.io/{args.owner.lower()}/{variant.family}:{variant.identifier}-{short_revision}"
+        )
+        for script_name in variant.tests:
+            script = repo.root / script_name
+            print(f"testing {image} with {script_name}")
+            subprocess.run(
+                ["docker", "run", "--rm", "--entrypoint", "/bin/bash", image, "-s"],
+                input=script.read_text(encoding="utf-8"),
+                text=True,
+                check=True,
+            )
+
+
+def _build_and_test_components(
+    repo: ImageRepository, args: argparse.Namespace, plan: dict[str, Any]
+) -> None:
+    bake = load_json(args.bake)
+    groups = sorted(name for name in bake.get("group", {}) if name.startswith("component-"))
+    failures: list[str] = []
+    for group in groups:
+        target_names = set(bake["group"][group]["targets"])
+        component_plan = dict(plan)
+        component_plan["targets"] = [
+            item for item in plan["targets"] if item["target"] in target_names
+        ]
+        print(f"building independent graph component: {group}")
+        try:
+            subprocess.run(
+                ["docker", "buildx", "bake", "--file", str(args.bake), group],
+                check=True,
+            )
+            _run_tests(repo, args, component_plan)
+        except subprocess.CalledProcessError:
+            failures.append(group)
+    if failures:
+        raise RepositoryError(f"build or smoke tests failed for: {', '.join(failures)}")
+
+
+def run(arguments: Sequence[str] | None = None) -> int:
+    args = parser().parse_args(arguments)
+    repo = ImageRepository(args.root).load()
+    if args.command == "validate":
+        repo.validate_documentation()
+        print(f"validated {len(repo.families)} families and {len(repo.variants)} variants")
+    elif args.command == "list":
+        for family in repo.families.values():
+            print(f"{family.name}: {family.description}")
+            for variant in family.variants:
+                dependencies = (
+                    ", ".join(f"{item.family}/{item.variant}" for item in variant.dependencies)
+                    or "none"
+                )
+                print(f"  {variant.identifier} (dependencies: {dependencies})")
+    elif args.command == "files":
+        for path in repo.shell_files():
+            print(path.relative_to(repo.root).as_posix())
+    elif args.command == "plan":
+        if args.all or args.family:
+            targets = repo.select(args.family, args.variant)
+            changed: list[str] = []
+        else:
+            if not args.base or not args.head:
+                raise RepositoryError(
+                    "plan requires --base and --head unless --all/--family is used"
+                )
+            changed = repo.changed_files(args.base, args.head)
+            targets = repo.affected(changed)
+        write_json(repo.make_plan(targets, changed), args.output)
+    elif args.command == "bake":
+        plan = load_json(args.plan)
+        write_json(
+            repo.render_bake(
+                plan,
+                args.owner,
+                args.revision,
+                args.mode,
+                source_repository=args.repository,
+            ),
+            args.output,
+        )
+    elif args.command == "test":
+        _run_tests(repo, args, load_json(args.plan))
+    elif args.command == "build-test":
+        _build_and_test_components(repo, args, load_json(args.plan))
+    elif args.command == "guard-tags":
+        _guard_tags(args, load_json(args.plan))
+    elif args.command == "promote":
+        _promote(args, load_json(args.plan))
+    return 0
+
+
+def main() -> int:
+    try:
+        return run()
+    except (RepositoryError, subprocess.CalledProcessError) as error:
+        print(f"images: error: {error}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

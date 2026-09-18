@@ -1,6 +1,7 @@
 #!/bin/bash
-# Create the non-root user with sudo privileges and set up XDG runtime dir.
-# Reads USERNAME (default: luciole), USER_UID (default: 1000), USER_GID (default: USER_UID).
+# Create a locked non-root user with passwordless sudo and an XDG runtime dir.
+# Reads USERNAME (default: luciole), USER_UID (default: 1000), and
+# USER_GID (default: USER_UID). No password is created.
 set -euo pipefail
 
 USERNAME_VAL=${USERNAME:-luciole}
@@ -21,18 +22,17 @@ if [ -n "${existing_group}" ]; then
 fi
 
 groupadd --gid "${USER_GID_VAL}" "${USERNAME_VAL}"
-useradd --uid "${USER_UID_VAL}" --gid "${USER_GID_VAL}" -m "${USERNAME_VAL}"
+useradd --uid "${USER_UID_VAL}" --gid "${USER_GID_VAL}" --create-home \
+    --shell /bin/bash "${USERNAME_VAL}"
+passwd --lock "${USERNAME_VAL}"
 
 apt-get update
 apt-get install -y sudo
 rm -rf /var/lib/apt/lists/*
-echo "${USERNAME_VAL} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/"${USERNAME_VAL}"
+echo "${USERNAME_VAL} ALL=(root) NOPASSWD:ALL" >/etc/sudoers.d/"${USERNAME_VAL}"
 chmod 0440 /etc/sudoers.d/"${USERNAME_VAL}"
 
 # XDG runtime dir — needed for VS Code IPC sockets and GUI apps
 mkdir -p /run/user/"${USER_UID_VAL}"
 chown "${USERNAME_VAL}":"${USERNAME_VAL}" /run/user/"${USER_UID_VAL}"
 chmod 0700 /run/user/"${USER_UID_VAL}"
-
-# set password for the user (default: 123456)
-echo "${USERNAME_VAL}:123456" | chpasswd

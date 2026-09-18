@@ -1,0 +1,78 @@
+name: Pull request images
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install validation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+          sudo apt-get update
+          sudo apt-get install -y shellcheck shfmt
+
+      - name: Validate code and manifests
+        run: |
+          python -m ruff check tools
+          python -m ruff format --check tools
+          python -m mypy tools/images
+          python -m pytest
+          python -m tools.images validate
+          mapfile -t shell_files < <(python -m tools.images files --kind shell)
+          shellcheck "${shell_files[@]}"
+          shfmt -d -i 4 -ci "${shell_files[@]}"
+
+      - name: Calculate affected images
+        id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            python -m tools.images plan --base "$BASE_SHA" --head "$HEAD_SHA" --output build-plan.json
+          else
+            python -m tools.images plan --all --output build-plan.json
+          fi
+          count="$(python -c 'import json; print(len(json.load(open("build-plan.json"))["targets"]))')"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          cat build-plan.json
+
+      - name: Set up Docker Buildx
+        if: steps.plan.outputs.count != '0'
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Render pull-request Bake graph
+        if: steps.plan.outputs.count != '0'
+        env:
+          IMAGE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          python -m tools.images bake \
+            --plan build-plan.json \
+            --owner "${{ github.repository_owner }}" \
+            --repository "${{ github.repository }}" \
+            --revision "$IMAGE_REVISION" \
+            --mode load \
+            --output docker-bake.generated.json
+          python -m tools.images build-test \
+            --plan build-plan.json \
+            --bake docker-bake.generated.json \
+            --owner "${{ github.repository_owner }}" \
+            --revision "$IMAGE_REVISION"

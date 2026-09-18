@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dev-image-repository"
+version = "0.1.0"
+description = "Manifest-driven tooling for development container images"
+requires-python = ">=3.11"
+dependencies = [
+  "jsonschema==4.26.0",
+  "PyYAML==6.0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy==1.20.2",
+  "pytest==8.4.2",
+  "ruff==0.16.8",
+  "types-PyYAML==6.0.12.20260906",
+]
+
+[project.scripts]
+images = "tools.images.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["tools*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tools/images/tests"]
+addopts = "-p no:cacheprovider --basetemp=.pytest-tmp"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["tools.images"]
+exclude = "tools/images/tests"
+
+[[tool.mypy.overrides]]
+module = "jsonschema"
+ignore_missing_imports = true

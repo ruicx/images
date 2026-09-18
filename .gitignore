@@ -1,3 +1,21 @@
 # harness and editor configuration directories
 .zcode
 .vscode
+
+# local Python/build outputs
+.mypy_cache/
+.pytest_cache/
+.pytest-tmp/
+.ruff_cache/
+.venv/
+.tool-cache/
+*.egg-info/
+__pycache__/
+
+# generated image plans and Bake files
+build-plan.json
+publish-plan.json
+docker-bake.generated.json
+docker-bake.preflight.json
+docker-bake.publish.json
+build-metadata.json
