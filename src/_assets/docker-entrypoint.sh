@@ -58,6 +58,8 @@ case "${SSH_MODE_VAL}" in
                 echo "[entrypoint] SSH_PASSWORD_FILE must reference a non-empty file" >&2
                 exit 64
             fi
+            # Expand positional parameters only inside the privileged child shell.
+            # shellcheck disable=SC2016
             run_as_root /bin/bash -c '
                 password=$(cat "$1")
                 if [ -z "${password}" ]; then
