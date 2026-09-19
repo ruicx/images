@@ -16,6 +16,7 @@ scripts=(
     "src/_scripts/ssh.sh|--default-user"
     "src/_scripts/system.sh|--timezone"
     "src/_scripts/user.sh|--username"
+    "src/_scripts/workspace.sh|--path"
 )
 
 no_argument_scripts=(
@@ -57,6 +58,18 @@ for disabled_value in false False FALSE 0 no NO off disabled; do
     bash "${devshell_script}" --enabled "${disabled_value}"
 done
 expect_usage_error "${devshell_script}" --enabled sometimes
+
+# Selecting root must be a non-mutating success path owned by the user capability.
+user_script="${REPOSITORY_ROOT}/src/_scripts/user.sh"
+bash "${user_script}" --username root --uid 1000 --gid 1000
+
+# Reject paths that could assign ownership to the filesystem root or escape lexically.
+workspace_script="${REPOSITORY_ROOT}/src/_scripts/workspace.sh"
+expect_usage_error "${workspace_script}" --path / --owner root
+expect_usage_error "${workspace_script}" --path /work/../other --owner root
+expect_usage_error "${workspace_script}" --path relative --owner root
+expect_usage_error "${workspace_script}" --path /work --owner "Invalid Owner"
+expect_usage_error "${workspace_script}" --path /work --owner user-that-does-not-exist
 
 for script_name in "${no_argument_scripts[@]}"; do
     script="${REPOSITORY_ROOT}/${script_name}"

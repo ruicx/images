@@ -1,6 +1,6 @@
 #!/bin/bash
-# Create a locked non-root user with passwordless sudo and an XDG runtime dir.
-# Options: --username, --uid, and --gid. No password is created.
+# Ensure the requested default user exists and configure managed non-root users.
+# Options: --username, --uid, and --gid. Root is reused; no password is created.
 set -euo pipefail
 
 usage() {
@@ -8,9 +8,9 @@ usage() {
 Usage: user.sh [--username <name>] [--uid <id>] [--gid <id>]
 
 Options:
-  --username <value>  User name (default: luciole)
-  --uid <value>       User ID (default: 1000)
-  --gid <value>       Group ID (default: value of --uid)
+  --username <value>  User name (default: luciole; root reuses the existing account)
+  --uid <value>       User ID (default: 1000; not applied to root)
+  --gid <value>       Group ID (default: value of --uid; not applied to root)
   -h, --help          Show this help
 EOF
 }
@@ -61,6 +61,11 @@ fi
 if [[ ! "${USER_UID_VAL}" =~ ^[0-9]+$ || ! "${USER_GID_VAL}" =~ ^[0-9]+$ ]]; then
     echo "user.sh: uid and gid must be non-negative integers" >&2
     exit 64
+fi
+
+# Root is provided by the base image and must never be recreated or renumbered.
+if [ "${USERNAME_VAL}" = "root" ]; then
+    exit 0
 fi
 
 # Remove any existing user/group occupying the target UID/GID

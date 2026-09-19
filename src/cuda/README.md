@@ -21,10 +21,11 @@ artifacts changed.
 CMake is downloaded from its exact HTTPS release URL. This family intentionally does not verify a
 checksum for that archive.
 
-The default interactive user is `root`, no additional login account is created, the working
-directory is `/work`, and the package mirror is upstream. Password SSH and root login are enabled
-for this family, but the root account remains locked until a password is supplied at runtime. No
-password is stored in the image.
+The default interactive user is `root`, no additional login account is created, the package mirror
+is upstream, and `WORKSPACE_DIR` selects the created working directory (`/work` by default). The
+workspace must be an absolute path other than `/`; it is owned by `DEFAULT_USER`. Password SSH and
+root login are enabled for this family, but the root account remains locked until a password is
+supplied at runtime. No password is stored in the image.
 
 Running the container as root and exposing password SSH gives processes and accepted SSH sessions
 full control of the container. Use a unique strong password, restrict the published SSH port at the
@@ -50,7 +51,8 @@ Delete the local password file when it is no longer needed. To disable SSH, set
 `SSH_MODE=disabled`. To use the safer key-only mode, set `SSH_MODE=key-only` and mount a non-empty
 public-key file at `/root/.ssh/authorized_keys`.
 
-`DEFAULT_USER=root` selects the existing root account and does not create another user. Any other
+`DEFAULT_USER=root` makes the user setup capability reuse the existing root account and does not
+create or renumber a user; `DEFAULT_UID` and `DEFAULT_GID` are not applied in this mode. Any other
 valid Linux username creates that account from `DEFAULT_UID` and `DEFAULT_GID`, makes it the final
 Docker user, and gives it passwordless sudo. For example:
 
@@ -59,6 +61,7 @@ build_args:
   DEFAULT_USER: developer
   DEFAULT_UID: 1000
   DEFAULT_GID: 1000
+  WORKSPACE_DIR: /workspace
 runtime:
   ssh:
     default: password

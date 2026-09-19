@@ -12,6 +12,7 @@ inputs:
   - src/_scripts/devshell.sh
   - src/_scripts/user.sh
   - src/_scripts/ssh.sh
+  - src/_scripts/workspace.sh
   - src/_scripts/finalize-mirror.sh
   - src/_assets/docker-entrypoint.sh
 runtime:
@@ -29,6 +30,7 @@ variants:
       DEVSHELL: true
       TZ: Asia/Shanghai
       CMAKE_VERSION: 4.3.2
+      WORKSPACE_DIR: /work
     mirror: upstream
     dependencies: []
     tests:
@@ -42,6 +44,7 @@ variants:
       DEVSHELL: true
       TZ: Asia/Shanghai
       CMAKE_VERSION: 4.3.2
+      WORKSPACE_DIR: /work
     mirror: upstream
     dependencies: []
     tests:

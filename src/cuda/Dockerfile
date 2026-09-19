@@ -12,6 +12,7 @@ ARG DEVSHELL=false
 ARG PACKAGE_MIRROR=upstream
 ARG SSH_MODE=password
 ARG SSH_LOGIN_USER=default
+ARG WORKSPACE_DIR=/work
 
 LABEL org.opencontainers.image.description="Linux amd64 NVIDIA CUDA development environment"
 
@@ -24,21 +25,22 @@ RUN /tmp/image-scripts/dev-tools.sh
 COPY --chmod=0755 src/_scripts/cmake.sh /tmp/image-scripts/cmake.sh
 RUN /tmp/image-scripts/cmake.sh --version "${CMAKE_VERSION}"
 
-COPY --chmod=0755 src/_scripts/user.sh src/_scripts/ssh.sh /tmp/image-scripts/
-RUN if [ "${DEFAULT_USER}" != "root" ]; then \
-      /tmp/image-scripts/user.sh \
-        --username "${DEFAULT_USER}" \
-        --uid "${DEFAULT_UID}" \
-        --gid "${DEFAULT_GID}"; \
-    fi \
-    && /tmp/image-scripts/ssh.sh \
+COPY --chmod=0755 src/_scripts/user.sh /tmp/image-scripts/user.sh
+RUN /tmp/image-scripts/user.sh \
+      --username "${DEFAULT_USER}" \
+      --uid "${DEFAULT_UID}" \
+      --gid "${DEFAULT_GID}"
+
+COPY --chmod=0755 src/_scripts/ssh.sh /tmp/image-scripts/ssh.sh
+RUN /tmp/image-scripts/ssh.sh \
       --default-user "${DEFAULT_USER}" \
       --login-user "${SSH_LOGIN_USER}" \
-      --mode "${SSH_MODE}" \
-    && mkdir -p /work \
-    && if [ "${DEFAULT_USER}" != "root" ]; then \
-      chown "${DEFAULT_USER}:${DEFAULT_USER}" /work; \
-    fi
+      --mode "${SSH_MODE}"
+
+COPY --chmod=0755 src/_scripts/workspace.sh /tmp/image-scripts/workspace.sh
+RUN /tmp/image-scripts/workspace.sh \
+      --path "${WORKSPACE_DIR}" \
+      --owner "${DEFAULT_USER}"
 
 COPY --chmod=0755 src/_scripts/finalize-mirror.sh /tmp/image-scripts/finalize-mirror.sh
 RUN if [ "${PACKAGE_MIRROR}" = "aliyun" ]; then \
@@ -64,11 +66,12 @@ ENV EDITOR=vim \
     SSH_LOGIN_USER=${SSH_LOGIN_USER} \
     SSH_MODE=${SSH_MODE} \
     TZ=${TZ} \
-    VISUAL=vim
+    VISUAL=vim \
+    WORKSPACE_DIR=${WORKSPACE_DIR}
 
 # The root name selects the existing account; any other valid name is created above.
 USER ${DEFAULT_USER}
-WORKDIR /work
+WORKDIR ${WORKSPACE_DIR}
 EXPOSE 22
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint"]
 CMD ["bash"]

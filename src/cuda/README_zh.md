@@ -16,9 +16,10 @@ SSH 会话使用账号配置的 zsh 登录 shell，`docker exec` 调用者可显
 
 CMake 从精确版本的 HTTPS release 地址下载；本镜像族明确不校验该压缩包的 checksum。
 
-默认交互用户为 `root`，不创建额外登录账号，工作目录为 `/work`，软件源使用上游。该镜像族
-默认启用密码 SSH 和 root 登录，但在运行时提供密码前 root 账户保持锁定；镜像中不保存任何
-密码。
+默认交互用户为 `root`，不创建额外登录账号，软件源使用上游；`WORKSPACE_DIR` 用来选择创建
+的工作目录（默认为 `/work`）。工作目录必须是 `/` 以外的绝对路径，其所有者为
+`DEFAULT_USER`。该镜像族默认启用密码 SSH 和 root 登录，但在运行时提供密码前 root 账户
+保持锁定；镜像中不保存任何密码。
 
 以 root 运行容器并开放密码 SSH，意味着容器进程和成功登录的 SSH 会话拥有容器内的完整
 控制权。请使用独立的强密码，在宿主机或网络边界限制 SSH 端口，并尽可能改用
@@ -44,15 +45,17 @@ ssh -p 2222 root@localhost
 纯公钥模式，请设置 `SSH_MODE=key-only`，并把非空公钥文件挂载到
 `/root/.ssh/authorized_keys`。
 
-`DEFAULT_USER=root` 会选择已有的 root 账号，不创建其他用户。设置为其他合法 Linux 用户名
-时，会使用 `DEFAULT_UID` 和 `DEFAULT_GID` 创建该账号，将其设为 Docker 最终用户，并授予
-免密 sudo。例如：
+`DEFAULT_USER=root` 会让用户配置能力复用已有的 root 账号，不创建用户或修改其 UID；此模式
+不会应用 `DEFAULT_UID` 和 `DEFAULT_GID`。设置为其他合法 Linux 用户名时，会使用
+`DEFAULT_UID` 和 `DEFAULT_GID` 创建该账号，将其设为 Docker 最终用户，并授予免密 sudo。
+例如：
 
 ```yaml
 build_args:
   DEFAULT_USER: developer
   DEFAULT_UID: 1000
   DEFAULT_GID: 1000
+  WORKSPACE_DIR: /workspace
 runtime:
   ssh:
     default: password

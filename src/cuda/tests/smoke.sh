@@ -7,7 +7,8 @@ test "$(id -u)" -eq 0
 test "$(id -un)" = "root"
 test "${DEFAULT_USER}" = "root"
 test "${SSH_LOGIN_USER}" = "root"
-test "${PWD}" = "/work"
+test "${WORKSPACE_DIR}" = "/work"
+test "${PWD}" = "${WORKSPACE_DIR}"
 test "${SSH_MODE}" = "password"
 test "${PACKAGE_MIRROR}" = "upstream"
 command -v nvcc >/dev/null
@@ -24,8 +25,8 @@ rg --version | head -n 1
 fd --version
 bat --version
 sudo -n true
-test -d /work
-test -w /work
+test -d "${WORKSPACE_DIR}"
+test -w "${WORKSPACE_DIR}"
 if getent passwd luciole >/dev/null; then
     echo "the root-only CUDA variant must not create the legacy luciole user" >&2
     exit 1
