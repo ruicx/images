@@ -18,7 +18,7 @@ Dockerfile，通过显式基础镜像策略和构建参数表达差异。每个�
 | 镜像族 | 变体 | 浮动镜像引用 |
 | --- | --- | --- |
 | `cuda` | `12.6.3-devel-ubuntu24.04` | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` |
-| `cuda` | `12.8.1-devel-ubuntu24.04` | `ghcr.io/ruicx/cuda:12.8.1-devel-ubuntu24.04` |
+| `cuda` | `12.8.2-devel-ubuntu24.04` | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` |
 
 需要可复现环境时，请把浮动变体标签替换为不可变的
 `<variant>-<12位-git-sha>` 标签或 digest。
@@ -50,7 +50,7 @@ GitHub 源码仓库已经公开，但 GitHub 会分别管理仓库和容器包�
 
 ```bash
 docker logout ghcr.io
-docker pull ghcr.io/ruicx/cuda:12.8.1-devel-ubuntu24.04
+docker pull ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04
 ```
 
 自动化永不删除不可变标签。从清单移除变体只会停止后续构建。

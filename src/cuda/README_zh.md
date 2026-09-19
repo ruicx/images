@@ -49,7 +49,7 @@ docker run --rm -d \
   -p 2222:22 \
   -e SSH_PASSWORD_FILE=/run/secrets/ssh-password \
   -v "${PWD}/ssh-password:/run/secrets/ssh-password:ro" \
-  ghcr.io/ruicx/cuda:12.8.1-devel-ubuntu24.04 \
+  ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04 \
   sleep infinity
 ssh -p 2222 root@localhost
 ```

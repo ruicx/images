@@ -19,7 +19,7 @@ global `latest` tag.
 | Family | Variant | Floating image reference |
 | --- | --- | --- |
 | `cuda` | `12.6.3-devel-ubuntu24.04` | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` |
-| `cuda` | `12.8.1-devel-ubuntu24.04` | `ghcr.io/ruicx/cuda:12.8.1-devel-ubuntu24.04` |
+| `cuda` | `12.8.2-devel-ubuntu24.04` | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` |
 
 For reproducible environments, replace the floating variant tag with an immutable
 `<variant>-<12-character-git-sha>` tag or a digest.
@@ -53,7 +53,7 @@ and verify an anonymous pull:
 
 ```bash
 docker logout ghcr.io
-docker pull ghcr.io/ruicx/cuda:12.8.1-devel-ubuntu24.04
+docker pull ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04
 ```
 
 Automation never deletes immutable tags. Removing a variant from its manifest only stops future
