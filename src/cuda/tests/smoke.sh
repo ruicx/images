@@ -16,6 +16,19 @@ nvcc --version
 python3 --version
 python3 -m pip --version
 cmake --version | grep -F "cmake version 4.3.2"
+llama_version="$(llama-cli --version 2>&1)"
+printf '%s\n' "${llama_version}"
+grep -F "build 11046" <<<"${llama_version}"
+test "$(readlink -f "$(command -v llama-cli)")" = "/opt/llama.cpp/llama-cli"
+test "$(readlink -f "$(command -v llama-server)")" = "/opt/llama.cpp/llama-server"
+missing_llama_dependencies="$({
+    ldd /opt/llama.cpp/libggml-cuda.so || true
+} | awk '$2 == "=>" && $3 == "not" && $4 == "found" { print $1 }' | grep -Fvx 'libcuda.so.1' || true)"
+if [ -n "${missing_llama_dependencies}" ]; then
+    printf '%s\n' "${missing_llama_dependencies}" >&2
+    echo "llama.cpp CUDA backend has unresolved shared-library dependencies" >&2
+    exit 1
+fi
 ninja --version
 git --version
 git lfs version

@@ -3,7 +3,16 @@
 本镜像族基于固定 digest 的 NVIDIA CUDA 镜像，为 Linux amd64 参数化构建开发环境。支持的
 CUDA/Ubuntu 组合以 `image.yml` 为准。镜像包含 CUDA 编译器、固定版本的 CMake
 4.3.2、Ninja、GCC、clangd、GDB、Git LFS、Python 3、pip、虚拟环境支持、OpenCV 开发库、
-常用网络工具，以及 ripgrep、fd、bat 等现代命令行工具。
+支持 CUDA 的预编译 llama.cpp、常用网络工具，以及 ripgrep、fd、bat 等现代命令行工具。
+
+llama.cpp 使用官方 GitHub `b11046` Ubuntu x64 CUDA 12.8 release 资产：
+`https://github.com/ggml-org/llama.cpp/releases/download/b11046/llama-b11046-bin-ubuntu-cuda-12.8-x64.tar.gz`。
+本镜像族对这个精确版本和 HTTPS URL 采用用户批准的 checksum 例外，因此接受同名 release
+资产被替换的供应链风险。压缩包解压到 `/opt/llama.cpp`，其中的 `llama-*` 可执行文件链接到
+`/usr/local/bin`，无需修改 `PATH`。本镜像族已经提供 CUDA 12 运行库，因此有意不安装上游
+单独发布的 CUDA runtime 压缩包。升级时必须同时更新 `LLAMA_CPP_VERSION` 和
+`LLAMA_CPP_CUDA_VERSION`。llama.cpp 层位于开发 shell 层之后，因此修改 llama.cpp 版本不会
+让更昂贵的 shell 配置层失效；最终镜像源选择位于其后，因为 shell 配置过程中仍会安装软件包。
 
 开发 shell 默认通过 `DEVSHELL: true` 启用，安装 zsh、Oh My Zsh、NvChad、使用当前 Node.js
 LTS 的 NVM、fzf、eza、Starship、Sheldon、Zoxide、Witr 和 Atuin。容器命令仍默认为 Bash；

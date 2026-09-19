@@ -9,6 +9,7 @@ inputs:
   - src/_scripts/system.sh
   - src/_scripts/dev-tools.sh
   - src/_scripts/cmake.sh
+  - src/_scripts/llama-cpp.sh
   - src/_scripts/devshell.sh
   - src/_scripts/user.sh
   - src/_scripts/ssh.sh
@@ -30,6 +31,8 @@ variants:
       DEVSHELL: true
       TZ: Asia/Shanghai
       CMAKE_VERSION: 4.3.2
+      LLAMA_CPP_VERSION: b11046
+      LLAMA_CPP_CUDA_VERSION: "12.8"
       WORKSPACE_DIR: /work
     mirror: upstream
     dependencies: []
@@ -44,6 +47,8 @@ variants:
       DEVSHELL: true
       TZ: Asia/Shanghai
       CMAKE_VERSION: 4.3.2
+      LLAMA_CPP_VERSION: b11046
+      LLAMA_CPP_CUDA_VERSION: "12.8"
       WORKSPACE_DIR: /work
     mirror: upstream
     dependencies: []

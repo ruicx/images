@@ -11,6 +11,7 @@ scripts=(
     "src/_scripts/finalize-mirror.sh|--mirror"
     "src/_scripts/iceoryx.sh|--version"
     "src/_scripts/libdatachannel.sh|--version"
+    "src/_scripts/llama-cpp.sh|--version"
     "src/_scripts/precommit.sh|--config"
     "src/_scripts/ros2.sh|--distro"
     "src/_scripts/rpclib.sh|--version"
@@ -64,6 +65,12 @@ expect_usage_error "${devshell_script}" --enabled sometimes
 mirror_script="${REPOSITORY_ROOT}/src/_scripts/finalize-mirror.sh"
 bash "${mirror_script}" --mirror upstream >/dev/null
 expect_usage_error "${mirror_script}" --mirror unsupported
+
+# Exercise every value-taking option and format guard added to the llama.cpp capability.
+llama_cpp_script="${REPOSITORY_ROOT}/src/_scripts/llama-cpp.sh"
+expect_usage_error "${llama_cpp_script}" --cuda-version
+expect_usage_error "${llama_cpp_script}" --version latest
+expect_usage_error "${llama_cpp_script}" --cuda-version 12
 
 # Selecting root must be a non-mutating success path owned by the user capability.
 user_script="${REPOSITORY_ROOT}/src/_scripts/user.sh"
