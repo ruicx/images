@@ -21,7 +21,8 @@
   explain intent or constraints rather than restating code. Python must pass Ruff, mypy, and
   pytest. User-facing errors identify the family, variant, and field.
 - Dockerfiles use BuildKit syntax, explicit non-interactive package installation, one cleanup layer,
-  a non-root final user, and OCI labels supplied by Bake.
+  a non-root final user by default, and OCI labels supplied by Bake. A family may explicitly choose
+  a root final user only when its bilingual README documents the operational and credential risks.
 - Do not use `latest`, `master`, floating LTS installers, unversioned binary downloads, embedded
   passwords, or secrets in build arguments. A family may explicitly enable password/root SSH only
   when credentials are supplied from a runtime-mounted file and its bilingual README documents

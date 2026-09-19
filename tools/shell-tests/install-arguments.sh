@@ -13,7 +13,7 @@ scripts=(
     "src/_scripts/precommit.sh|--config"
     "src/_scripts/ros2.sh|--distro"
     "src/_scripts/rpclib.sh|--version"
-    "src/_scripts/ssh.sh|--username"
+    "src/_scripts/ssh.sh|--default-user"
     "src/_scripts/system.sh|--timezone"
     "src/_scripts/user.sh|--username"
 )
@@ -45,6 +45,11 @@ for specification in "${scripts[@]}"; do
     expect_usage_error "${script}" "${required_option}"
     expect_usage_error "${script}" unexpected-positional
 done
+
+# Exercise every value-taking option added to the SSH capability.
+ssh_script="${REPOSITORY_ROOT}/src/_scripts/ssh.sh"
+expect_usage_error "${ssh_script}" --login-user
+expect_usage_error "${ssh_script}" --mode
 
 for script_name in "${no_argument_scripts[@]}"; do
     script="${REPOSITORY_ROOT}/${script_name}"

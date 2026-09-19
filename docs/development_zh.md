@@ -18,8 +18,9 @@
 - Python 函数和方法必须声明入参与返回值 type hint。公共模块、类、函数、方法和非平凡测试
   helper 使用英文 NumPy 风格 docstring；注释解释意图或约束，不复述代码。Python 必须通过
   Ruff、mypy、pytest；面向用户的错误需指出镜像族、变体和字段。
-- Dockerfile 使用 BuildKit syntax、显式非交互安装、单一清理层、非 root 最终用户，并由 Bake
-  提供 OCI 标签。
+- Dockerfile 使用固定的 BuildKit syntax、显式非交互安装、单一清理层，默认采用非 root
+  最终用户，并由 Bake 提供 OCI 标签。镜像族只有在双语 README 说明运维与凭据风险后，才可
+  显式选择 root 最终用户。
 - 禁止 `latest`、`master`、浮动 LTS 安装器、未固定版本的二进制下载、内置密码以及通过构建参数
   传递秘密。镜像族只有在凭据由运行时挂载文件提供，且双语 README 说明风险、启动步骤和更安全
   模式时，才可显式启用密码/root SSH。

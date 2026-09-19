@@ -18,6 +18,7 @@ import yaml
 TargetKey = tuple[str, str]
 SHA_PATTERN = re.compile(r"^[0-9a-f]{12,40}$")
 SENSITIVE_ARGUMENT_PATTERN = re.compile(r"(?:SECRET|PASSWORD|TOKEN|PRIVATE_KEY)", re.IGNORECASE)
+USERNAME_PATTERN = re.compile(r"^[a-z_][a-z0-9_-]*$")
 
 
 class RepositoryError(RuntimeError):
@@ -68,6 +69,8 @@ class Variant:
         Package mirror policy selected by the manifest.
     ssh_mode:
         Default runtime SSH policy.
+    ssh_login_user:
+        SSH account selector, either the image default user or root.
     dependencies:
         Internal image targets provided as named BuildKit contexts.
     tests:
@@ -81,6 +84,7 @@ class Variant:
     build_args: Mapping[str, str]
     mirror: str
     ssh_mode: str
+    ssh_login_user: str
     dependencies: tuple[Dependency, ...]
     tests: tuple[str, ...]
 
@@ -254,10 +258,12 @@ class ImageRepository:
         """
         family_name = str(raw["name"])
         default_ssh = str(raw["runtime"]["ssh"]["default"])
+        default_ssh_login_user = str(raw["runtime"]["ssh"]["login_user"])
         variants: list[Variant] = []
         for raw_variant in raw["variants"]:
             runtime = raw_variant.get("runtime", {})
             ssh_mode = str(runtime.get("ssh", {}).get("default", default_ssh))
+            ssh_login_user = str(runtime.get("ssh", {}).get("login_user", default_ssh_login_user))
             dependencies = tuple(
                 Dependency(
                     context=str(item["context"]),
@@ -277,6 +283,7 @@ class ImageRepository:
                     },
                     mirror=str(raw_variant["mirror"]),
                     ssh_mode=ssh_mode,
+                    ssh_login_user=ssh_login_user,
                     dependencies=dependencies,
                     tests=tuple(str(item) for item in raw_variant["tests"]),
                 )
@@ -331,6 +338,33 @@ class ImageRepository:
                         f"{family.name}.{variant.identifier}.build_args: secret-like keys are "
                         f"forbidden: {', '.join(sensitive_args)}"
                     )
+                default_user = variant.build_args.get("DEFAULT_USER")
+                default_uid = variant.build_args.get("DEFAULT_UID")
+                default_gid = variant.build_args.get("DEFAULT_GID")
+                if default_user is not None:
+                    if not USERNAME_PATTERN.fullmatch(default_user):
+                        raise RepositoryError(
+                            f"{family.name}.{variant.identifier}.build_args.DEFAULT_USER: "
+                            f"invalid Linux username '{default_user}'"
+                        )
+                    if default_user == "root" and (
+                        default_uid is not None or default_gid is not None
+                    ):
+                        raise RepositoryError(
+                            f"{family.name}.{variant.identifier}.build_args: DEFAULT_UID and "
+                            "DEFAULT_GID must be omitted when DEFAULT_USER is root"
+                        )
+                    if default_user != "root":
+                        if default_uid is None or default_gid is None:
+                            raise RepositoryError(
+                                f"{family.name}.{variant.identifier}.build_args: DEFAULT_UID and "
+                                "DEFAULT_GID are required for a non-root DEFAULT_USER"
+                            )
+                        if not default_uid.isdigit() or not default_gid.isdigit():
+                            raise RepositoryError(
+                                f"{family.name}.{variant.identifier}.build_args: DEFAULT_UID and "
+                                "DEFAULT_GID must be non-negative integers"
+                            )
                 contexts: set[str] = set()
                 for dependency in variant.dependencies:
                     if dependency.key not in self.variants:
@@ -684,6 +718,7 @@ class ImageRepository:
                     "IMAGE_VERSION": f"{variant.identifier}-{short_revision}",
                     "PACKAGE_MIRROR": variant.mirror,
                     "SSH_MODE": variant.ssh_mode,
+                    "SSH_LOGIN_USER": variant.ssh_login_user,
                 }
             )
             target: dict[str, Any] = {

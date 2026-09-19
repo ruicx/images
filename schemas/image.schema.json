@@ -40,9 +40,10 @@
         "ssh": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["default"],
+          "required": ["default", "login_user"],
           "properties": {
-            "default": { "enum": ["disabled", "key-only", "password"] }
+            "default": { "enum": ["disabled", "key-only", "password"] },
+            "login_user": { "enum": ["default", "root"] }
           }
         }
       }
@@ -90,9 +91,10 @@
             "ssh": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["default"],
+              "minProperties": 1,
               "properties": {
-                "default": { "enum": ["disabled", "key-only", "password"] }
+                "default": { "enum": ["disabled", "key-only", "password"] },
+                "login_user": { "enum": ["default", "root"] }
               }
             }
           }

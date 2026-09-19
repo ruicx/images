@@ -33,7 +33,8 @@ bash tools/shell-tests/install-arguments.sh
   `docker logout ghcr.io` 后重试。
 - **一个图失败后其他图继续：** 这是有意的失败隔离。全部独立组件尝试完成后命令返回非零。
 - **SSH 启动报错：** `key-only` 要求挂载非空 `authorized_keys`；`password` 只能通过
-  `ROOT_PASSWORD_FILE` 提供可选的 root 密码。SSH 默认值由镜像族决定，请查看对应 README。
+  `SSH_PASSWORD_FILE` 为解析后的登录账号提供可选密码。请检查 `runtime.ssh.login_user`；SSH
+  默认值由镜像族决定，具体说明见对应 README。
 
 回滚时让消费者使用之前已知的不可变 SHA 标签或 digest。不要删除或覆盖错误的不可变标签；
 保留它用于审计，并排查产生该产物的构建。

@@ -1,51 +1,80 @@
 #!/bin/bash
 # Shared container entrypoint. SSH supports disabled, key-only, and password modes.
-# Reads SSH_MODE (default: disabled), USERNAME (default: luciole), and the optional
-# ROOT_PASSWORD_FILE path used only by password mode.
-#
-# The image's USER directive keeps PID 1 non-root. Passwordless sudo is used
-# only for SSH runtime setup explicitly selected by the image manifest.
+# Reads DEFAULT_USER, SSH_LOGIN_USER, SSH_MODE, and the optional SSH_PASSWORD_FILE.
+# Passwordless sudo is used only when the image starts as a managed non-root user.
 set -euo pipefail
 
 SSH_MODE_VAL="${SSH_MODE:-disabled}"
-USERNAME_VAL="${USERNAME:-luciole}"
+DEFAULT_USER_VAL="${DEFAULT_USER:-root}"
+SSH_LOGIN_USER_VAL="${SSH_LOGIN_USER:-default}"
+
+run_as_root() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    else
+        sudo -n "$@"
+    fi
+}
+
+case "${SSH_LOGIN_USER_VAL}" in
+    default)
+        RESOLVED_LOGIN_USER="${DEFAULT_USER_VAL}"
+        ;;
+    root)
+        RESOLVED_LOGIN_USER="root"
+        ;;
+    *)
+        echo "[entrypoint] unsupported SSH_LOGIN_USER '${SSH_LOGIN_USER_VAL}'" >&2
+        exit 64
+        ;;
+esac
+if ! id "${RESOLVED_LOGIN_USER}" >/dev/null 2>&1; then
+    echo "[entrypoint] SSH login user '${RESOLVED_LOGIN_USER}' does not exist" >&2
+    exit 64
+fi
 
 # Start sshd only after validating the explicit mode and mounted public key.
 case "${SSH_MODE_VAL}" in
     disabled) ;;
     key-only)
-        USER_HOME="$(getent passwd "${USERNAME_VAL}" | cut -d: -f6)"
+        USER_HOME="$(getent passwd "${RESOLVED_LOGIN_USER}" | cut -d: -f6)"
         AUTHORIZED_KEYS="${USER_HOME}/.ssh/authorized_keys"
         if [ ! -s "${AUTHORIZED_KEYS}" ]; then
             echo "[entrypoint] SSH_MODE=key-only requires a non-empty ${AUTHORIZED_KEYS}" >&2
             exit 64
         fi
-        sudo -n mkdir -p /run/sshd
-        sudo -n ssh-keygen -A >/dev/null
-        sudo -n /usr/sbin/sshd \
+        run_as_root mkdir -p /run/sshd
+        run_as_root ssh-keygen -A >/dev/null
+        run_as_root /usr/sbin/sshd \
             -o PasswordAuthentication=no \
             -o KbdInteractiveAuthentication=no \
-            -o PermitRootLogin=no
+            -o "PermitRootLogin=$([ "${RESOLVED_LOGIN_USER}" = "root" ] && echo prohibit-password || echo no)" \
+            -o "AllowUsers=${RESOLVED_LOGIN_USER}"
         ;;
     password)
         # A mounted password file avoids exposing credentials in image layers or arguments.
-        if [ -n "${ROOT_PASSWORD_FILE:-}" ]; then
-            if ! sudo -n test -s "${ROOT_PASSWORD_FILE}"; then
-                echo "[entrypoint] ROOT_PASSWORD_FILE must reference a non-empty file" >&2
+        if [ -n "${SSH_PASSWORD_FILE:-}" ]; then
+            if ! run_as_root test -s "${SSH_PASSWORD_FILE}"; then
+                echo "[entrypoint] SSH_PASSWORD_FILE must reference a non-empty file" >&2
                 exit 64
             fi
-            sudo -n /bin/bash -c '
+            run_as_root /bin/bash -c '
                 password=$(cat "$1")
-                printf "root:%s\n" "${password}" | chpasswd
-            ' _ "${ROOT_PASSWORD_FILE}"
+                if [ -z "${password}" ]; then
+                    echo "[entrypoint] SSH_PASSWORD_FILE must contain a non-empty password" >&2
+                    exit 64
+                fi
+                printf "%s:%s\n" "$2" "${password}" | chpasswd
+            ' _ "${SSH_PASSWORD_FILE}" "${RESOLVED_LOGIN_USER}"
         fi
-        sudo -n mkdir -p /run/sshd
-        sudo -n ssh-keygen -A >/dev/null
-        sudo -n /usr/sbin/sshd \
+        run_as_root mkdir -p /run/sshd
+        run_as_root ssh-keygen -A >/dev/null
+        run_as_root /usr/sbin/sshd \
             -o PasswordAuthentication=yes \
             -o KbdInteractiveAuthentication=no \
             -o PermitEmptyPasswords=no \
-            -o PermitRootLogin=yes
+            -o "PermitRootLogin=$([ "${RESOLVED_LOGIN_USER}" = "root" ] && echo yes || echo no)" \
+            -o "AllowUsers=${RESOLVED_LOGIN_USER}"
         ;;
     *)
         echo "[entrypoint] unsupported SSH_MODE '${SSH_MODE_VAL}'" >&2

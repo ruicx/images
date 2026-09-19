@@ -63,7 +63,7 @@ def manifest(name: str, variants: list[dict[str, Any]]) -> dict[str, Any]:
         "context": ".",
         "platforms": ["linux/amd64"],
         "inputs": [f"src/{name}/Dockerfile"],
-        "runtime": {"ssh": {"default": "disabled"}},
+        "runtime": {"ssh": {"default": "disabled", "login_user": "default"}},
         "publish": True,
         "variants": variants,
     }
@@ -143,6 +143,53 @@ def test_rejects_secret_like_build_arguments(repo_root: Path) -> None:
     item["build_args"] = {"API_TOKEN": "must-not-be-here"}
     write_family(repo_root, "demo", manifest("demo", [item]))
     with pytest.raises(RepositoryError, match="secret-like keys"):
+        ImageRepository(repo_root).load()
+
+
+def test_accepts_custom_default_user_and_renders_ssh_login_user(repo_root: Path) -> None:
+    """Accept a named default user and pass the SSH account selector to Bake."""
+    item = variant("one")
+    item["build_args"] = {
+        "DEFAULT_USER": "builder",
+        "DEFAULT_UID": 1001,
+        "DEFAULT_GID": 1001,
+    }
+    data = manifest("demo", [item])
+    data["runtime"]["ssh"] = {"default": "password", "login_user": "default"}
+    write_family(repo_root, "demo", data)
+    repository = ImageRepository(repo_root).load()
+    plan = repository.make_plan({("demo", "one")})
+    bake = repository.render_bake(plan, "example", "1" * 40, "load")
+    target = next(iter(bake["target"].values()))
+    assert target["args"]["DEFAULT_USER"] == "builder"
+    assert target["args"]["SSH_LOGIN_USER"] == "default"
+
+
+@pytest.mark.parametrize(
+    ("build_args", "message"),
+    [
+        (
+            {"DEFAULT_USER": "root", "DEFAULT_UID": 1000},
+            "must be omitted when DEFAULT_USER is root",
+        ),
+        (
+            {"DEFAULT_USER": "Build User", "DEFAULT_UID": 1000, "DEFAULT_GID": 1000},
+            "invalid Linux username",
+        ),
+        (
+            {"DEFAULT_USER": "builder"},
+            "are required for a non-root DEFAULT_USER",
+        ),
+    ],
+)
+def test_rejects_invalid_default_user_contract(
+    repo_root: Path, build_args: dict[str, object], message: str
+) -> None:
+    """Reject inconsistent default-user build arguments."""
+    item = variant("one")
+    item["build_args"] = build_args
+    write_family(repo_root, "demo", manifest("demo", [item]))
+    with pytest.raises(RepositoryError, match=message):
         ImageRepository(repo_root).load()
 
 
