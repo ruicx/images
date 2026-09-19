@@ -55,6 +55,10 @@ Buildx Bake 会把 `internal_base` 解析为 `target:<generated-base-target>`，
 `${NAME}` 这类环境变量表达式不会被插值，而会保留为字面字符串。schema 仍禁止在
 `build_args` 之外添加未知字段。
 
+`mirror` 与自由构建参数不同：规划器会校验该枚举并把它渲染为 `PACKAGE_MIRROR`。Dockerfile
+把这个值传给最终镜像源能力，由该脚本维护支持值：`upstream` 保持基础镜像源不变，`aliyun`
+在所有软件安装完成后重写最终保留的 apt 和 pip 配置。运行时不会探测镜像源。
+
 ## 完整结构
 
 ```yaml
@@ -81,6 +85,7 @@ variants:
       DEFAULT_USER: developer
       DEFAULT_UID: 1000
       DEFAULT_GID: 1000
+      WORKSPACE_DIR: /workspace
       TOOL_VERSION: "1.2.3"
     mirror: upstream
     dependencies: []

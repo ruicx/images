@@ -4,8 +4,13 @@
 - Run `python -m tools.images validate` after changing manifests, shared inputs, or the schema.
 - Shared install scripts use capability names, not sequence numbers. Add each consumer to the
   manifest `inputs` list and call the script explicitly from its Dockerfile.
+- Give independently changeable capabilities adjacent `COPY + RUN` pairs. Do not group unrelated
+  scripts in one `COPY`; order prerequisites first, then stable/expensive work before cheap or
+  frequently changed work.
 - Build-time script configuration uses named GNU `getopt` options. Every parameterized script
   provides `-h`/`--help` and returns 64 for invalid, missing, or positional arguments.
+- Capability scripts own option validation and value-specific branches; Dockerfiles pass arguments
+  and declare execution order instead of duplicating those conditions.
 - External bases require exact tags and digests. Downloaded binaries require checksum verification
   unless the consuming family's bilingual README explicitly documents a user-approved exception.
 - Rolling developer-shell tools may follow current upstream releases, branches, and installers only

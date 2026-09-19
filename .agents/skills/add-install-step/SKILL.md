@@ -91,6 +91,8 @@ Rules:
 - After `apt-get install`, always clean up: `rm -rf /var/lib/apt/lists/*`
 - Pass build-time values explicitly from Docker `ARG` to named script options; do
   not persist them through `ENV` unless the running container also needs them
+- Keep supported-value validation and value-specific branches in the capability script; the
+  Dockerfile should pass the option rather than repeat the same condition for every consumer
 - Reject unknown options, missing values, and positional arguments with exit 64
 - Provide `-h` / `--help` without performing installation work
 - Verify checksums for downloaded external binaries unless the consuming family's bilingual README
@@ -117,32 +119,58 @@ If the script depends on config files or templates:
 
 ### Where to call the script
 
-- **Root-level scripts**: insert `RUN /tmp/scripts/<capability>.sh` before `USER ${USERNAME}`
-- **Scripts that must run as the target user** (e.g. devshell, pre-commit): call after `USER ${USERNAME}`
+- **Root-level scripts**: insert `RUN /tmp/scripts/<capability>.sh` before `USER ${DEFAULT_USER}`
+- **Scripts that must run as the target user** (e.g. devshell, pre-commit): call after `USER ${DEFAULT_USER}`
+
+### Preserve useful cache boundaries
+
+Give each independently changeable capability an adjacent `COPY + RUN`. A combined `COPY` makes a
+change to any included script invalidate every later capability, even when their `RUN` instructions
+are separate. After satisfying dependencies, put stable or expensive work before cheap or
+frequently changed work. This is a capability boundary, not a rule to split installation from its
+cleanup; an `apt-get install` and removal of `/var/lib/apt/lists/*` stay in the same `RUN`.
 
 ### Standard Dockerfile structure
 
 ```dockerfile
-COPY src/_scripts/system.sh /tmp/scripts/system.sh
+ARG DEFAULT_USER=root
+ARG DEFAULT_UID=1000
+ARG DEFAULT_GID=1000
+ARG WORKSPACE_DIR=/work
+ARG TZ=Etc/UTC
+
+COPY --chmod=0755 src/_scripts/system.sh /tmp/scripts/system.sh
+RUN /tmp/scripts/system.sh --timezone "${TZ}"
+
+COPY --chmod=0755 src/_scripts/user.sh /tmp/scripts/user.sh
+RUN /tmp/scripts/user.sh \
+    --username "${DEFAULT_USER}" \
+    --uid "${DEFAULT_UID}" \
+    --gid "${DEFAULT_GID}"
+
+COPY --chmod=0755 src/_scripts/workspace.sh /tmp/scripts/workspace.sh
+RUN /tmp/scripts/workspace.sh \
+    --path "${WORKSPACE_DIR}" \
+    --owner "${DEFAULT_USER}"
+
 COPY src/_assets/my-config.yaml /tmp/assets/my-config.yaml
-RUN chmod +x /tmp/scripts/system.sh \
-    && /tmp/scripts/system.sh --timezone "${TZ}"
+COPY --chmod=0755 src/_scripts/my-tool.sh /tmp/scripts/my-tool.sh
+RUN /tmp/scripts/my-tool.sh --config /tmp/assets/my-config.yaml
 
 # --- root-level scripts ---
 
-ARG USERNAME=luciole
-USER ${USERNAME}
-WORKDIR /home/${USERNAME}
+USER ${DEFAULT_USER}
+WORKDIR ${WORKSPACE_DIR}
 
 # --- user-level scripts (if any) ---
-RUN /tmp/scripts/devshell.sh
-RUN /tmp/scripts/precommit.sh
+COPY --chmod=0755 src/_scripts/devshell.sh /tmp/scripts/devshell.sh
+RUN /tmp/scripts/devshell.sh --enabled true
 
 USER root
 RUN rm -rf /tmp/scripts /tmp/assets   # clean up both in one RUN
 
-USER ${USERNAME}
-WORKDIR /home/${USERNAME}
+USER ${DEFAULT_USER}
+WORKDIR ${WORKSPACE_DIR}
 ```
 
 > **Common mistake**: adding a shared input to the Dockerfile without declaring the
@@ -165,6 +193,7 @@ Per the documentation sync rules in `AGENTS.md`:
 - [ ] Script has a stable capability name without a sequence number
 - [ ] Parameterized scripts use GNU `getopt`, expose `--help`, and reject positional arguments
 - [ ] All target Dockerfiles updated (base / dev / runtime as appropriate)
+- [ ] Independently changeable capabilities use adjacent `COPY + RUN` pairs in dependency order
 - [ ] Every script and asset copied by a Dockerfile is declared in `image.yml.inputs`
 - [ ] Cleanup line `rm -rf /tmp/scripts /tmp/assets` covers all temp directories
 - [ ] Documentation synced (`README.md`, `README_zh.md`, `AGENTS.md`)

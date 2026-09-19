@@ -56,6 +56,11 @@ options must therefore normalize YAML values such as `true` becoming `True`; env
 expressions such as `${NAME}` are not interpolated and remain literal strings. Unknown fields
 outside `build_args` remain forbidden by the schema.
 
+`mirror` is different from a free-form build argument: the planner validates the enum and renders
+it as `PACKAGE_MIRROR`. The Dockerfile passes that value to its final mirror capability. That script
+owns the supported values: `upstream` leaves the base sources unchanged, while `aliyun` rewrites the
+persisted apt and pip configuration after all package installation. No runtime mirror probe occurs.
+
 ## Complete shape
 
 ```yaml
@@ -82,6 +87,7 @@ variants:
       DEFAULT_USER: developer
       DEFAULT_UID: 1000
       DEFAULT_GID: 1000
+      WORKSPACE_DIR: /workspace
       TOOL_VERSION: "1.2.3"
     mirror: upstream
     dependencies: []

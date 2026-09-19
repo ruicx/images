@@ -20,9 +20,17 @@
   functions, methods, and non-trivial test helpers use English NumPy-style docstrings. Comments
   explain intent or constraints rather than restating code. Python must pass Ruff, mypy, and
   pytest. User-facing errors identify the family, variant, and field.
-- Dockerfiles use BuildKit syntax, explicit non-interactive package installation, one cleanup layer,
-  a non-root final user by default, and OCI labels supplied by Bake. A family may explicitly choose
-  a root final user only when its bilingual README documents the operational and credential risks.
+- Dockerfiles use pinned BuildKit syntax and explicit non-interactive installation. Give each
+  independently changeable capability an adjacent `COPY + RUN`; do not copy unrelated scripts
+  together because that collapses their cache boundaries. Order dependency prerequisites first,
+  then prefer stable or expensive capabilities before cheap or frequently changed ones. Keep each
+  package installation and its apt-list cleanup in the same `RUN`.
+- Capability scripts own option validation and value-specific branching. Dockerfiles pass `ARG`
+  values through named options and declare order; they do not duplicate conditions such as root
+  handling, workspace ownership, or mirror selection.
+- Images use a non-root final user by default and receive OCI labels from Bake. A family may
+  explicitly choose a root final user only when its bilingual README documents the operational and
+  credential risks.
 - Do not use `latest`, `master`, floating LTS installers, unversioned binary downloads, embedded
   passwords, or secrets in build arguments. A family may explicitly enable password/root SSH only
   when credentials are supplied from a runtime-mounted file and its bilingual README documents
@@ -32,8 +40,9 @@
 - A deliberately rolling developer-shell capability may follow current upstream releases,
   branches, and installers only when the family's bilingual README records the user-approved
   reproducibility and supply-chain exception. Keep this exception scoped to interactive tooling.
-- Upstream Ubuntu and PyPI sources are the default. `aliyun` is an explicit build-time manifest
-  choice and is never selected by runtime network probing.
+- Upstream Ubuntu and PyPI sources are the default during installation. The manifest `mirror`
+  selection is finalized only after package installation: `upstream` preserves the base sources and
+  `aliyun` rewrites persisted apt/pip configuration. It is never selected by runtime network probing.
 
 ## Documentation rules
 
