@@ -8,8 +8,6 @@ ARG DEFAULT_UID=1000
 ARG DEFAULT_GID=1000
 ARG TZ=Asia/Shanghai
 ARG CMAKE_VERSION=4.3.2
-ARG LLAMA_CPP_VERSION=b11046
-ARG LLAMA_CPP_CUDA_VERSION=12.8
 ARG DEVSHELL=false
 ARG PACKAGE_MIRROR=upstream
 ARG SSH_MODE=password
@@ -46,11 +44,6 @@ COPY --chmod=0755 src/_scripts/devshell.sh /tmp/image-scripts/devshell.sh
 USER ${DEFAULT_USER}
 RUN /tmp/image-scripts/devshell.sh --enabled "${DEVSHELL}"
 USER root
-
-COPY --chmod=0755 src/_scripts/llama-cpp.sh /tmp/image-scripts/llama-cpp.sh
-RUN /tmp/image-scripts/llama-cpp.sh \
-      --version "${LLAMA_CPP_VERSION}" \
-      --cuda-version "${LLAMA_CPP_CUDA_VERSION}"
 
 COPY --chmod=0755 src/_scripts/finalize-mirror.sh /tmp/image-scripts/finalize-mirror.sh
 RUN /tmp/image-scripts/finalize-mirror.sh \

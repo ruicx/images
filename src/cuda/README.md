@@ -1,21 +1,15 @@
 # CUDA development image
 
-This family builds parameterized Linux amd64 development images from digest-pinned NVIDIA CUDA
-images. See `image.yml` for the supported CUDA/Ubuntu combinations. The image includes the CUDA
-compiler, a version-pinned CMake 4.3.2 installation, Ninja, GCC, clangd, GDB, Git LFS, Python 3,
-pip, virtual-environment support, OpenCV development libraries, a precompiled CUDA-enabled
-llama.cpp, common network tools, and modern command-line utilities such as ripgrep, fd, and bat.
+This family builds parameterized Linux amd64 development images from explicitly tagged NVIDIA CUDA
+images. See `image.yml` for the supported CUDA/Ubuntu combinations and base-resolution policy. The
+image includes the CUDA compiler, a version-pinned CMake 4.3.2 installation, Ninja, GCC, clangd,
+GDB, Git LFS, Python 3, pip, virtual-environment support, OpenCV development libraries, common
+network tools, and modern command-line utilities such as ripgrep, fd, and bat.
 
-llama.cpp is installed from the official GitHub `b11046` Ubuntu x64 CUDA 12.8 release asset at
-`https://github.com/ggml-org/llama.cpp/releases/download/b11046/llama-b11046-bin-ubuntu-cuda-12.8-x64.tar.gz`.
-This family has a user-approved checksum exception for that exact version and HTTPS URL; replacing
-an asset under the same release name is therefore an accepted supply-chain risk. The archive is
-extracted to `/opt/llama.cpp`, and its `llama-*` executables are linked into `/usr/local/bin` without
-changing `PATH`. The separate upstream CUDA runtime archive is intentionally omitted because this
-image family already supplies CUDA 12 runtime libraries. `LLAMA_CPP_VERSION` and
-`LLAMA_CPP_CUDA_VERSION` must be updated together when upgrading. The llama.cpp layer follows the
-developer-shell layer so a llama.cpp version change does not invalidate the more expensive shell
-setup; final mirror selection runs afterward because the shell setup installs packages.
+llama.cpp is intentionally not bundled. Applications that need it should run an official
+llama.cpp image as a separate service and define that orchestration in the downstream project. The
+shared `llama-cpp.sh` script remains an unreferenced migration capability and is not part of this
+family's supported contents.
 
 The developer shell is enabled by default with `DEVSHELL: true`. It installs zsh, Oh My Zsh,
 NvChad, NVM with the current Node.js LTS, fzf, eza, Starship, Sheldon, Zoxide, Witr, and Atuin. The
