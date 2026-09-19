@@ -7,7 +7,7 @@
 | 命令 | 用途 | 重要选项或输出 |
 | --- | --- | --- |
 | `validate` | 校验清单、路径、DAG 和双语文档。 | 不生成输出文件。 |
-| `list` | 列出镜像族、变体和直接依赖。 | 人类可读的标准输出。 |
+| `list` | 列出镜像族、变体、基础镜像解析模式和直接依赖。 | 人类可读的标准输出；基础模式为 `pinned` 或 `tag-tracking`。 |
 | `files --kind shell` | 列出 ShellCheck/shfmt 输入。 | 仓库相对路径。 |
 | `plan` | 计算发布目标和所需上游。 | 使用 `--base/--head`、`--all` 或 `--family [--variant]`；可选 `--output`。 |
 | `bake` | 从计划生成 JSON Bake 定义。 | 需要 owner、revision、mode 和 plan；模式为 `load`、`preflight`、`publish`。 |

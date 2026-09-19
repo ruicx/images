@@ -11,8 +11,9 @@
   provides `-h`/`--help` and returns 64 for invalid, missing, or positional arguments.
 - Capability scripts own option validation and value-specific branches; Dockerfiles pass arguments
   and declare execution order instead of duplicating those conditions.
-- External bases require exact tags and digests. Downloaded binaries require checksum verification
-  unless the consuming family's bilingual README explicitly documents a user-approved exception.
+- External bases require exact tags. The `digest` key is also required: use a `sha256` value for a
+  reproducible pin or explicit `null` to track the tag. Downloaded binaries require checksum
+  verification unless the consuming family's bilingual README documents a user-approved exception.
 - Rolling developer-shell tools may follow current upstream releases, branches, and installers only
   when the consuming family's bilingual README documents the user-approved reproducibility and
   supply-chain exception; do not extend this exception to runtime or application dependencies.

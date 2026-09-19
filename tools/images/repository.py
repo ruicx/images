@@ -62,7 +62,8 @@ class Variant:
     base_image:
         External base image including an explicit version tag.
     base_digest:
-        Pinned digest for the external base image.
+        Optional pinned digest for the external base image. ``None`` follows the
+        explicit tag in ``base_image``.
     build_args:
         Non-secret Docker build arguments declared by the manifest.
     mirror:
@@ -80,7 +81,7 @@ class Variant:
     family: str
     identifier: str
     base_image: str
-    base_digest: str
+    base_digest: str | None
     build_args: Mapping[str, str]
     mirror: str
     ssh_mode: str
@@ -100,7 +101,9 @@ class Variant:
 
     @property
     def base_reference(self) -> str:
-        """Return the immutable external base image reference."""
+        """Return the pinned reference or the explicitly tracked tag."""
+        if self.base_digest is None:
+            return self.base_image
         return f"{self.base_image}@{self.base_digest}"
 
 
@@ -277,7 +280,11 @@ class ImageRepository:
                     family=family_name,
                     identifier=str(raw_variant["id"]),
                     base_image=str(raw_variant["base"]["image"]),
-                    base_digest=str(raw_variant["base"]["digest"]),
+                    base_digest=(
+                        str(raw_variant["base"]["digest"])
+                        if raw_variant["base"]["digest"] is not None
+                        else None
+                    ),
                     build_args={
                         key: str(value) for key, value in raw_variant["build_args"].items()
                     },

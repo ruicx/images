@@ -3,9 +3,11 @@
 [![Pull request images](https://github.com/ruicx/images/actions/workflows/pull-request.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/pull-request.yml)
 [![Publish images](https://github.com/ruicx/images/actions/workflows/publish.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/publish.yml)
 
-This repository builds public, reproducible development images with GitHub Actions. Each
+This repository builds public development images with GitHub Actions. Each
 `src/<family>/image.yml` is the release contract for one independently published image family.
-Variants share a Dockerfile and differ through pinned base images and explicit build arguments.
+Variants share a Dockerfile and differ through explicit base-image policies and build arguments.
+Each base uses an exact tag and either a digest pin for reproducibility or an explicit null digest
+to follow updates published under that tag.
 
 The source repository is public at [ruicx/images](https://github.com/ruicx/images). The initial
 family is `cuda`, published as `ghcr.io/ruicx/cuda`. A build produces an immutable

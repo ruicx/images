@@ -76,7 +76,10 @@
               "minLength": 1,
               "not": { "pattern": "(?:^|:)latest$|:master$" }
             },
-            "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+            "digest": {
+              "type": ["string", "null"],
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            }
           }
         },
         "build_args": {

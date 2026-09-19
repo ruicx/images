@@ -4,7 +4,8 @@
 
 1. Copy the `src/cuda` shape into `src/<family>` without copying its image-specific values.
 2. Add a schema-valid `image.yml`; the manifest name must equal the directory name.
-3. Pin external base images by exact tag and `sha256` digest.
+3. Give every external base an exact tag and a required `digest` key. Prefer a `sha256` pin;
+   use explicit `null` only when intentionally tracking updates to that tag.
 4. Declare every shared script or asset in `inputs` and every internal base in `dependencies`.
 5. Add bilingual family documentation and at least one smoke-test script per variant.
 6. Run `images validate`, Ruff, mypy, pytest, ShellCheck, shfmt, and a local Bake build.

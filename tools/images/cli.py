@@ -276,11 +276,12 @@ def run(arguments: Sequence[str] | None = None) -> int:
         for family in repo.families.values():
             print(f"{family.name}: {family.description}")
             for variant in family.variants:
+                base_mode = "pinned" if variant.base_digest is not None else "tag-tracking"
                 dependencies = (
                     ", ".join(f"{item.family}/{item.variant}" for item in variant.dependencies)
                     or "none"
                 )
-                print(f"  {variant.identifier} (dependencies: {dependencies})")
+                print(f"  {variant.identifier} (base: {base_mode}, dependencies: {dependencies})")
     elif args.command == "files":
         for path in repo.shell_files():
             print(path.relative_to(repo.root).as_posix())

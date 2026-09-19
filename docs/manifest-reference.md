@@ -25,7 +25,7 @@ patterns are relative to the repository root. Unknown fields are rejected.
 | --- | --- | --- |
 | `id` | string | Floating tag name; lowercase segments separated by `.`, `_`, or `-`; never `latest`. |
 | `base.image` | string | External image with an explicit version tag; `latest` and `master` are forbidden. |
-| `base.digest` | string | Required `sha256:` digest with 64 lowercase hexadecimal characters. |
+| `base.digest` | string or null | The key is required. A `sha256:` value pins the base; `null` or a blank YAML value tracks `base.image` by tag. |
 | `build_args` | mapping | Arbitrary non-secret scalar values passed to matching Dockerfile `ARG` declarations. Secret-like keys are rejected. |
 | `mirror` | enum | `upstream` or explicitly selected `aliyun`. |
 | `runtime.ssh.default` | enum | Optional variant override of the family default. Password mode requires runtime secret handling documented by the family. |
@@ -49,6 +49,13 @@ FROM internal_base AS development
 
 Buildx Bake resolves `internal_base` to `target:<generated-base-target>`, so a pull request never
 uses an older registry copy for an internal dependency.
+
+For an external base, a digest value renders `BASE_IMAGE` as `image:tag@sha256:...`; `null` renders
+it as `image:tag`. YAML `digest: null` and `digest:` are equivalent, but omitting the key is invalid
+so the reproducibility choice is always explicit. Pinning is the default recommendation. Tag
+tracking is useful for deliberately rolling images, but an upstream tag move can make two builds
+of the same Git commit differ and can therefore trigger the immutable-tag conflict guard. Exact
+version tags remain required, and `latest` and `master` remain forbidden.
 
 `build_args` is the extension point for image-specific build options and does not require a Python
 parser change. Values are normalized to strings before Bake rendering. Scripts that accept boolean
@@ -93,6 +100,15 @@ variants:
     dependencies: []
     tests:
       - src/example/tests/smoke.sh
+```
+
+To track an exact tag instead, retain the key and set it explicitly to null (or leave its YAML
+value blank):
+
+```yaml
+base:
+  image: ubuntu:24.04
+  digest: null
 ```
 
 The JSON Schema performs structural validation. `images validate` additionally checks paths,

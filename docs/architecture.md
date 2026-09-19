@@ -21,6 +21,13 @@ before reporting the combined result, so a failure in one image family does not 
 results from unrelated families. Exact change-impact rules are documented in
 [CI/CD behavior](ci-cd.md).
 
+External bases have two explicit resolution policies. A non-null `base.digest` pins BuildKit to
+`image:tag@digest` and provides reproducible base resolution. A null or blank value follows the
+exact `image:tag`, allowing deliberate rolling updates without manifest edits. The `digest` key
+remains required to prevent accidental loss of a pin. Tag tracking trades reproducibility for
+freshness: if upstream moves the tag, rebuilding the same Git commit may produce a different image
+and the immutable-tag conflict guard will reject publication under an existing SHA tag.
+
 ## Image composition and cache boundaries
 
 Shared scripts own capability behavior and validation; Dockerfiles own only capability selection,

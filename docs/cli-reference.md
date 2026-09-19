@@ -8,7 +8,7 @@ message on standard error.
 | Command | Purpose | Important options/output |
 | --- | --- | --- |
 | `validate` | Validate manifests, paths, DAG, and bilingual docs. | No output file. |
-| `list` | List families, variants, and direct dependencies. | Human-readable stdout. |
+| `list` | List families, variants, base-resolution modes, and direct dependencies. | Human-readable stdout; base mode is `pinned` or `tag-tracking`. |
 | `files --kind shell` | List ShellCheck/shfmt inputs. | Repository-relative paths. |
 | `plan` | Calculate publish targets and required ancestors. | Use `--base/--head`, `--all`, or `--family [--variant]`; optional `--output`. |
 | `bake` | Render a JSON Bake definition from a plan. | Requires owner, revision, mode, and plan. Modes: `load`, `preflight`, `publish`. |

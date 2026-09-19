@@ -107,6 +107,32 @@ def test_loads_valid_repository(repo_root: Path) -> None:
     assert list(repository.families) == ["demo"]
 
 
+@pytest.mark.parametrize("blank_style", ["null", "empty"])
+def test_accepts_explicitly_unpinned_base_digest(repo_root: Path, blank_style: str) -> None:
+    """Accept both YAML spellings that explicitly select tag tracking."""
+    item = variant("tracking")
+    item["base"]["digest"] = None
+    write_family(repo_root, "demo", manifest("demo", [item]))
+    manifest_path = repo_root / "src" / "demo" / "image.yml"
+    if blank_style == "empty":
+        serialized = manifest_path.read_text(encoding="utf-8")
+        manifest_path.write_text(serialized.replace("digest: null", "digest:"), encoding="utf-8")
+
+    repository = ImageRepository(repo_root).load()
+    loaded = repository.variants[("demo", "tracking")]
+    assert loaded.base_digest is None
+    assert loaded.base_reference == "ubuntu:24.04"
+
+
+def test_requires_base_digest_key(repo_root: Path) -> None:
+    """Reject omission of the digest key even though its value may be null."""
+    item = variant("one")
+    del item["base"]["digest"]
+    write_family(repo_root, "demo", manifest("demo", [item]))
+    with pytest.raises(RepositoryError, match="digest.*required"):
+        ImageRepository(repo_root).load()
+
+
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
@@ -250,6 +276,19 @@ def test_tags_use_family_variant_and_short_revision(repo_root: Path) -> None:
         "ghcr.io/example/demo:24.04-abcdef012345",
         "ghcr.io/example/demo:24.04",
     ]
+    assert target["args"]["BASE_IMAGE"] == "ubuntu:24.04@sha256:" + "a" * 64
+
+
+def test_bake_tracks_base_tag_when_digest_is_null(repo_root: Path) -> None:
+    """Pass only the exact base tag to BuildKit for an unpinned variant."""
+    item = variant("tracking")
+    item["base"]["digest"] = None
+    write_family(repo_root, "demo", manifest("demo", [item]))
+    repository = ImageRepository(repo_root).load()
+    plan = repository.make_plan({("demo", "tracking")})
+    bake = repository.render_bake(plan, "example", "1" * 40, "load")
+    target = next(iter(bake["target"].values()))
+    assert target["args"]["BASE_IMAGE"] == "ubuntu:24.04"
 
 
 def test_independent_graph_branches_get_separate_bake_groups(repo_root: Path) -> None:

@@ -3,9 +3,10 @@
 [![PR 镜像验证](https://github.com/ruicx/images/actions/workflows/pull-request.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/pull-request.yml)
 [![镜像发布](https://github.com/ruicx/images/actions/workflows/publish.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/publish.yml)
 
-本仓库通过 GitHub Actions 构建公开、可复现的开发镜像。每个
+本仓库通过 GitHub Actions 构建公开的开发镜像。每个
 `src/<family>/image.yml` 都是一个独立发布镜像族的发行契约。同一镜像族的变体共享
-Dockerfile，通过固定的基础镜像和显式构建参数表达差异。
+Dockerfile，通过显式基础镜像策略和构建参数表达差异。每个基础镜像都使用明确版本标签，
+并选择用 digest 获得可复现构建，或显式使用空 digest 跟随该标签的更新。
 
 源码仓库已公开发布在 [ruicx/images](https://github.com/ruicx/images)。首个镜像族为 `cuda`，
 发布地址是 `ghcr.io/ruicx/cuda`。每次构建先产生不可变的

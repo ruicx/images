@@ -4,7 +4,8 @@
 
 1. 参考 `src/cuda` 的结构创建 `src/<family>`，不要复制 CUDA 专用值。
 2. 添加通过 schema 校验的 `image.yml`；清单名称必须和目录名称一致。
-3. 外部基础镜像必须固定精确标签和 `sha256` digest。
+3. 每个外部基础镜像都必须使用明确标签并提供 `digest` 键。优先使用 `sha256` 固定；只有明确
+   希望跟随该标签更新时才使用 `null`。
 4. 在 `inputs` 声明每个共享脚本或资产，在 `dependencies` 声明每个内部基础镜像。
 5. 添加镜像族双语文档，并为每个变体提供至少一个冒烟测试脚本。
 6. 运行 `images validate`、Ruff、mypy、pytest、ShellCheck、shfmt 和本地 Bake 构建。
