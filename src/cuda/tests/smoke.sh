@@ -4,16 +4,30 @@ set -euo pipefail
 
 test "$(uname -m)" = "x86_64"
 test "$(id -u)" -ne 0
-test "${PWD}" = "/home/${USERNAME}"
-test "${SSH_MODE}" = "disabled"
+test "${PWD}" = "/work"
+test "${SSH_MODE}" = "password"
 test "${PACKAGE_MIRROR}" = "upstream"
 command -v nvcc >/dev/null
 nvcc --version
+python3 --version
+python3 -m pip --version
+cmake --version | grep -F "cmake version 4.3.2"
+ninja --version
+git --version
+git lfs version
+gdb --version | head -n 1
+clangd --version | head -n 1
+rg --version | head -n 1
+fd --version
+bat --version
+sudo -n true
+test -d /work
+test -w /work
 test -x /usr/local/bin/docker-entrypoint
-grep -Fx "PasswordAuthentication no" /etc/ssh/sshd_config.d/99-dev-image.conf
-grep -Fx "PermitRootLogin no" /etc/ssh/sshd_config.d/99-dev-image.conf
+grep -Fx "PasswordAuthentication yes" /etc/ssh/sshd_config.d/99-dev-image.conf
+grep -Fx "PermitRootLogin yes" /etc/ssh/sshd_config.d/99-dev-image.conf
 if pgrep -x sshd >/dev/null; then
-    echo "sshd must not run when SSH_MODE=disabled" >&2
+    echo "sshd must not run when the entrypoint is bypassed" >&2
     exit 1
 fi
 
@@ -31,3 +45,9 @@ SSH_MODE=key-only /usr/local/bin/docker-entrypoint true
 pgrep -x sshd >/dev/null
 sudo -n pkill -x sshd
 : >"${HOME}/.ssh/authorized_keys"
+
+# Password mode starts sshd with root login enabled while root remains locked by default.
+SSH_MODE=password /usr/local/bin/docker-entrypoint true
+pgrep -x sshd >/dev/null
+test "$(sudo -n passwd --status root | awk '{print $2}')" = "L"
+sudo -n pkill -x sshd

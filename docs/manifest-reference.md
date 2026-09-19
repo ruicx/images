@@ -14,7 +14,7 @@ patterns are relative to the repository root. Unknown fields are rejected.
 | `context` | path | Existing build context inside the repository. |
 | `platforms` | list | Phase one accepts exactly `linux/amd64`. |
 | `inputs` | list | Existing path/glob patterns whose changes rebuild every family variant. |
-| `runtime.ssh.default` | enum | `disabled` or `key-only`; variants may override it. |
+| `runtime.ssh.default` | enum | `disabled`, `key-only`, or `password`; variants may override it. |
 | `publish` | boolean | Allows selected variants to be published from `main`. |
 | `variants` | list | One or more variant definitions. |
 
@@ -27,7 +27,7 @@ patterns are relative to the repository root. Unknown fields are rejected.
 | `base.digest` | string | Required `sha256:` digest with 64 lowercase hexadecimal characters. |
 | `build_args` | mapping | Non-secret values passed to the Dockerfile. Secret-like keys are rejected. |
 | `mirror` | enum | `upstream` or explicitly selected `aliyun`. |
-| `runtime.ssh.default` | enum | Optional variant override of the family default. |
+| `runtime.ssh.default` | enum | Optional variant override of the family default. Password mode requires runtime secret handling documented by the family. |
 | `dependencies` | list | Internal targets exposed as named BuildKit contexts. |
 | `tests` | list | One or more existing repository-relative smoke-test scripts. |
 

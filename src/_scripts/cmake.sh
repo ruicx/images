@@ -1,5 +1,6 @@
 #!/bin/bash
-# Install a recent CMake binary release. Option: --version (default: 4.3.2).
+# Install a version-pinned CMake binary release for Linux amd64.
+# Option: --version. The consuming image documents the checksum exception.
 # Used by both dev and runtime images.
 set -euo pipefail
 
@@ -40,14 +41,23 @@ if [ "$#" -ne 0 ]; then
     usage >&2
     exit 64
 fi
-
-ARCH=$(uname -m)
-case $ARCH in
-    x86_64) CMAKE_ARCH="linux-x86_64" ;;
-    aarch64) CMAKE_ARCH="linux-aarch64" ;;
-    *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
+if [[ ! "${CMAKE_VERSION_VAL}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "cmake.sh: version must use numeric major.minor.patch format" >&2
+    exit 64
+fi
+case "$(uname -m)" in
+    x86_64) ;;
+    *)
+        echo "cmake.sh: unsupported architecture; expected x86_64" >&2
+        exit 1
+        ;;
 esac
 
-wget "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION_VAL}/cmake-${CMAKE_VERSION_VAL}-${CMAKE_ARCH}.tar.gz"
-tar -xf "cmake-${CMAKE_VERSION_VAL}-${CMAKE_ARCH}.tar.gz" --strip-components=1 -C /usr/local
-rm "cmake-${CMAKE_VERSION_VAL}-${CMAKE_ARCH}.tar.gz"
+CMAKE_ARCHIVE="cmake-${CMAKE_VERSION_VAL}-linux-x86_64.tar.gz"
+TEMP_DIRECTORY=$(mktemp -d)
+trap 'rm -rf "${TEMP_DIRECTORY}"' EXIT
+
+curl --fail --location --proto '=https' --tlsv1.2 \
+    "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION_VAL}/${CMAKE_ARCHIVE}" \
+    --output "${TEMP_DIRECTORY}/${CMAKE_ARCHIVE}"
+tar -xzf "${TEMP_DIRECTORY}/${CMAKE_ARCHIVE}" --strip-components=1 -C /usr/local

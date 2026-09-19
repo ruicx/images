@@ -7,13 +7,15 @@ platforms:
   - linux/amd64
 inputs:
   - src/_scripts/system.sh
+  - src/_scripts/dev-tools.sh
+  - src/_scripts/cmake.sh
   - src/_scripts/user.sh
   - src/_scripts/ssh.sh
   - src/_scripts/finalize-mirror.sh
   - src/_assets/docker-entrypoint.sh
 runtime:
   ssh:
-    default: disabled
+    default: password
 publish: true
 variants:
   - id: 12.6.3-devel-ubuntu24.04
@@ -25,6 +27,7 @@ variants:
       USER_UID: 1000
       USER_GID: 1000
       TZ: Asia/Shanghai
+      CMAKE_VERSION: 4.3.2
     mirror: upstream
     dependencies: []
     tests:
@@ -38,8 +41,8 @@ variants:
       USER_UID: 1000
       USER_GID: 1000
       TZ: Asia/Shanghai
+      CMAKE_VERSION: 4.3.2
     mirror: upstream
     dependencies: []
     tests:
       - src/cuda/tests/smoke.sh
-

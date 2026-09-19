@@ -1,52 +1,101 @@
 #!/bin/bash
-# Developer CLI toolset installed on top of a minimal system layer.
-# Split out of system.sh so that:
-#   - stable system bootstrap (timezone, locale, apt) lives in system.sh
-#   - the frequently-edited developer tool list lives here
-#   - GUI / WSLg deps live separately in wslg.sh
-# Run as root (usually right after system.sh).
+# Install the shared C/C++, Python, debugging, and command-line development toolset.
+# Run as root after system.sh. This script has no configuration options.
 set -euo pipefail
 
-# `system.sh` cleans its own apt lists, so refresh the index here.
+usage() {
+    cat <<'EOF'
+Usage: dev-tools.sh
+
+Options:
+  -h, --help  Show this help
+EOF
+}
+
+if ! PARSED=$(getopt -o h -l help -n "$(basename "$0")" -- "$@"); then
+    usage >&2
+    exit 64
+fi
+eval set -- "$PARSED"
+while true; do
+    case "$1" in
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+    esac
+done
+if [ "$#" -ne 0 ]; then
+    echo "dev-tools.sh: unexpected positional arguments: $*" >&2
+    usage >&2
+    exit 64
+fi
+
+case "$(uname -m)" in
+    x86_64) ;;
+    *)
+        echo "dev-tools.sh: unsupported architecture; expected x86_64" >&2
+        exit 1
+        ;;
+esac
+
+# Keep the package set in one layer because development dependencies are large.
 apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends \
+    acl \
+    bat \
+    build-essential \
+    clangd \
+    cloc \
+    curl \
+    fd-find \
+    ffmpeg \
+    gdb \
+    git \
+    git-lfs \
+    htop \
+    iputils-ping \
+    libgflags-dev \
+    libgoogle-glog-dev \
+    libgmock-dev \
+    libgtest-dev \
+    libopencv-dev \
+    libssl-dev \
+    man-db \
+    nfs-common \
+    ninja-build \
+    openssl \
+    parallel \
+    python-is-python3 \
+    python3-dev \
+    python3-pip \
+    python3-setuptools \
+    python3-venv \
+    ripgrep \
+    rsync \
+    screen \
+    systemd-coredump \
+    tmux \
+    trash-cli \
+    tree \
+    unzip \
+    vim \
+    zip \
+    zstd
 
-# --- Editor / VCS / web / archive ---
-apt-get -y install vim git curl zip unzip trash-cli git-lfs rsync tree \
-    tmux screen cloc man htop ripgrep sudo
+# Debian and Ubuntu use alternative executable names for fd and bat.
+ln -sfn "$(command -v fdfind)" /usr/local/bin/fd
+ln -sfn "$(command -v batcat)" /usr/local/bin/bat
 
-# Pin the alternatives `editor` to vim: sudo's env_reset drops EDITOR/VISUAL,
-# and sensible-editor then falls back to /usr/bin/editor.
+# sudo may discard EDITOR and VISUAL, so set the system editor explicitly.
 if [ -x /usr/bin/vim.basic ]; then
     update-alternatives --set editor /usr/bin/vim.basic
 fi
 
-# --- Build / debug ---
-apt-get -y install build-essential ninja-build gdb systemd-coredump \
-    cmake parallel libssl-dev \
-    libgflags-dev libgoogle-glog-dev libgtest-dev libgmock-dev
-
-# --- SSH / OpenSSL / privilege drop ---
-# openssh-server  → remote shell access (sshd launched at runtime by the entrypoint)
-# gosu            → clean, signal-friendly privilege drop in the entrypoint
-#                   (preferred over `su`; ships natively via apt on amd64+arm64)
-apt-get -y install --no-install-recommends openssl openssh-server gosu
-
-# --- Networking / fs ---
-apt-get -y install iputils-ping nfs-common acl landscape-common
-
-# --- Misc / CLI utilities ---
-apt-get -y install fd-find bat
-
-# fd ships as `fdfind` on Debian/Ubuntu → expose as `fd`
-ln -sf "$(which fdfind)" /usr/local/bin/fd
-
-# bat ships as `batcat` on Debian/Ubuntu → expose as `bat`
-ln -sf "$(which batcat)" /usr/local/bin/bat
-
-# --- Media (lightweight CLI utility; commonly used inside dev shells) ---
-apt-get -y install ffmpeg
-
-# --- OpenCV (for computer vision / image processing) ---
-apt-get -y install libopencv-dev
+git lfs install --system
 
 rm -rf /var/lib/apt/lists/*

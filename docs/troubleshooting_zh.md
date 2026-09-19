@@ -32,8 +32,8 @@ bash tools/shell-tests/install-arguments.sh
 - **发布后匿名拉取失败：** 新 GHCR 包可能是私有的。把包设为 Public，执行
   `docker logout ghcr.io` 后重试。
 - **一个图失败后其他图继续：** 这是有意的失败隔离。全部独立组件尝试完成后命令返回非零。
-- **SSH 启动报错：** `key-only` 要求挂载非空 `authorized_keys`；SSH 默认关闭，且不支持密码
-  或 root 登录。
+- **SSH 启动报错：** `key-only` 要求挂载非空 `authorized_keys`；`password` 只能通过
+  `ROOT_PASSWORD_FILE` 提供可选的 root 密码。SSH 默认值由镜像族决定，请查看对应 README。
 
 回滚时让消费者使用之前已知的不可变 SHA 标签或 digest。不要删除或覆盖错误的不可变标签；
 保留它用于审计，并排查产生该产物的构建。

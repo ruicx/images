@@ -36,5 +36,8 @@ Pull requests have read-only repository access, do not log in to GHCR, and never
 caches. The main-branch publisher receives only `contents: read` and `packages: write`. Build
 secrets must use BuildKit secret mounts; they must never be passed through `ARG`, `ENV`, or `COPY`.
 
-SSH is an optional runtime capability. Images default to a locked non-root user and disabled SSH.
-The only supported enabled mode is `key-only`; it rejects startup without mounted authorized keys.
+SSH is an explicit runtime policy with `disabled`, `key-only`, and `password` modes. `key-only`
+fails closed without mounted authorized keys. `password` may allow root login for a family that
+selects it, but passwords must come from a runtime-mounted file and must never be stored in an
+image layer, manifest, build argument, or environment value. The root account remains locked when
+no runtime password file is supplied.

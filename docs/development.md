@@ -22,8 +22,12 @@
   pytest. User-facing errors identify the family, variant, and field.
 - Dockerfiles use BuildKit syntax, explicit non-interactive package installation, one cleanup layer,
   a non-root final user, and OCI labels supplied by Bake.
-- Do not use `latest`, `master`, floating LTS installers, unverified binary downloads, embedded
-  passwords, root SSH, or secrets in build arguments.
+- Do not use `latest`, `master`, floating LTS installers, unversioned binary downloads, embedded
+  passwords, or secrets in build arguments. A family may explicitly enable password/root SSH only
+  when credentials are supplied from a runtime-mounted file and its bilingual README documents
+  the risk, startup procedure, and safer modes.
+- Downloaded binary archives normally require checksum verification. A user-approved exception
+  must retain an exact version and HTTPS URL and be recorded in the family's bilingual README.
 - Upstream Ubuntu and PyPI sources are the default. `aliyun` is an explicit build-time manifest
   choice and is never selected by runtime network probing.
 

@@ -1,0 +1,52 @@
+{
+  "group": {
+    "component-0": {
+      "targets": [
+        "cuda--12-6-3-devel-ubuntu24-04"
+      ]
+    },
+    "default": {
+      "targets": [
+        "cuda--12-6-3-devel-ubuntu24-04"
+      ]
+    }
+  },
+  "target": {
+    "cuda--12-6-3-devel-ubuntu24-04": {
+      "args": {
+        "BASE_IMAGE": "nvidia/cuda:12.6.3-devel-ubuntu24.04@sha256:392c0df7b577ecae17a17f6ba7f2009c217bb4422f8431c053ae9af61a8c148a",
+        "CMAKE_VERSION": "4.3.2",
+        "IMAGE_REVISION": "5e5d98b56dd48830185add572c86b9c9cb6415f4",
+        "IMAGE_VERSION": "12.6.3-devel-ubuntu24.04-5e5d98b56dd4",
+        "PACKAGE_MIRROR": "upstream",
+        "SSH_MODE": "password",
+        "TZ": "Asia/Shanghai",
+        "USERNAME": "luciole",
+        "USER_GID": "1000",
+        "USER_UID": "1000"
+      },
+      "cache-from": [
+        "type=gha,scope=cuda-12.6.3-devel-ubuntu24.04"
+      ],
+      "context": ".",
+      "contexts": {},
+      "dockerfile": "src/cuda/Dockerfile",
+      "labels": {
+        "org.opencontainers.image.revision": "5e5d98b56dd48830185add572c86b9c9cb6415f4",
+        "org.opencontainers.image.source": "https://github.com/ruicx/images",
+        "org.opencontainers.image.title": "cuda",
+        "org.opencontainers.image.version": "12.6.3-devel-ubuntu24.04-5e5d98b56dd4"
+      },
+      "output": [
+        "type=docker"
+      ],
+      "platforms": [
+        "linux/amd64"
+      ],
+      "tags": [
+        "ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04-5e5d98b56dd4",
+        "ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04"
+      ]
+    }
+  }
+}

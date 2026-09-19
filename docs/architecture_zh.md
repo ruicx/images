@@ -31,5 +31,7 @@ PR 只有仓库只读权限，不登录 GHCR，也不推送镜像或缓存。主
 `contents: read` 和 `packages: write`。构建秘密只能通过 BuildKit secret mount 使用，禁止经由
 `ARG`、`ENV` 或 `COPY` 传递。
 
-SSH 是可选运行能力。镜像默认使用锁定密码的非 root 用户并关闭 SSH；唯一允许的启用模式是
-`key-only`，未挂载 authorized keys 时拒绝启动。
+SSH 是显式运行策略，支持 `disabled`、`key-only` 和 `password`。`key-only` 在未挂载
+authorized keys 时拒绝启动。选择 `password` 的镜像族可以允许 root 登录，但密码必须来自
+运行时挂载文件，禁止写入镜像层、清单、构建参数或环境变量。未提供运行时密码文件时，root
+账户保持锁定。

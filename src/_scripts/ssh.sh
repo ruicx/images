@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install and harden the optional SSH server (BUILD-TIME only).
+# Install and configure the optional SSH server (BUILD-TIME only).
 #
 # Runs during `docker build`. Everything here must be declarative / persisted
 # to disk — a build layer **cannot** actually run a daemon. Starting sshd at
@@ -7,26 +7,28 @@
 #
 # What this script does:
 #   - Installs openssh-server.
-#   - Disables passwords and root login; only public-key auth is allowed.
+#   - Configures key-only or password/root authentication explicitly.
 #   - Prepares the non-root user's authorized_keys mount point.
-# Host keys are generated at runtime only when SSH_MODE=key-only.
+# Host keys are generated at runtime only when SSH is enabled.
 #
-# Options: --username (default: luciole).
+# Options: --username and --mode.
 set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: ssh.sh [--username <name>]
+Usage: ssh.sh [--username <name>] [--mode <mode>]
 
 Options:
   --username <value>  Existing non-root user (default: luciole)
+  --mode <value>      SSH policy: disabled, key-only, or password (default: disabled)
   -h, --help          Show this help
 EOF
 }
 
 USERNAME_VAL="luciole"
+SSH_MODE_VAL="disabled"
 
-if ! PARSED=$(getopt -o h -l help,username: -n "$(basename "$0")" -- "$@"); then
+if ! PARSED=$(getopt -o h -l help,username:,mode: -n "$(basename "$0")" -- "$@"); then
     usage >&2
     exit 64
 fi
@@ -35,6 +37,10 @@ while true; do
     case "$1" in
         --username)
             USERNAME_VAL="$2"
+            shift 2
+            ;;
+        --mode)
+            SSH_MODE_VAL="$2"
             shift 2
             ;;
         -h | --help)
@@ -52,6 +58,13 @@ if [ "$#" -ne 0 ]; then
     usage >&2
     exit 64
 fi
+case "${SSH_MODE_VAL}" in
+    disabled | key-only | password) ;;
+    *)
+        echo "ssh.sh: unsupported mode '${SSH_MODE_VAL}'" >&2
+        exit 64
+        ;;
+esac
 
 case "$(uname -m)" in
     x86_64) ;;
@@ -70,12 +83,12 @@ rm -rf /var/lib/apt/lists/*
 mkdir -p /run/sshd
 chmod 0755 /run/sshd
 
-cat >/etc/ssh/sshd_config.d/99-dev-image.conf <<'EOF'
+cat >/etc/ssh/sshd_config.d/99-dev-image.conf <<EOF
 PubkeyAuthentication yes
-PasswordAuthentication no
+PasswordAuthentication $([ "${SSH_MODE_VAL}" = "password" ] && echo yes || echo no)
 KbdInteractiveAuthentication no
 PermitEmptyPasswords no
-PermitRootLogin no
+PermitRootLogin $([ "${SSH_MODE_VAL}" = "password" ] && echo yes || echo no)
 EOF
 
 # Seed authorized_keys for the non-root user (if the account already exists —

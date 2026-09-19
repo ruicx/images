@@ -43,8 +43,8 @@ if [ "$#" -ne 0 ]; then
     usage >&2
     exit 64
 fi
-if [ ! -e "/usr/share/zoneinfo/${TZ_VAL}" ]; then
-    echo "system.sh: unknown timezone '${TZ_VAL}'" >&2
+if [[ ! "${TZ_VAL}" =~ ^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)+$ && "${TZ_VAL}" != "UTC" ]]; then
+    echo "system.sh: invalid timezone name '${TZ_VAL}'" >&2
     exit 64
 fi
 
@@ -62,6 +62,10 @@ apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends \
     ca-certificates tzdata lsb-release wget software-properties-common gnupg locales
 
+if [ ! -e "/usr/share/zoneinfo/${TZ_VAL}" ]; then
+    echo "system.sh: unknown timezone '${TZ_VAL}'" >&2
+    exit 64
+fi
 ln -snf "/usr/share/zoneinfo/${TZ_VAL}" /etc/localtime
 echo "${TZ_VAL}" >/etc/timezone
 locale-gen en_US.UTF-8

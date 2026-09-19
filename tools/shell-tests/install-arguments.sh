@@ -18,6 +18,10 @@ scripts=(
     "src/_scripts/user.sh|--username"
 )
 
+no_argument_scripts=(
+    "src/_scripts/dev-tools.sh"
+)
+
 expect_usage_error() {
     local script="$1"
     shift
@@ -39,5 +43,12 @@ for specification in "${scripts[@]}"; do
     bash "${script}" --help >/dev/null
     expect_usage_error "${script}" --unknown-option
     expect_usage_error "${script}" "${required_option}"
+    expect_usage_error "${script}" unexpected-positional
+done
+
+for script_name in "${no_argument_scripts[@]}"; do
+    script="${REPOSITORY_ROOT}/${script_name}"
+    bash "${script}" --help >/dev/null
+    expect_usage_error "${script}" --unknown-option
     expect_usage_error "${script}" unexpected-positional
 done

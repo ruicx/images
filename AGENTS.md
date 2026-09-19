@@ -6,9 +6,11 @@
   manifest `inputs` list and call the script explicitly from its Dockerfile.
 - Build-time script configuration uses named GNU `getopt` options. Every parameterized script
   provides `-h`/`--help` and returns 64 for invalid, missing, or positional arguments.
-- External bases require exact tags and digests; downloaded binaries require checksum verification.
+- External bases require exact tags and digests. Downloaded binaries require checksum verification
+  unless the consuming family's bilingual README explicitly documents a user-approved exception.
 - Keep English and `_zh` documentation synchronized.
 - Add English NumPy-style docstrings and parameter/return type hints to Python APIs. Comments in
   every language must explain intent in English.
-- Never add a global `latest` tag, embedded password, root SSH access, or a runtime mirror probe.
+- Never add a global `latest` tag, embedded password, or runtime mirror probe. Password/root SSH
+  requires an explicit manifest mode, a runtime-mounted password file, and bilingual risk docs.
 - Do not delete published immutable tags when retiring a variant.

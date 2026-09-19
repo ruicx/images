@@ -93,7 +93,8 @@ Rules:
   not persist them through `ENV` unless the running container also needs them
 - Reject unknown options, missing values, and positional arguments with exit 64
 - Provide `-h` / `--help` without performing installation work
-- Verify checksums for any downloaded external binaries
+- Verify checksums for downloaded external binaries unless the consuming family's bilingual README
+  records a user-approved exception with an exact version and HTTPS URL
 
 ## Step 3 — Handle Static Assets (if any)
 
@@ -165,4 +166,5 @@ Per the documentation sync rules in `AGENTS.md`:
 - [ ] Cleanup line `rm -rf /tmp/scripts /tmp/assets` covers all temp directories
 - [ ] Documentation synced (`README.md`, `README_zh.md`, `AGENTS.md`)
 - [ ] `python -m tools.images validate` passes
-- [ ] New external downloads use exact versions and verified checksums
+- [ ] New external downloads use exact versions and verified checksums, or document an approved
+  exception in the consuming family's bilingual README

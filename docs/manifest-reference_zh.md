@@ -14,7 +14,7 @@
 | `context` | 路径 | 仓库内已存在的构建上下文。 |
 | `platforms` | 列表 | 首期必须且只能是 `linux/amd64`。 |
 | `inputs` | 列表 | 已存在的路径或 glob；变更时重建该族全部变体。 |
-| `runtime.ssh.default` | 枚举 | `disabled` 或 `key-only`；变体可覆盖。 |
+| `runtime.ssh.default` | 枚举 | `disabled`、`key-only` 或 `password`；变体可覆盖。 |
 | `publish` | 布尔值 | 是否允许从 `main` 发布选中的变体。 |
 | `variants` | 列表 | 一个或多个变体定义。 |
 
@@ -27,7 +27,7 @@
 | `base.digest` | 字符串 | 必填的 `sha256:` digest，后接 64 位小写十六进制。 |
 | `build_args` | 映射 | 传给 Dockerfile 的非秘密值；疑似秘密的键会被拒绝。 |
 | `mirror` | 枚举 | `upstream` 或显式选择的 `aliyun`。 |
-| `runtime.ssh.default` | 枚举 | 可选，用于覆盖镜像族默认值。 |
+| `runtime.ssh.default` | 枚举 | 可选，用于覆盖镜像族默认值；密码模式必须在镜像族文档中说明运行时秘密处理。 |
 | `dependencies` | 列表 | 以 BuildKit 命名上下文暴露的内部目标。 |
 | `tests` | 列表 | 一个或多个已存在的仓库相对冒烟测试脚本。 |
 

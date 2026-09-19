@@ -42,7 +42,7 @@
           "additionalProperties": false,
           "required": ["default"],
           "properties": {
-            "default": { "enum": ["disabled", "key-only"] }
+            "default": { "enum": ["disabled", "key-only", "password"] }
           }
         }
       }
@@ -92,7 +92,7 @@
               "additionalProperties": false,
               "required": ["default"],
               "properties": {
-                "default": { "enum": ["disabled", "key-only"] }
+                "default": { "enum": ["disabled", "key-only", "password"] }
               }
             }
           }
@@ -119,4 +119,3 @@
     }
   }
 }
-

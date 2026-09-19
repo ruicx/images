@@ -1,0 +1,12 @@
+{
+  "changed_files": [],
+  "schema_version": 1,
+  "targets": [
+    {
+      "family": "cuda",
+      "publish": true,
+      "target": "cuda--12-6-3-devel-ubuntu24-04",
+      "variant": "12.6.3-devel-ubuntu24.04"
+    }
+  ]
+}
