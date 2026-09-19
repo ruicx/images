@@ -5,6 +5,15 @@ CUDA/Ubuntu 组合以 `image.yml` 为准。镜像包含 CUDA 编译器、固定�
 4.3.2、Ninja、GCC、clangd、GDB、Git LFS、Python 3、pip、虚拟环境支持、OpenCV 开发库、
 常用网络工具，以及 ripgrep、fd、bat 等现代命令行工具。
 
+开发 shell 默认通过 `DEVSHELL: true` 启用，安装 zsh、Oh My Zsh、NvChad、使用当前 Node.js
+LTS 的 NVM、fzf、eza、Starship、Sheldon、Zoxide、Witr 和 Atuin。容器命令仍默认为 Bash；
+SSH 会话使用账号配置的 zsh 登录 shell，`docker exec` 调用者可显式选择 `bash` 或 `zsh`。
+设置 `DEVSHELL: false` 会跳过开发 shell 安装。
+
+该开发 shell 能力按用户要求持续跟随上游当前 release、分支和安装器，不固定每个组件版本。
+这是对仓库常规可复现构建与 checksum 规则的明确滚动更新例外。因此，在不同时间重建同一 Git
+提交可能得到不同的开发 shell 内容，也可能因上游产物变化而失败。
+
 CMake 从精确版本的 HTTPS release 地址下载；本镜像族明确不校验该压缩包的 checksum。
 
 默认交互用户为 `root`，不创建额外登录账号，工作目录为 `/work`，软件源使用上游。该镜像族

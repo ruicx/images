@@ -8,6 +8,7 @@ ARG DEFAULT_UID=1000
 ARG DEFAULT_GID=1000
 ARG TZ=Asia/Shanghai
 ARG CMAKE_VERSION=4.3.2
+ARG DEVSHELL=false
 ARG PACKAGE_MIRROR=upstream
 ARG SSH_MODE=password
 ARG SSH_LOGIN_USER=default
@@ -46,6 +47,12 @@ RUN if [ "${PACKAGE_MIRROR}" = "aliyun" ]; then \
       echo "unsupported PACKAGE_MIRROR=${PACKAGE_MIRROR}" >&2; exit 64; \
     fi \
     && rm -rf /tmp/image-scripts
+
+COPY --chmod=0755 src/_scripts/devshell.sh /tmp/image-scripts/devshell.sh
+USER ${DEFAULT_USER}
+RUN /tmp/image-scripts/devshell.sh --enabled "${DEVSHELL}"
+USER root
+RUN rm -rf /tmp/image-scripts
 
 COPY --chmod=0755 src/_assets/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
 

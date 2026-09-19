@@ -26,7 +26,7 @@
 | `id` | 字符串 | 浮动标签名；小写分段可用 `.`、`_`、`-`，禁止 `latest`。 |
 | `base.image` | 字符串 | 带明确版本标签的外部镜像；禁止 `latest` 和 `master`。 |
 | `base.digest` | 字符串 | 必填的 `sha256:` digest，后接 64 位小写十六进制。 |
-| `build_args` | 映射 | 传给 Dockerfile 的非秘密值；疑似秘密的键会被拒绝。 |
+| `build_args` | 映射 | 传给对应 Dockerfile `ARG` 声明的任意非秘密标量值；疑似秘密的键会被拒绝。 |
 | `mirror` | 枚举 | `upstream` 或显式选择的 `aliyun`。 |
 | `runtime.ssh.default` | 枚举 | 可选，用于覆盖镜像族默认值；密码模式必须在镜像族文档中说明运行时秘密处理。 |
 | `runtime.ssh.login_user` | 枚举 | 可选的 `default` 或 `root` 登录账号选择覆盖。 |
@@ -49,6 +49,11 @@ FROM internal_base AS development
 
 Buildx Bake 会把 `internal_base` 解析为 `target:<generated-base-target>`，因此 PR 的内部依赖
 不会读取 Registry 中的旧镜像。
+
+`build_args` 是镜像专用构建选项的扩展点，不需要修改 Python 解析器。Bake 生成前，值会统一
+转换为字符串。因此接收布尔选项的脚本必须自行归一化，例如 YAML 的 `true` 可能变为 `True`；
+`${NAME}` 这类环境变量表达式不会被插值，而会保留为字面字符串。schema 仍禁止在
+`build_args` 之外添加未知字段。
 
 ## 完整结构
 

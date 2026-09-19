@@ -1,29 +1,30 @@
 #!/bin/bash
 # Developer shell setup: zsh, oh-my-zsh, neovim (NvChad), nvm, fzf, eza, starship, sheldon, zoxide.
-# Must run as the target non-root user (USER directive before this RUN in the Dockerfile).
-# Option: --ros-distro (default: jazzy).
+# Run as the final image user. Root commands execute directly or through passwordless sudo.
+# Option: --enabled (default: false).
 set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: devshell.sh [--ros-distro <name>]
+Usage: devshell.sh [--enabled <boolean>]
 
 Options:
-  --ros-distro <value>  ROS distribution used by shell aliases (default: jazzy)
-  -h, --help             Show this help
+  --enabled <value>  Install the developer shell: true/false, 1/0, yes/no,
+                     on/off, or enabled/disabled (default: false)
+  -h, --help         Show this help
 EOF
 }
 
-ROS_DISTRO_VAL="jazzy"
-if ! PARSED=$(getopt -o h -l help,ros-distro: -n "$(basename "$0")" -- "$@"); then
+ENABLED_VAL="false"
+if ! PARSED=$(getopt -o h -l help,enabled: -n "$(basename "$0")" -- "$@"); then
     usage >&2
     exit 64
 fi
 eval set -- "$PARSED"
 while true; do
     case "$1" in
-        --ros-distro)
-            ROS_DISTRO_VAL="$2"
+        --enabled)
+            ENABLED_VAL="$2"
             shift 2
             ;;
         -h | --help)
@@ -41,19 +42,42 @@ if [ "$#" -ne 0 ]; then
     usage >&2
     exit 64
 fi
-if [[ ! "${ROS_DISTRO_VAL}" =~ ^[a-z0-9-]+$ ]]; then
-    echo "devshell.sh: ROS distribution must contain lowercase letters, digits, and hyphens" >&2
-    exit 64
+case "${ENABLED_VAL,,}" in
+    1 | true | yes | on | enabled) ;;
+    0 | false | no | off | disabled)
+        exit 0
+        ;;
+    *)
+        echo "devshell.sh: unsupported --enabled value '${ENABLED_VAL}'" >&2
+        exit 64
+        ;;
+esac
+
+# Docker USER does not update HOME inherited from the base image.
+CURRENT_USER="$(id -un)"
+USER_HOME="$(getent passwd "${CURRENT_USER}" | cut -d: -f6)"
+if [ -z "${USER_HOME}" ]; then
+    echo "devshell.sh: cannot resolve home directory for '${CURRENT_USER}'" >&2
+    exit 1
 fi
+export HOME="${USER_HOME}"
+
+run_as_root() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    else
+        sudo -n "$@"
+    fi
+}
 
 # ─── Init Apt ─────────────────────────────────────────────────────────────────
 
-sudo apt-get update
+run_as_root apt-get update
 
 # ── zsh ───────────────────────────────────────────────────────────────────────
 
-sudo apt-get -y install zsh
-sudo chsh -s /bin/zsh "$(whoami)"
+run_as_root apt-get -y install zsh
+run_as_root chsh -s /bin/zsh "$(whoami)"
 
 # ── oh-my-zsh ────────────────────────────────────────────────────────────────
 
@@ -82,9 +106,13 @@ cat >>"${HOME}/.zshrc" <<'ZSH_EOF'
 
 setopt no_nomatch # disable * match
 
-# uv shell completions
-eval "$(uv generate-shell-completion zsh)"
-eval "$(uvx --generate-shell-completion zsh)"
+# Load uv completions only in images that install uv separately.
+if command -v uv >/dev/null 2>&1; then
+    eval "$(uv generate-shell-completion zsh)"
+fi
+if command -v uvx >/dev/null 2>&1; then
+    eval "$(uvx --generate-shell-completion zsh)"
+fi
 
 ZSH_EOF
 
@@ -97,13 +125,6 @@ mkdir -p "${HOME}/.vscode-server/data/Machine"
 # tmux
 echo 'set -g history-limit 1000000' >>"${HOME}/.tmux.conf"
 echo '' >>"${HOME}/.tmux.conf"
-
-# ── ROS2 aliases ─────────────────────────────────────────────────────────────
-
-echo "alias load_ros=\"source /opt/ros/${ROS_DISTRO_VAL}/setup.zsh\"" >>"${HOME}/.zshrc"
-echo '' >>"${HOME}/.zshrc"
-echo "alias load_ros=\"source /opt/ros/${ROS_DISTRO_VAL}/setup.bash\"" >>"${HOME}/.bashrc"
-echo '' >>"${HOME}/.bashrc"
 
 # ── nvm + Node.js LTS ────────────────────────────────────────────────────────
 
@@ -133,7 +154,7 @@ esac
 curl -LO "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${NVIM_ARCH}.tar.gz"
 tar -xf "nvim-linux-${NVIM_ARCH}.tar.gz"
 rm "nvim-linux-${NVIM_ARCH}.tar.gz"
-sudo rsync -av --ignore-existing "nvim-linux-${NVIM_ARCH}/" /usr/local
+run_as_root rsync -av --ignore-existing "nvim-linux-${NVIM_ARCH}/" /usr/local
 rm -rf "nvim-linux-${NVIM_ARCH}"
 
 git clone https://github.com/NvChad/starter "${HOME}/.config/nvim" --depth 1
@@ -207,9 +228,9 @@ case $ARCH in
     *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
 esac
 wget -c "https://github.com/eza-community/eza/releases/latest/download/eza_${EZA_ARCH}.tar.gz" -O - | tar xz
-sudo chmod +x eza
-sudo chown root:root eza
-sudo mv eza /usr/local/bin/eza
+run_as_root chmod +x eza
+run_as_root chown root:root eza
+run_as_root mv eza /usr/local/bin/eza
 
 # ─── Starship ─────────────────────────────────────────────────────────────────
 
@@ -256,4 +277,4 @@ sed -i 's/eval "$(atuin init zsh)"/eval "$(atuin init zsh --disable-up-arrow)"/'
 
 # ─── Apt Cache Clean ──────────────────────────────────────────────────────────
 
-sudo rm -rf /var/lib/apt/lists/*
+run_as_root rm -rf /var/lib/apt/lists/*

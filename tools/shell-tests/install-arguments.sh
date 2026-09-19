@@ -7,7 +7,7 @@ REPOSITORY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 scripts=(
     "src/_scripts/cmake.sh|--version"
     "src/_scripts/cpptrace.sh|--version"
-    "src/_scripts/devshell.sh|--ros-distro"
+    "src/_scripts/devshell.sh|--enabled"
     "src/_scripts/iceoryx.sh|--version"
     "src/_scripts/libdatachannel.sh|--version"
     "src/_scripts/precommit.sh|--config"
@@ -50,6 +50,13 @@ done
 ssh_script="${REPOSITORY_ROOT}/src/_scripts/ssh.sh"
 expect_usage_error "${ssh_script}" --login-user
 expect_usage_error "${ssh_script}" --mode
+
+# YAML booleans are stringified by the Python planner, so the script owns normalization.
+devshell_script="${REPOSITORY_ROOT}/src/_scripts/devshell.sh"
+for disabled_value in false False FALSE 0 no NO off disabled; do
+    bash "${devshell_script}" --enabled "${disabled_value}"
+done
+expect_usage_error "${devshell_script}" --enabled sometimes
 
 for script_name in "${no_argument_scripts[@]}"; do
     script="${REPOSITORY_ROOT}/${script_name}"

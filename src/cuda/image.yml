@@ -9,6 +9,7 @@ inputs:
   - src/_scripts/system.sh
   - src/_scripts/dev-tools.sh
   - src/_scripts/cmake.sh
+  - src/_scripts/devshell.sh
   - src/_scripts/user.sh
   - src/_scripts/ssh.sh
   - src/_scripts/finalize-mirror.sh
@@ -25,6 +26,7 @@ variants:
       digest: sha256:392c0df7b577ecae17a17f6ba7f2009c217bb4422f8431c053ae9af61a8c148a
     build_args:
       DEFAULT_USER: root
+      DEVSHELL: true
       TZ: Asia/Shanghai
       CMAKE_VERSION: 4.3.2
     mirror: upstream
@@ -37,6 +39,7 @@ variants:
       digest: sha256:520292dbb4f755fd360766059e62956e9379485d9e073bbd2f6e3c20c270ed66
     build_args:
       DEFAULT_USER: root
+      DEVSHELL: true
       TZ: Asia/Shanghai
       CMAKE_VERSION: 4.3.2
     mirror: upstream

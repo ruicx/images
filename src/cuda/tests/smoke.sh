@@ -31,6 +31,14 @@ if getent passwd luciole >/dev/null; then
     exit 1
 fi
 test -x /usr/local/bin/docker-entrypoint
+test "$(getent passwd root | cut -d: -f7)" = "/bin/zsh"
+command -v zsh >/dev/null
+command -v nvim >/dev/null
+command -v eza >/dev/null
+command -v starship >/dev/null
+test -x "${HOME}/.fzf/bin/fzf"
+test -x "${HOME}/.local/bin/sheldon"
+test -x "${HOME}/.local/bin/zoxide"
 grep -Fx "PasswordAuthentication yes" /etc/ssh/sshd_config.d/99-dev-image.conf
 grep -Fx "PermitRootLogin yes" /etc/ssh/sshd_config.d/99-dev-image.conf
 grep -Fx "AllowUsers root" /etc/ssh/sshd_config.d/99-dev-image.conf

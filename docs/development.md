@@ -29,6 +29,9 @@
   the risk, startup procedure, and safer modes.
 - Downloaded binary archives normally require checksum verification. A user-approved exception
   must retain an exact version and HTTPS URL and be recorded in the family's bilingual README.
+- A deliberately rolling developer-shell capability may follow current upstream releases,
+  branches, and installers only when the family's bilingual README records the user-approved
+  reproducibility and supply-chain exception. Keep this exception scoped to interactive tooling.
 - Upstream Ubuntu and PyPI sources are the default. `aliyun` is an explicit build-time manifest
   choice and is never selected by runtime network probing.
 

@@ -95,6 +95,9 @@ Rules:
 - Provide `-h` / `--help` without performing installation work
 - Verify checksums for downloaded external binaries unless the consuming family's bilingual README
   records a user-approved exception with an exact version and HTTPS URL
+- A rolling interactive developer-shell step may use current upstream releases, branches, and
+  installers only when the consuming family's bilingual README records the user-approved
+  reproducibility and supply-chain exception
 
 ## Step 3 — Handle Static Assets (if any)
 

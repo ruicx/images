@@ -6,6 +6,18 @@ compiler, a version-pinned CMake 4.3.2 installation, Ninja, GCC, clangd, GDB, Gi
 pip, virtual-environment support, OpenCV development libraries, common network tools, and modern
 command-line utilities such as ripgrep, fd, and bat.
 
+The developer shell is enabled by default with `DEVSHELL: true`. It installs zsh, Oh My Zsh,
+NvChad, NVM with the current Node.js LTS, fzf, eza, Starship, Sheldon, Zoxide, Witr, and Atuin. The
+container command remains Bash. SSH sessions use the account's configured zsh login shell, while
+`docker exec` callers may explicitly select `bash` or `zsh`. Setting `DEVSHELL: false` skips the
+developer-shell installation.
+
+This developer-shell capability intentionally follows current upstream releases, branches, and
+installers instead of pinning every component. It is a user-approved rolling exception to the
+repository's normal reproducibility and checksum rules. Rebuilding the same Git revision at a
+later date can therefore produce different developer-shell contents or fail because upstream
+artifacts changed.
+
 CMake is downloaded from its exact HTTPS release URL. This family intentionally does not verify a
 checksum for that archive.
 

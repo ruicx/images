@@ -26,7 +26,7 @@ patterns are relative to the repository root. Unknown fields are rejected.
 | `id` | string | Floating tag name; lowercase segments separated by `.`, `_`, or `-`; never `latest`. |
 | `base.image` | string | External image with an explicit version tag; `latest` and `master` are forbidden. |
 | `base.digest` | string | Required `sha256:` digest with 64 lowercase hexadecimal characters. |
-| `build_args` | mapping | Non-secret values passed to the Dockerfile. Secret-like keys are rejected. |
+| `build_args` | mapping | Arbitrary non-secret scalar values passed to matching Dockerfile `ARG` declarations. Secret-like keys are rejected. |
 | `mirror` | enum | `upstream` or explicitly selected `aliyun`. |
 | `runtime.ssh.default` | enum | Optional variant override of the family default. Password mode requires runtime secret handling documented by the family. |
 | `runtime.ssh.login_user` | enum | Optional `default` or `root` override of the family login account selector. |
@@ -49,6 +49,12 @@ FROM internal_base AS development
 
 Buildx Bake resolves `internal_base` to `target:<generated-base-target>`, so a pull request never
 uses an older registry copy for an internal dependency.
+
+`build_args` is the extension point for image-specific build options and does not require a Python
+parser change. Values are normalized to strings before Bake rendering. Scripts that accept boolean
+options must therefore normalize YAML values such as `true` becoming `True`; environment-variable
+expressions such as `${NAME}` are not interpolated and remain literal strings. Unknown fields
+outside `build_args` remain forbidden by the schema.
 
 ## Complete shape
 
