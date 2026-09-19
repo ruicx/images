@@ -6,7 +6,6 @@ test "$(uname -m)" = "x86_64"
 test "$(id -u)" -eq 0
 test "$(id -un)" = "root"
 test "${DEFAULT_USER}" = "root"
-test "${SSH_LOGIN_USER}" = "root"
 test "${WORKSPACE_DIR}" = "/work"
 test "${PWD}" = "${WORKSPACE_DIR}"
 test "${SSH_MODE}" = "password"

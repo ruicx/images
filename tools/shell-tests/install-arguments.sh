@@ -49,9 +49,9 @@ for specification in "${scripts[@]}"; do
     expect_usage_error "${script}" unexpected-positional
 done
 
-# Exercise every value-taking option added to the SSH capability.
+# Reject the removed account selector and exercise the remaining mode option.
 ssh_script="${REPOSITORY_ROOT}/src/_scripts/ssh.sh"
-expect_usage_error "${ssh_script}" --login-user
+expect_usage_error "${ssh_script}" --login-user default
 expect_usage_error "${ssh_script}" --mode
 
 # YAML booleans are stringified by the Python planner, so the script owns normalization.

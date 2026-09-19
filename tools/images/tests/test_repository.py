@@ -35,6 +35,7 @@ def variant(identifier: str, dependencies: list[dict[str, str]] | None = None) -
         },
         "build_args": {},
         "mirror": "upstream",
+        "runtime": {"ssh": {"mode": "disabled"}},
         "dependencies": dependencies or [],
         "tests": ["src/demo/tests/smoke.sh"],
     }
@@ -63,7 +64,6 @@ def manifest(name: str, variants: list[dict[str, Any]]) -> dict[str, Any]:
         "context": ".",
         "platforms": ["linux/amd64"],
         "inputs": [f"src/{name}/Dockerfile"],
-        "runtime": {"ssh": {"default": "disabled", "login_user": "default"}},
         "publish": True,
         "variants": variants,
     }
@@ -133,6 +133,15 @@ def test_requires_base_digest_key(repo_root: Path) -> None:
         ImageRepository(repo_root).load()
 
 
+def test_requires_explicit_variant_ssh_mode(repo_root: Path) -> None:
+    """Reject variants that do not explicitly select an SSH runtime policy."""
+    item = variant("one")
+    del item["runtime"]
+    write_family(repo_root, "demo", manifest("demo", [item]))
+    with pytest.raises(RepositoryError, match="runtime.*required"):
+        ImageRepository(repo_root).load()
+
+
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
@@ -172,23 +181,23 @@ def test_rejects_secret_like_build_arguments(repo_root: Path) -> None:
         ImageRepository(repo_root).load()
 
 
-def test_accepts_custom_default_user_and_renders_ssh_login_user(repo_root: Path) -> None:
-    """Accept a named default user and pass the SSH account selector to Bake."""
+def test_accepts_custom_default_user_and_renders_ssh_mode(repo_root: Path) -> None:
+    """Accept a named default user and pass its explicit SSH mode to Bake."""
     item = variant("one")
     item["build_args"] = {
         "DEFAULT_USER": "builder",
         "DEFAULT_UID": 1001,
         "DEFAULT_GID": 1001,
     }
-    data = manifest("demo", [item])
-    data["runtime"]["ssh"] = {"default": "password", "login_user": "default"}
-    write_family(repo_root, "demo", data)
+    item["runtime"]["ssh"]["mode"] = "password"
+    write_family(repo_root, "demo", manifest("demo", [item]))
     repository = ImageRepository(repo_root).load()
     plan = repository.make_plan({("demo", "one")})
     bake = repository.render_bake(plan, "example", "1" * 40, "load")
     target = next(iter(bake["target"].values()))
     assert target["args"]["DEFAULT_USER"] == "builder"
-    assert target["args"]["SSH_LOGIN_USER"] == "default"
+    assert target["args"]["SSH_MODE"] == "password"
+    assert "SSH_LOGIN_USER" not in target["args"]
 
 
 @pytest.mark.parametrize(

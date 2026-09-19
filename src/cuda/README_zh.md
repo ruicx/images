@@ -71,10 +71,9 @@ build_args:
   WORKSPACE_DIR: /workspace
 runtime:
   ssh:
-    default: password
-    login_user: default
+    mode: password
 ```
 
-`runtime.ssh.login_user` 可设为 `default` 或 `root`。`default` 跟随 `DEFAULT_USER`，`root`
-显式选择 root。密码模式下，`SSH_PASSWORD_FILE` 会在容器启动时为解析后的登录账号设置密码；
-纯公钥模式下，应把 `authorized_keys` 挂载到该账号的 home 目录。
+每个变体都必须声明 `runtime.ssh.mode`。SSH 始终使用 `DEFAULT_USER`，不再提供独立登录账号
+选择器。密码模式下，`SSH_PASSWORD_FILE` 会在容器启动时为该账号设置密码；纯公钥模式下，
+应把 `authorized_keys` 挂载到该账号的 home 目录。

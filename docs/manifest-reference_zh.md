@@ -14,8 +14,6 @@
 | `context` | 路径 | 仓库内已存在的构建上下文。 |
 | `platforms` | 列表 | 首期必须且只能是 `linux/amd64`。 |
 | `inputs` | 列表 | 已存在的路径或 glob；变更时重建该族全部变体。 |
-| `runtime.ssh.default` | 枚举 | `disabled`、`key-only` 或 `password`；变体可覆盖。 |
-| `runtime.ssh.login_user` | 枚举 | `default` 跟随 `DEFAULT_USER`；`root` 显式选择 root；变体可覆盖。 |
 | `publish` | 布尔值 | 是否允许从 `main` 发布选中的变体。 |
 | `variants` | 列表 | 一个或多个变体定义。 |
 
@@ -28,8 +26,7 @@
 | `base.digest` | 字符串或 null | 该键必填。`sha256:` 值用于固定基础镜像；`null` 或 YAML 空值表示按 `base.image` 标签跟踪。 |
 | `build_args` | 映射 | 传给对应 Dockerfile `ARG` 声明的任意非秘密标量值；疑似秘密的键会被拒绝。 |
 | `mirror` | 枚举 | `upstream` 或显式选择的 `aliyun`。 |
-| `runtime.ssh.default` | 枚举 | 可选，用于覆盖镜像族默认值；密码模式必须在镜像族文档中说明运行时秘密处理。 |
-| `runtime.ssh.login_user` | 枚举 | 可选的 `default` 或 `root` 登录账号选择覆盖。 |
+| `runtime.ssh.mode` | 枚举 | 每个变体必填：`disabled`、`key-only` 或 `password`。SSH 始终使用 `build_args.DEFAULT_USER`。 |
 | `dependencies` | 列表 | 以 BuildKit 命名上下文暴露的内部目标。 |
 | `tests` | 列表 | 一个或多个已存在的仓库相对冒烟测试脚本。 |
 
@@ -65,6 +62,10 @@ Buildx Bake 会把 `internal_base` 解析为 `target:<generated-base-target>`，
 把这个值传给最终镜像源能力，由该脚本维护支持值：`upstream` 保持基础镜像源不变，`aliyun`
 在所有软件安装完成后重写最终保留的 apt 和 pip 配置。运行时不会探测镜像源。
 
+`runtime.ssh.mode` 是有类型的运行时策略，不是自由构建参数。每个变体都必须显式选择，避免
+新增变体时无意继承密码认证。规划器会把它转换为内部 `SSH_MODE` 构建参数；Dockerfile 和
+入口脚本只从 `DEFAULT_USER` 推导唯一允许的 SSH 账号，不再提供独立登录用户选择器。
+
 ## 完整结构
 
 ```yaml
@@ -77,10 +78,6 @@ platforms: [linux/amd64]
 inputs:
   - src/example/**
   - src/_scripts/example-tool.sh
-runtime:
-  ssh:
-    default: disabled
-    login_user: default
 publish: true
 variants:
   - id: ubuntu-24.04
@@ -94,6 +91,9 @@ variants:
       WORKSPACE_DIR: /workspace
       TOOL_VERSION: "1.2.3"
     mirror: upstream
+    runtime:
+      ssh:
+        mode: disabled
     dependencies: []
     tests:
       - src/example/tests/smoke.sh

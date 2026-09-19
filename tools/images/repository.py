@@ -70,8 +70,6 @@ class Variant:
         Package mirror policy selected by the manifest.
     ssh_mode:
         Default runtime SSH policy.
-    ssh_login_user:
-        SSH account selector, either the image default user or root.
     dependencies:
         Internal image targets provided as named BuildKit contexts.
     tests:
@@ -85,7 +83,6 @@ class Variant:
     build_args: Mapping[str, str]
     mirror: str
     ssh_mode: str
-    ssh_login_user: str
     dependencies: tuple[Dependency, ...]
     tests: tuple[str, ...]
 
@@ -260,13 +257,8 @@ class ImageRepository:
             Normalized family definition.
         """
         family_name = str(raw["name"])
-        default_ssh = str(raw["runtime"]["ssh"]["default"])
-        default_ssh_login_user = str(raw["runtime"]["ssh"]["login_user"])
         variants: list[Variant] = []
         for raw_variant in raw["variants"]:
-            runtime = raw_variant.get("runtime", {})
-            ssh_mode = str(runtime.get("ssh", {}).get("default", default_ssh))
-            ssh_login_user = str(runtime.get("ssh", {}).get("login_user", default_ssh_login_user))
             dependencies = tuple(
                 Dependency(
                     context=str(item["context"]),
@@ -289,8 +281,7 @@ class ImageRepository:
                         key: str(value) for key, value in raw_variant["build_args"].items()
                     },
                     mirror=str(raw_variant["mirror"]),
-                    ssh_mode=ssh_mode,
-                    ssh_login_user=ssh_login_user,
+                    ssh_mode=str(raw_variant["runtime"]["ssh"]["mode"]),
                     dependencies=dependencies,
                     tests=tuple(str(item) for item in raw_variant["tests"]),
                 )
@@ -725,7 +716,6 @@ class ImageRepository:
                     "IMAGE_VERSION": f"{variant.identifier}-{short_revision}",
                     "PACKAGE_MIRROR": variant.mirror,
                     "SSH_MODE": variant.ssh_mode,
-                    "SSH_LOGIN_USER": variant.ssh_login_user,
                 }
             )
             target: dict[str, Any] = {

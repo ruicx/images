@@ -32,6 +32,8 @@
 - Images use a non-root final user by default and receive OCI labels from Bake. A family may
   explicitly choose a root final user only when its bilingual README documents the operational and
   credential risks.
+- Every variant explicitly declares `runtime.ssh.mode`; SSH always targets its `DEFAULT_USER`.
+  Keep the policy outside `build_args` so schema validation and security review remain explicit.
 - Do not use `latest`, `master`, floating LTS installers, unversioned binary downloads, embedded
   passwords, or secrets in build arguments. A family may explicitly enable password/root SSH only
   when credentials are supplied from a runtime-mounted file and its bilingual README documents

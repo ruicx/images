@@ -79,11 +79,9 @@ build_args:
   WORKSPACE_DIR: /workspace
 runtime:
   ssh:
-    default: password
-    login_user: default
+    mode: password
 ```
 
-`runtime.ssh.login_user` accepts `default` or `root`. The `default` selector follows
-`DEFAULT_USER`; `root` explicitly selects root. In password mode, `SSH_PASSWORD_FILE` sets the
-password of the resolved login account at container startup. In key-only mode, mount
-`authorized_keys` in that account's home directory.
+Each variant must declare `runtime.ssh.mode`. SSH always targets `DEFAULT_USER`; there is no
+separate login-account selector. In password mode, `SSH_PASSWORD_FILE` sets that account's password
+at container startup. In key-only mode, mount `authorized_keys` in that account's home directory.

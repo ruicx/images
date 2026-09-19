@@ -1,12 +1,11 @@
 #!/bin/bash
 # Shared container entrypoint. SSH supports disabled, key-only, and password modes.
-# Reads DEFAULT_USER, SSH_LOGIN_USER, SSH_MODE, and the optional SSH_PASSWORD_FILE.
+# Reads DEFAULT_USER, SSH_MODE, and the optional SSH_PASSWORD_FILE.
 # Passwordless sudo is used only when the image starts as a managed non-root user.
 set -euo pipefail
 
 SSH_MODE_VAL="${SSH_MODE:-disabled}"
 DEFAULT_USER_VAL="${DEFAULT_USER:-root}"
-SSH_LOGIN_USER_VAL="${SSH_LOGIN_USER:-default}"
 
 run_as_root() {
     if [ "$(id -u)" -eq 0 ]; then
@@ -16,18 +15,7 @@ run_as_root() {
     fi
 }
 
-case "${SSH_LOGIN_USER_VAL}" in
-    default)
-        RESOLVED_LOGIN_USER="${DEFAULT_USER_VAL}"
-        ;;
-    root)
-        RESOLVED_LOGIN_USER="root"
-        ;;
-    *)
-        echo "[entrypoint] unsupported SSH_LOGIN_USER '${SSH_LOGIN_USER_VAL}'" >&2
-        exit 64
-        ;;
-esac
+RESOLVED_LOGIN_USER="${DEFAULT_USER_VAL}"
 if ! id "${RESOLVED_LOGIN_USER}" >/dev/null 2>&1; then
     echo "[entrypoint] SSH login user '${RESOLVED_LOGIN_USER}' does not exist" >&2
     exit 64

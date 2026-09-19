@@ -13,7 +13,6 @@ ARG LLAMA_CPP_CUDA_VERSION=12.8
 ARG DEVSHELL=false
 ARG PACKAGE_MIRROR=upstream
 ARG SSH_MODE=password
-ARG SSH_LOGIN_USER=default
 ARG WORKSPACE_DIR=/work
 
 LABEL org.opencontainers.image.description="Linux amd64 NVIDIA CUDA development environment"
@@ -36,7 +35,6 @@ RUN /tmp/image-scripts/user.sh \
 COPY --chmod=0755 src/_scripts/ssh.sh /tmp/image-scripts/ssh.sh
 RUN /tmp/image-scripts/ssh.sh \
       --default-user "${DEFAULT_USER}" \
-      --login-user "${SSH_LOGIN_USER}" \
       --mode "${SSH_MODE}"
 
 COPY --chmod=0755 src/_scripts/workspace.sh /tmp/image-scripts/workspace.sh
@@ -66,7 +64,6 @@ ENV EDITOR=vim \
     LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8 \
     PACKAGE_MIRROR=${PACKAGE_MIRROR} \
-    SSH_LOGIN_USER=${SSH_LOGIN_USER} \
     SSH_MODE=${SSH_MODE} \
     TZ=${TZ} \
     VISUAL=vim \

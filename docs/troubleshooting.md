@@ -36,9 +36,8 @@ README to reproduce image builds. Generated JSON files are disposable.
 - **One graph fails but others continue:** this is intentional failure isolation. The command exits
   nonzero after all independent components have been attempted.
 - **SSH exits with an error:** `key-only` requires a mounted non-empty `authorized_keys`.
-  `password` accepts an optional password for the resolved login account only through
-  `SSH_PASSWORD_FILE`. Check `runtime.ssh.login_user` and the image-family README because SSH
-  defaults are family-specific.
+  `password` accepts an optional password for `DEFAULT_USER` only through `SSH_PASSWORD_FILE`.
+  Check the variant's `runtime.ssh.mode` and the image-family README.
 
 For rollback, change the consumer to a previously known immutable SHA tag or digest. Never delete
 or overwrite the bad immutable tag; retain it for auditability and diagnose the originating build.

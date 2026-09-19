@@ -16,10 +16,6 @@ inputs:
   - src/_scripts/workspace.sh
   - src/_scripts/finalize-mirror.sh
   - src/_assets/docker-entrypoint.sh
-runtime:
-  ssh:
-    default: password
-    login_user: root
 publish: true
 variants:
   - id: 12.6.3-devel-ubuntu24.04
@@ -35,6 +31,9 @@ variants:
       LLAMA_CPP_CUDA_VERSION: "12.8"
       WORKSPACE_DIR: /work
     mirror: upstream
+    runtime:
+      ssh:
+        mode: password
     dependencies: []
     tests:
       - src/cuda/tests/smoke.sh
@@ -51,6 +50,9 @@ variants:
       LLAMA_CPP_CUDA_VERSION: "12.8"
       WORKSPACE_DIR: /work
     mirror: upstream
+    runtime:
+      ssh:
+        mode: password
     dependencies: []
     tests:
       - src/cuda/tests/smoke.sh

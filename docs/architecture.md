@@ -78,8 +78,8 @@ caches. The main-branch publisher receives only `contents: read` and `packages: 
 secrets must use BuildKit secret mounts; they must never be passed through `ARG`, `ENV`, or `COPY`.
 
 SSH is an explicit runtime policy with `disabled`, `key-only`, and `password` modes. `key-only`
-fails closed without mounted authorized keys. The `login_user` selector resolves to either the
-image's `DEFAULT_USER` or root, and `AllowUsers` limits SSH to that account. In password mode,
-`SSH_PASSWORD_FILE` may set the resolved account's password from a runtime-mounted file; passwords
-must never be stored in an image layer, manifest, build argument, or environment value. The
-account remains locked when no runtime password file is supplied.
+fails closed without mounted authorized keys. Every variant explicitly declares its mode, while
+the SSH account is always the image's `DEFAULT_USER`; `AllowUsers` limits SSH to that account. In
+password mode, `SSH_PASSWORD_FILE` may set its password from a runtime-mounted file; passwords must
+never be stored in an image layer, manifest, build argument, or environment value. The account
+remains locked when no runtime password file is supplied.

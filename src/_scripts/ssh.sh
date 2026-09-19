@@ -7,31 +7,29 @@
 #
 # What this script does:
 #   - Installs openssh-server.
-#   - Resolves the login account from the default user and login selector.
+#   - Uses the image's default user as the SSH login account.
 #   - Configures key-only or password authentication for that account.
 #   - Prepares the selected account's authorized_keys mount point.
 # Host keys are generated at runtime only when SSH is enabled.
 #
-# Options: --default-user, --login-user, and --mode.
+# Options: --default-user and --mode.
 set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: ssh.sh [--default-user <name>] [--login-user <selector>] [--mode <mode>]
+Usage: ssh.sh [--default-user <name>] [--mode <mode>]
 
 Options:
   --default-user <value>  Existing image default user (default: root)
-  --login-user <value>    SSH account: default or root (default: default)
   --mode <value>          SSH policy: disabled, key-only, or password (default: disabled)
   -h, --help              Show this help
 EOF
 }
 
 DEFAULT_USER_VAL="root"
-SSH_LOGIN_USER_VAL="default"
 SSH_MODE_VAL="disabled"
 
-if ! PARSED=$(getopt -o h -l help,default-user:,login-user:,mode: -n "$(basename "$0")" -- "$@"); then
+if ! PARSED=$(getopt -o h -l help,default-user:,mode: -n "$(basename "$0")" -- "$@"); then
     usage >&2
     exit 64
 fi
@@ -40,10 +38,6 @@ while true; do
     case "$1" in
         --default-user)
             DEFAULT_USER_VAL="$2"
-            shift 2
-            ;;
-        --login-user)
-            SSH_LOGIN_USER_VAL="$2"
             shift 2
             ;;
         --mode)
@@ -72,22 +66,11 @@ case "${SSH_MODE_VAL}" in
         exit 64
         ;;
 esac
-case "${SSH_LOGIN_USER_VAL}" in
-    default)
-        RESOLVED_LOGIN_USER="${DEFAULT_USER_VAL}"
-        ;;
-    root)
-        RESOLVED_LOGIN_USER="root"
-        ;;
-    *)
-        echo "ssh.sh: unsupported login user '${SSH_LOGIN_USER_VAL}'" >&2
-        exit 64
-        ;;
-esac
 if [[ ! "${DEFAULT_USER_VAL}" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
     echo "ssh.sh: invalid default user '${DEFAULT_USER_VAL}'" >&2
     exit 64
 fi
+RESOLVED_LOGIN_USER="${DEFAULT_USER_VAL}"
 
 case "$(uname -m)" in
     x86_64) ;;

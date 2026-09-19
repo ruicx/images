@@ -12,7 +12,6 @@
     "context",
     "platforms",
     "inputs",
-    "runtime",
     "publish",
     "variants"
   ],
@@ -32,22 +31,6 @@
       "uniqueItems": true,
       "items": { "type": "string", "minLength": 1 }
     },
-    "runtime": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["ssh"],
-      "properties": {
-        "ssh": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["default", "login_user"],
-          "properties": {
-            "default": { "enum": ["disabled", "key-only", "password"] },
-            "login_user": { "enum": ["default", "root"] }
-          }
-        }
-      }
-    },
     "publish": { "type": "boolean" },
     "variants": {
       "type": "array",
@@ -59,7 +42,7 @@
     "variant": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "base", "build_args", "mirror", "dependencies", "tests"],
+      "required": ["id", "base", "build_args", "mirror", "runtime", "dependencies", "tests"],
       "properties": {
         "id": {
           "type": "string",
@@ -90,14 +73,14 @@
         "runtime": {
           "type": "object",
           "additionalProperties": false,
+          "required": ["ssh"],
           "properties": {
             "ssh": {
               "type": "object",
               "additionalProperties": false,
-              "minProperties": 1,
+              "required": ["mode"],
               "properties": {
-                "default": { "enum": ["disabled", "key-only", "password"] },
-                "login_user": { "enum": ["default", "root"] }
+                "mode": { "enum": ["disabled", "key-only", "password"] }
               }
             }
           }

@@ -14,8 +14,6 @@ patterns are relative to the repository root. Unknown fields are rejected.
 | `context` | path | Existing build context inside the repository. |
 | `platforms` | list | Phase one accepts exactly `linux/amd64`. |
 | `inputs` | list | Existing path/glob patterns whose changes rebuild every family variant. |
-| `runtime.ssh.default` | enum | `disabled`, `key-only`, or `password`; variants may override it. |
-| `runtime.ssh.login_user` | enum | `default` follows `DEFAULT_USER`; `root` explicitly selects root. Variants may override it. |
 | `publish` | boolean | Allows selected variants to be published from `main`. |
 | `variants` | list | One or more variant definitions. |
 
@@ -28,8 +26,7 @@ patterns are relative to the repository root. Unknown fields are rejected.
 | `base.digest` | string or null | The key is required. A `sha256:` value pins the base; `null` or a blank YAML value tracks `base.image` by tag. |
 | `build_args` | mapping | Arbitrary non-secret scalar values passed to matching Dockerfile `ARG` declarations. Secret-like keys are rejected. |
 | `mirror` | enum | `upstream` or explicitly selected `aliyun`. |
-| `runtime.ssh.default` | enum | Optional variant override of the family default. Password mode requires runtime secret handling documented by the family. |
-| `runtime.ssh.login_user` | enum | Optional `default` or `root` override of the family login account selector. |
+| `runtime.ssh.mode` | enum | Required per variant: `disabled`, `key-only`, or `password`. SSH always targets `build_args.DEFAULT_USER`. |
 | `dependencies` | list | Internal targets exposed as named BuildKit contexts. |
 | `tests` | list | One or more existing repository-relative smoke-test scripts. |
 
@@ -68,6 +65,11 @@ it as `PACKAGE_MIRROR`. The Dockerfile passes that value to its final mirror cap
 owns the supported values: `upstream` leaves the base sources unchanged, while `aliyun` rewrites the
 persisted apt and pip configuration after all package installation. No runtime mirror probe occurs.
 
+`runtime.ssh.mode` is a typed runtime policy rather than a free-form build argument. Every variant
+must select it explicitly, so a new variant cannot silently inherit password authentication. The
+planner renders it as the internal `SSH_MODE` build argument. The Dockerfile and entrypoint derive
+the only permitted SSH account from `DEFAULT_USER`; there is no separate login-user selector.
+
 ## Complete shape
 
 ```yaml
@@ -80,10 +82,6 @@ platforms: [linux/amd64]
 inputs:
   - src/example/**
   - src/_scripts/example-tool.sh
-runtime:
-  ssh:
-    default: disabled
-    login_user: default
 publish: true
 variants:
   - id: ubuntu-24.04
@@ -97,6 +95,9 @@ variants:
       WORKSPACE_DIR: /workspace
       TOOL_VERSION: "1.2.3"
     mirror: upstream
+    runtime:
+      ssh:
+        mode: disabled
     dependencies: []
     tests:
       - src/example/tests/smoke.sh

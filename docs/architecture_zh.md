@@ -65,7 +65,7 @@ PR 只有仓库只读权限，不登录 GHCR，也不推送镜像或缓存。主
 `ARG`、`ENV` 或 `COPY` 传递。
 
 SSH 是显式运行策略，支持 `disabled`、`key-only` 和 `password`。`key-only` 在未挂载
-authorized keys 时拒绝启动。`login_user` 会解析为镜像的 `DEFAULT_USER` 或 root，且
-`AllowUsers` 将 SSH 限制到该账号。密码模式可通过运行时挂载的 `SSH_PASSWORD_FILE` 为解析后
-的账号设置密码；密码禁止写入镜像层、清单、构建参数或环境变量。未提供运行时密码文件时，
-账号保持锁定。
+authorized keys 时拒绝启动。每个变体都显式声明模式，SSH 账号始终是镜像的 `DEFAULT_USER`，
+且 `AllowUsers` 将 SSH 限制到该账号。密码模式可通过运行时挂载的 `SSH_PASSWORD_FILE` 为该
+账号设置密码；密码禁止写入镜像层、清单、构建参数或环境变量。未提供运行时密码文件时，账号
+保持锁定。
