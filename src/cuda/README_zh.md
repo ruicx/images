@@ -21,6 +21,10 @@ CMake 从精确版本的 HTTPS release 地址下载；本镜像族明确不校�
 `DEFAULT_USER`。该镜像族默认启用密码 SSH 和 root 登录，但在运行时提供密码前 root 账户
 保持锁定；镜像中不保存任何密码。
 
+`PACKAGE_MIRROR` 支持 `upstream` 和 `aliyun`。最终镜像源能力在 `upstream` 模式下保持基础
+镜像的软件源不变；在 `aliyun` 模式下，仅在所有构建期软件安装完成后切换最终保留的 apt 和
+pip 配置。
+
 以 root 运行容器并开放密码 SSH，意味着容器进程和成功登录的 SSH 会话拥有容器内的完整
 控制权。请使用独立的强密码，在宿主机或网络边界限制 SSH 端口，并尽可能改用
 `SSH_MODE=key-only` 或 `SSH_MODE=disabled`。

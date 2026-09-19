@@ -8,6 +8,7 @@ scripts=(
     "src/_scripts/cmake.sh|--version"
     "src/_scripts/cpptrace.sh|--version"
     "src/_scripts/devshell.sh|--enabled"
+    "src/_scripts/finalize-mirror.sh|--mirror"
     "src/_scripts/iceoryx.sh|--version"
     "src/_scripts/libdatachannel.sh|--version"
     "src/_scripts/precommit.sh|--config"
@@ -58,6 +59,11 @@ for disabled_value in false False FALSE 0 no NO off disabled; do
     bash "${devshell_script}" --enabled "${disabled_value}"
 done
 expect_usage_error "${devshell_script}" --enabled sometimes
+
+# Upstream is a non-mutating success path; mirror selection owns value validation.
+mirror_script="${REPOSITORY_ROOT}/src/_scripts/finalize-mirror.sh"
+bash "${mirror_script}" --mirror upstream >/dev/null
+expect_usage_error "${mirror_script}" --mirror unsupported
 
 # Selecting root must be a non-mutating success path owned by the user capability.
 user_script="${REPOSITORY_ROOT}/src/_scripts/user.sh"

@@ -43,11 +43,8 @@ RUN /tmp/image-scripts/workspace.sh \
       --owner "${DEFAULT_USER}"
 
 COPY --chmod=0755 src/_scripts/finalize-mirror.sh /tmp/image-scripts/finalize-mirror.sh
-RUN if [ "${PACKAGE_MIRROR}" = "aliyun" ]; then \
-      /tmp/image-scripts/finalize-mirror.sh; \
-    elif [ "${PACKAGE_MIRROR}" != "upstream" ]; then \
-      echo "unsupported PACKAGE_MIRROR=${PACKAGE_MIRROR}" >&2; exit 64; \
-    fi \
+RUN /tmp/image-scripts/finalize-mirror.sh \
+      --mirror "${PACKAGE_MIRROR}" \
     && rm -rf /tmp/image-scripts
 
 COPY --chmod=0755 src/_scripts/devshell.sh /tmp/image-scripts/devshell.sh

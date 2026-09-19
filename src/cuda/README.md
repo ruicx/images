@@ -27,6 +27,10 @@ workspace must be an absolute path other than `/`; it is owned by `DEFAULT_USER`
 root login are enabled for this family, but the root account remains locked until a password is
 supplied at runtime. No password is stored in the image.
 
+`PACKAGE_MIRROR` accepts `upstream` or `aliyun`. The final mirror capability keeps the base image's
+package sources unchanged for `upstream`; for `aliyun`, it switches the persisted apt and pip
+configuration only after all build-time package installation has completed.
+
 Running the container as root and exposing password SSH gives processes and accepted SSH sessions
 full control of the container. Use a unique strong password, restrict the published SSH port at the
 host or network boundary, and prefer `SSH_MODE=key-only` or `SSH_MODE=disabled` when possible.

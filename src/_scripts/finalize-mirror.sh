@@ -1,5 +1,6 @@
 #!/bin/bash
-# Switch apt + pip sources to Aliyun mirrors as the FINAL step of image build.
+# Finalize persisted apt and pip sources after all package installation completes.
+# Option: --mirror selects upstream (no changes) or aliyun.
 #
 # Why this is a separate, last step:
 #   - Builds run on GitHub Actions runners (US/EU), where Aliyun mirrors are
@@ -20,6 +21,57 @@
 # Currently called at the very end of every Tier 2 final image (dev + runtime),
 # AFTER all apt/pip installs are finished.
 set -euo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage: finalize-mirror.sh [--mirror <name>]
+
+Options:
+  --mirror <value>  Persisted package mirror: upstream or aliyun (default: upstream)
+  -h, --help        Show this help
+EOF
+}
+
+MIRROR="upstream"
+
+if ! PARSED=$(getopt -o h -l help,mirror: -n "$(basename "$0")" -- "$@"); then
+    usage >&2
+    exit 64
+fi
+eval set -- "$PARSED"
+while true; do
+    case "$1" in
+        --mirror)
+            MIRROR="$2"
+            shift 2
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+    esac
+done
+if [ "$#" -ne 0 ]; then
+    echo "finalize-mirror.sh: unexpected positional arguments: $*" >&2
+    usage >&2
+    exit 64
+fi
+
+case "${MIRROR}" in
+    upstream)
+        echo "finalize-mirror.sh: keeping upstream package sources"
+        exit 0
+        ;;
+    aliyun) ;;
+    *)
+        echo "finalize-mirror.sh: unsupported mirror '${MIRROR}'" >&2
+        exit 64
+        ;;
+esac
 
 ALIYUN_APT_HOST="mirrors.aliyun.com"
 ALIYUN_PIP_URL="https://mirrors.aliyun.com/pypi/simple/"
