@@ -4,4 +4,6 @@
 提交 PR 前，请遵循[开发准则](docs/development_zh.md)，运行仓库校验套件，并为面向用户的变更
 同步更新中英文文档。
 
+具有发布权限的维护者还必须遵循[发布指南](docs/release_zh.md)。
+
 英文规范源见 [CONTRIBUTING.md](CONTRIBUTING.md)。
