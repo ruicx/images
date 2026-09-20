@@ -23,8 +23,8 @@ variants:
       digest: sha256:392c0df7b577ecae17a17f6ba7f2009c217bb4422f8431c053ae9af61a8c148a
     build_args:
       DEFAULT_USER: luciole
-      USER_UID: 1000
-      USER_GID: 1000
+      DEFAULT_UID: 1000
+      DEFAULT_GID: 1000
       DEVSHELL: true
       TZ: Asia/Shanghai
       CMAKE_VERSION: 4.3.2
@@ -42,8 +42,8 @@ variants:
       digest: null
     build_args:
       DEFAULT_USER: luciole
-      USER_UID: 1000
-      USER_GID: 1000
+      DEFAULT_UID: 1000
+      DEFAULT_GID: 1000
       DEVSHELL: true
       TZ: Asia/Shanghai
       CMAKE_VERSION: 4.3.2
