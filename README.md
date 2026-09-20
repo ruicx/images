@@ -1,21 +1,38 @@
-# Development images
+# 🛠️ Images: Development Image Collection
 
 [![Pull request images](https://github.com/ruicx/images/actions/workflows/pull-request.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/pull-request.yml)
 [![Publish images](https://github.com/ruicx/images/actions/workflows/publish.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/publish.yml)
 
-Ready-to-use development environments published as public container images. The first image family
-provides a CUDA toolchain, common C/C++ and Python development tools, and an optional SSH service.
+> **Focus on development, eliminate setup overhead.** Modular development container images and tooling designed for modern systems programming.
 
-Use this page to select and start an image. See the [CUDA image guide](src/cuda/README.md) for SSH,
-background-container, customization, and security instructions. The Chinese version is in
-[README_zh.md](README_zh.md).
+---
 
-## Use an image
+## Background & Motivation
 
-You need a Linux amd64 container environment. GPU access also requires a compatible NVIDIA driver
-and the NVIDIA Container Toolkit on the host.
+Setting up consistent, high-performance GPU development environments across physical machines and cloud instances frequently involves repetitive manual effort:
 
-Pull the CUDA 12.8.2 image and open a Bash shell with the current directory mounted at `/work`:
+- **Tedious toolchain setup**: Initializing an environment requires repeatedly verifying GPU driver and CUDA compatibility, installing CMake, Ninja, GCC, configuring Python virtual environments, and spending substantial time tuning shells, editors, and CLI utilities;
+- **Minimal upstream bases**: Official container bases provide only runtime essentials, lacking common development, diagnostic, and troubleshooting tools;
+- **High maintenance cost of ad-hoc Dockerfiles**: Unstructured Dockerfiles easily become bloated and brittle over time, offering little dependency convergence, caching optimization, or reproducibility guarantees.
+
+**This project eliminates this recurring overhead.** It provides continuously maintained, publicly accessible development container images. The initial family focuses on CUDA (providing 12.6 and 12.8 variants), integrating low-level compilers and debuggers with modern terminal productivity tools, backed by a declarative container build and management tooling suite.
+
+> 📖 **Additional Guides**:
+> - For SSH remote development, long-running containers, non-root users, and runtime credentials, see the [CUDA Image Guide](src/cuda/README.md).
+> - 中文文档请参阅 [README_zh.md](README_zh.md)。
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- A Linux amd64 container runtime;
+- GPU acceleration requires a compatible host NVIDIA GPU driver and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+
+### Quick Start
+
+Taking the CUDA 12.8.2 image as an example, mount the current working directory to `/work` inside the container and start an interactive shell:
 
 ```bash
 docker pull ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04
@@ -26,7 +43,7 @@ docker run --rm -it \
   ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04
 ```
 
-Inside the container, verify the GPU and toolchain:
+After starting, verify GPU access and toolchain availability:
 
 ```bash
 nvidia-smi
@@ -35,51 +52,52 @@ cmake --version
 python3 --version
 ```
 
-The published variants run as `root`. On a Linux host, files created in a bind-mounted directory
-will therefore normally be owned by root. Build a custom variant with a non-root `DEFAULT_USER` if
-host-side ownership matters.
+> [!TIP]
+> **💡 Tip 1: File Ownership & Permissions**
+> Published images run as `root` by default. On Linux hosts, files created inside bind mounts will be owned by root on the host side. When matching host non-root UID/GID is required, custom variants can specify `DEFAULT_USER` at build time (see [CUDA Image Guide: Build-time Customization](src/cuda/README.md#build-time-customization)).
 
-## Choose a variant
+> [!TIP]
+> **💡 Tip 2: Host Driver Capability vs Container Toolkit Version**
+> The `CUDA Version` reported by `nvidia-smi` indicates the **maximum CUDA version supported by the host driver**, rather than the toolkit version installed in the container. The active compiler version is determined by `nvcc --version`.
 
-| CUDA / Ubuntu | Image | Base-image policy |
-| --- | --- | --- |
-| CUDA 12.6.3 / Ubuntu 24.04 | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` | Pinned NVIDIA base digest |
-| CUDA 12.8.2 / Ubuntu 24.04 | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` | Tracks updates to the exact NVIDIA tag |
+---
 
-Use the CUDA version required by your project, then confirm that the host driver supports it in
-NVIDIA's [CUDA compatibility guide](https://docs.nvidia.com/deploy/cuda-compatibility/). The
-`CUDA Version` shown by `nvidia-smi` is the newest CUDA version supported by the driver, not the
-toolkit installed in this image. If the project has no version constraint and the driver is
-compatible, start with the 12.8.2 variant.
+## 📦 Variant Selection & Image Policies
 
-Each published build also receives an immutable `<variant>-<12-character-git-sha>` tag. Use that
-tag or an image digest for a reproducible environment. The shorter variant tags above are
-convenience channels and can move after a successful publication. There is no global `latest` tag.
-Use `docker buildx imagetools inspect <image>` to discover the published manifest digest, then pull
-it with `docker pull ghcr.io/ruicx/cuda@sha256:<digest>`.
+| CUDA / Ubuntu | Image | Base-Image Policy | Recommended For |
+| :--- | :--- | :--- | :--- |
+| **CUDA 12.6.3** / Ubuntu 24.04 | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` | Pinned NVIDIA base digest | Projects requiring byte-level reproducible builds without upstream drift |
+| **CUDA 12.8.2** / Ubuntu 24.04 | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` | Tracks upstream exact tag updates | **Recommended starting point.** Balances version stability with official security updates |
 
-## What's included
+### Selection Notes & Tagging Policy
+1. **Driver Compatibility**: Select the CUDA version required by the target project, then consult NVIDIA's [CUDA Compatibility Guide](https://docs.nvidia.com/deploy/cuda-compatibility/) to ensure host driver compatibility. When the driver is compatible and no legacy constraints exist, `12.8.2` is the recommended default.
+2. **Convenience Tags vs Immutable Pins**:
+   - The short tags shown above (e.g., `12.8.2-devel-ubuntu24.04`) serve as **convenience channels** that move forward whenever an updated build is published.
+   - For mission-critical CI or reproducible environments where **zero drift** is required, lock to the immutable `<variant>-<12-character-git-sha>` tag produced with each release, or pull directly by manifest digest (`ghcr.io/ruicx/cuda@sha256:<digest>`), inspectable via `docker buildx imagetools inspect <image>`.
+   - 📌 *Note: This repository adheres to strict versioning principles and deliberately does not publish a global `latest` tag.*
 
-The CUDA family includes the CUDA compiler, CMake 4.3.2, Ninja, GCC, clangd, GDB, Git LFS, Python
-3, pip, virtual-environment support, OpenCV development libraries, network tools, and command-line
-utilities including ripgrep, fd, and bat. Its optional developer shell adds zsh, NvChad, NVM with
-the current Node.js LTS, fzf, eza, Starship, Sheldon, Zoxide, Witr, and Atuin.
+---
 
-See the [CUDA image guide](src/cuda/README.md) for the complete defaults, known reproducibility
-exceptions, and examples for:
+## 🧰 Pre-installed Toolchain Matrix
 
-- running a long-lived development container;
-- connecting with an SSH key or a runtime-mounted password;
-- changing the user, workspace, package mirror, or developer shell at build time.
+Images come pre-equipped with a comprehensive toolchain for modern systems programming and development workflows:
 
-## Design highlights
+- ⚡ **Core Compilers & Debugging**: CUDA Compiler (`nvcc`), GCC, CMake 4.3.2, Ninja, `clangd` language server, GDB debugger, Git LFS.
+- 🐍 **Modern Python Stack**: Python 3, pip, and built-in virtual environment (`venv`) support.
+- 🖼️ **Development Libraries & Networking**: OpenCV development headers/libraries and network diagnostic utilities.
+- 🔍 **Modern Productivity CLI**: `ripgrep` (blazing-fast search), `fd` (ergonomic file finder), and `bat` (syntax-highlighted file viewer).
+- ✨ **Developer Shell Environment (Optional)**: Pre-configured zsh, Oh My Zsh, NvChad (modern Neovim distribution), Starship prompt, plus fzf, eza, zoxide, atuin, sheldon, witr, and NVM with Node.js LTS.
 
-The build matrix is declarative rather than hard-coded in CI. Each image family has one
-`src/<family>/image.yml` release contract that declares its variants, exact base tags and digest
-policy, build arguments, internal dependencies, runtime policy, shared inputs, and smoke tests. For
-example:
+For background service mode, SSH public key authentication, and runtime password secret mounts, see the [CUDA Image Guide](src/cuda/README.md).
+
+---
+
+## 🏗️ Build Design & Key Characteristics
+
+In addition to providing pre-built images, this repository organizes the build and test workflows using declarative manifests:
 
 ```yaml
+# Example variant definition from src/cuda/image.yml
 variants:
   - id: 12.8.2-devel-ubuntu24.04
     base:
@@ -97,44 +115,42 @@ variants:
       - src/cuda/tests/smoke.sh
 ```
 
-- **Manifest-driven variants:** one parameterized Dockerfile serves every variant in a family;
-  adding a supported combination normally changes YAML rather than CI workflow code.
-- **Reusable capabilities:** shared installation scripts own one capability and its validation,
-  while Dockerfiles declare selection and order. Adjacent `COPY` and `RUN` steps preserve useful
-  BuildKit cache boundaries.
-- **Dependency-aware builds:** `images plan` maps changed manifest inputs to affected families,
-  includes required ancestors, and expands transitive dependents. Internal dependencies are built
-  from the same commit instead of pulled from an older registry image.
-- **Explicit reproducibility:** every external base uses an exact tag and must deliberately pin a
-  digest or declare `null` to track that tag. Publications create immutable revision tags before
-  moving convenient variant tags.
-- **Validation before publication:** schema and semantic checks reject invalid manifests, dependency
-  cycles, secret-like build arguments, and missing inputs; selected images are then built and smoke
-  tested before publication.
+- 📄 **Manifest-driven Variants**: A single parameterized Dockerfile powers an entire image family. Adding a new combination requires only a declaration in `image.yml`, without modifying CI workflow code.
+- 🧩 **Reusable Capabilities**: Tool installations are decoupled into modular capability scripts (e.g., cmake, python, devshell) with strict argument validation; adjacent `COPY` and `RUN` steps preserve optimal BuildKit caching boundaries.
+- 🧭 **Dependency-aware Incremental Builds**: `images plan` analyzes changed inputs to rebuild only affected image families and their transitive dependents; internal dependencies are always built from the same commit.
+- 🔒 **Transparent Reproducibility**: External bases must specify an exact tag and declare whether they pin a digest or track upstream; publications seal immutable revision tags before updating convenience tags.
+- 🛡️ **Pre-flight Validation**: Schema and semantic linters guard against circular dependencies, undeclared build arguments, or leaked secrets; all images must pass full builds and smoke tests before deployment.
 
-See [Architecture](docs/architecture.md) and the [Manifest reference](docs/manifest-reference.md)
-for the full design and schema.
+Learn more about the design and schema in [Architecture](docs/architecture.md) and the [Manifest Reference](docs/manifest-reference.md).
 
-## Develop this repository
+---
 
-The repository source is at [ruicx/images](https://github.com/ruicx/images).
+## 💻 Local Development & Orchestration
 
-To validate and build every variant locally:
+The repository uses [uv](https://github.com/astral-sh/uv) to manage its Python environment. Steps for local building, testing, or contributing:
 
 ```bash
 git clone https://github.com/ruicx/images.git
 cd images
-python -m pip install -e ".[dev]"
-images validate
-images list
-images plan --all --output build-plan.json
+
+# Install dependencies and sync development environment
+uv sync --extra dev
+
+# 1. Validate manifest schemas and repository consistency
+uv run images validate
+
+# 2. Inspect supported variants and generate build plan
+uv run images list
+uv run images plan --all --output build-plan.json
+
+# 3. Generate Bake definitions and run local build & smoke tests
 revision="$(git rev-parse HEAD)"
-images bake --plan build-plan.json --owner ruicx --repository ruicx/images --revision "$revision" --mode load --output docker-bake.generated.json
-images build-test --plan build-plan.json --bake docker-bake.generated.json --owner ruicx --revision "$revision"
+uv run images bake --plan build-plan.json --owner ruicx --repository ruicx/images --revision "$revision" --mode load --output docker-bake.generated.json
+uv run images build-test --plan build-plan.json --bake docker-bake.generated.json --owner ruicx --revision "$revision"
 ```
 
-Before adding or changing an image, read [Architecture](docs/architecture.md),
-[Manifest reference](docs/manifest-reference.md), [CLI reference](docs/cli-reference.md),
-[CI/CD behavior](docs/ci-cd.md), [Development guide](docs/development.md),
-[Release guide](docs/release.md), [Lifecycle policy](docs/lifecycle.md), and
-[Troubleshooting](docs/troubleshooting.md).
+Architecture and technical reference documentation:
+
+- 📐 [Architecture](docs/architecture.md) · [Manifest Reference](docs/manifest-reference.md) · [CLI Reference](docs/cli-reference.md)
+- ⚙️ [CI/CD Behavior](docs/ci-cd.md) · [Development Guide](docs/development.md) · [Release Guide](docs/release.md)
+- 🔄 [Lifecycle Policy](docs/lifecycle.md) · [Troubleshooting](docs/troubleshooting.md)
