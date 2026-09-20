@@ -24,6 +24,9 @@ RUN /tmp/image-scripts/dev-tools.sh
 COPY --chmod=0755 src/_scripts/cmake.sh /tmp/image-scripts/cmake.sh
 RUN /tmp/image-scripts/cmake.sh --version "${CMAKE_VERSION}"
 
+COPY --chmod=0755 src/_scripts/pip-packages.sh /tmp/image-scripts/pip-packages.sh
+RUN /tmp/image-scripts/pip-packages.sh
+
 COPY --chmod=0755 src/_scripts/user.sh /tmp/image-scripts/user.sh
 RUN /tmp/image-scripts/user.sh \
       --username "${DEFAULT_USER}" \

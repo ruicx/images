@@ -219,7 +219,7 @@ export FZF_CTRL_T_OPTS="
 
 FZF_EOF
 
-# ─── Ezh ──────────────────────────────────────────────────────────────────────
+# ─── Eza ──────────────────────────────────────────────────────────────────────
 
 ARCH=$(uname -m)
 case $ARCH in
@@ -231,6 +231,11 @@ wget -c "https://github.com/eza-community/eza/releases/latest/download/eza_${EZA
 run_as_root chmod +x eza
 run_as_root chown root:root eza
 run_as_root mv eza /usr/local/bin/eza
+
+cat >>"${HOME}/.zshrc" <<'EZA_EOF'
+alias l="eza -lah --color=auto --icons=auto"
+
+EZA_EOF
 
 # ─── Starship ─────────────────────────────────────────────────────────────────
 
@@ -267,13 +272,6 @@ curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh 
 # ─── Witr ─────────────────────────────────────────────────────────────────────
 
 curl -fsSL https://raw.githubusercontent.com/pranshuparmar/witr/main/install.sh | bash
-
-# ─── Atuin ────────────────────────────────────────────────────────────────────
-
-# curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh -s -- --non-interactive
-# The single-quoted sed expression intentionally writes a literal command.
-# shellcheck disable=SC2016
-# sed -i 's/eval "$(atuin init zsh)"/eval "$(atuin init zsh --disable-up-arrow)"/' "$HOME/.zshrc"
 
 # ─── Apt Cache Clean ──────────────────────────────────────────────────────────
 
