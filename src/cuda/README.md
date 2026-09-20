@@ -139,7 +139,7 @@ virtual-environment support, OpenCV development libraries, common network tools,
 bat.
 
 The developer shell adds zsh, Oh My Zsh, NvChad, NVM with the current Node.js LTS, fzf, eza,
-Starship, Sheldon, Zoxide, Witr, and Atuin.
+Starship, Sheldon, Zoxide, and Witr.
 
 | Setting | Published value | When it can be changed |
 | --- | --- | --- |

@@ -131,7 +131,7 @@ SSH。
 环境支持、OpenCV 开发库、常用网络工具，以及 ripgrep、fd 和 bat。
 
 开发 shell 还包含 zsh、Oh My Zsh、NvChad、使用当前 Node.js LTS 的 NVM、fzf、eza、
-Starship、Sheldon、Zoxide、Witr 和 Atuin。
+Starship、Sheldon、Zoxide 和 Witr。
 
 | 配置 | 已发布变体的值 | 可更改时机 |
 | --- | --- | --- |

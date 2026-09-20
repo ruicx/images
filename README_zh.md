@@ -87,7 +87,7 @@ python3 --version
 - 🐍 **现代 Python 环境**：Python 3、pip 及内置虚拟环境（venv）支持。
 - 🖼️ **开发库与网络工具**：OpenCV 开发依赖及基础网络诊断工具。
 - 🔍 **高效现代 CLI 实用工具**：`ripgrep`（极速全文检索）、`fd`（人性化文件查找）、`bat`（语法高亮查看器）。
-- ✨ **现代终端开发环境（可选）**：配置完备的 zsh、Oh My Zsh、NvChad（Neovim 预配置发行版）、Starship 跨平台提示符，以及 fzf、eza、zoxide、atuin、sheldon、witr 与基于 NVM 的 Node.js LTS。
+- ✨ **现代终端开发环境（可选）**：配置完备的 zsh、Oh My Zsh、NvChad（Neovim 预配置发行版）、Starship 跨平台提示符，以及 fzf、eza、zoxide、sheldon、witr 与基于 NVM 的 Node.js LTS。
 
 关于后台守护容器运行、SSH 公钥登录及运行时机密密码挂载等高级配置，请参阅 [CUDA 镜像使用指南](src/cuda/README_zh.md)。
 

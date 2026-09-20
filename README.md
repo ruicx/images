@@ -86,7 +86,7 @@ Images come pre-equipped with a comprehensive toolchain for modern systems progr
 - 🐍 **Modern Python Stack**: Python 3, pip, and built-in virtual environment (`venv`) support.
 - 🖼️ **Development Libraries & Networking**: OpenCV development headers/libraries and network diagnostic utilities.
 - 🔍 **Modern Productivity CLI**: `ripgrep` (blazing-fast search), `fd` (ergonomic file finder), and `bat` (syntax-highlighted file viewer).
-- ✨ **Developer Shell Environment (Optional)**: Pre-configured zsh, Oh My Zsh, NvChad (modern Neovim distribution), Starship prompt, plus fzf, eza, zoxide, atuin, sheldon, witr, and NVM with Node.js LTS.
+- ✨ **Developer Shell Environment (Optional)**: Pre-configured zsh, Oh My Zsh, NvChad (modern Neovim distribution), Starship prompt, plus fzf, eza, zoxide, sheldon, witr, and NVM with Node.js LTS.
 
 For background service mode, SSH public key authentication, and runtime password secret mounts, see the [CUDA Image Guide](src/cuda/README.md).
 
