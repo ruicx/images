@@ -37,6 +37,10 @@ fi
 
 # pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 
+# Debian's psutil package has no pip RECORD metadata. Install a pip-owned copy in the local scheme
+# before resolving the development package set so pip never tries to uninstall the apt-owned copy.
+python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed psutil
+
 python3 -m pip install --no-cache-dir --break-system-packages \
     setuptools pandas numpy ipython polars seaborn \
     pytest pytest-xdist pytest-html pytest-mock \
