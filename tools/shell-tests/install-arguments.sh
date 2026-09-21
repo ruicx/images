@@ -23,6 +23,8 @@ scripts=(
 
 no_argument_scripts=(
     "src/_scripts/dev-tools.sh"
+    "src/_scripts/pip-packages.sh"
+    "src/_scripts/python-install.sh"
 )
 
 expect_usage_error() {

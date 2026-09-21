@@ -130,6 +130,10 @@ SSH。
 镜像包含 CUDA、CMake 4.3.2、Ninja、GCC、clangd、GDB、Git LFS、Python 3、pip、虚拟
 环境支持、OpenCV 开发库、常用网络工具，以及 ripgrep、fd 和 bat。
 
+部分通过 apt 安装的命令行工具可能依赖发行版提供的 Python 模块。独立的 Python 安装步骤会
+在这些工具之后运行，复用发行版默认的 `python3`，补齐匹配的开发头文件和虚拟环境支持，并为
+该解释器引导安装 pip。
+
 开发 shell 还包含 zsh、Oh My Zsh、NvChad、使用当前 Node.js LTS 的 NVM、fzf、eza、
 Starship、Sheldon、Zoxide 和 Witr。
 
@@ -198,6 +202,13 @@ digest 固定 NVIDIA 基础镜像；12.8.2 变体使用明确标签和空 digest
 开发 shell 能力按用户要求持续跟随上游当前 release、分支和安装器。这是对仓库常规可复现
 构建与 checksum 规则的明确例外。因此，在不同时间重建同一 Git 提交可能得到不同的开发 shell
 内容，也可能因上游产物变化而失败。设置 `DEVSHELL: false` 会跳过该能力。
+
+Python 包管理能力也按用户要求持续跟随上游内容。它从当前的
+`https://bootstrap.pypa.io/get-pip.py` 引导安装 pip，安装
+`src/_scripts/pip-packages.sh` 中未固定版本的包，并通过当前的
+`https://astral.sh/uv/install.sh` 安装 uv。这些输入有意不固定版本或 checksum，因此在不同
+时间重建同一 Git 提交可能选择更新的 Python 包管理工具和库。GitHub/GHCR 构建历史中保留的
+不可变镜像标签和 digest 是这些输入的回滚与审计边界。
 
 CMake 从精确版本的 HTTPS release 地址下载；本镜像族明确不校验该压缩包的 checksum。如果
 你的威胁模型无法接受这一例外，请独立审计生成的镜像，或在构建前把该安装步骤改为校验

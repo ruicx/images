@@ -138,6 +138,10 @@ The image includes CUDA, CMake 4.3.2, Ninja, GCC, clangd, GDB, Git LFS, Python 3
 virtual-environment support, OpenCV development libraries, common network tools, ripgrep, fd, and
 bat.
 
+Some apt-installed command-line tools may depend on distribution Python modules. A dedicated Python
+installation step runs after those tools, reuses the distribution's default `python3`, adds matching
+development headers and virtual-environment support, and bootstraps pip for that interpreter.
+
 The developer shell adds zsh, Oh My Zsh, NvChad, NVM with the current Node.js LTS, fzf, eza,
 Starship, Sheldon, Zoxide, and Witr.
 
@@ -213,6 +217,14 @@ installers. This is a user-approved exception to the repository's normal reprodu
 checksum rules. Rebuilding the same Git revision later can produce different developer-shell
 contents or fail because an upstream artifact changed. Setting `DEVSHELL: false` skips this
 capability.
+
+The Python packaging capability also intentionally follows rolling upstream content. It bootstraps
+pip from the current `https://bootstrap.pypa.io/get-pip.py`, installs the unpinned package set in
+`src/_scripts/pip-packages.sh`, and installs uv with the current
+`https://astral.sh/uv/install.sh`. At the user's request, these inputs are not version- or
+checksum-pinned. Rebuilding the same Git revision can therefore select newer Python packaging tools
+and libraries. Immutable image tags and digests retained in the GitHub/GHCR build history are the
+rollback and audit boundary for these inputs.
 
 CMake is downloaded from its exact HTTPS release URL. This family intentionally does not verify a
 checksum for that archive. If this exception is unacceptable for your threat model, independently

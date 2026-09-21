@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install the shared C/C++, Python, debugging, and command-line development toolset.
+# Install the shared C/C++, debugging, and command-line development toolset.
 # Run as root after system.sh. This script has no configuration options.
 set -euo pipefail
 
@@ -70,11 +70,6 @@ DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends \
     ninja-build \
     openssl \
     parallel \
-    python-is-python3 \
-    python3-dev \
-    python3-pip \
-    python3-setuptools \
-    python3-venv \
     ripgrep \
     rsync \
     screen \

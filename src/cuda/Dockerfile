@@ -21,6 +21,9 @@ RUN /tmp/image-scripts/system.sh --timezone "${TZ}"
 COPY --chmod=0755 src/_scripts/dev-tools.sh /tmp/image-scripts/dev-tools.sh
 RUN /tmp/image-scripts/dev-tools.sh
 
+COPY --chmod=0755 src/_scripts/python-install.sh /tmp/image-scripts/python-install.sh
+RUN /tmp/image-scripts/python-install.sh
+
 COPY --chmod=0755 src/_scripts/cmake.sh /tmp/image-scripts/cmake.sh
 RUN /tmp/image-scripts/cmake.sh --version "${CMAKE_VERSION}"
 

@@ -13,7 +13,9 @@ test "${PACKAGE_MIRROR}" = "upstream"
 command -v nvcc >/dev/null
 nvcc --version
 python3 --version
+python --version
 python3 -m pip --version
+python -m pip --version
 cmake --version | grep -F "cmake version 4.3.2"
 ninja --version
 git --version
