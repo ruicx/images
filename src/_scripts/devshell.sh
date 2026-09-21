@@ -290,6 +290,12 @@ echo y | "${HOME}/.local/bin/sheldon" init --shell zsh
 
 curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
 
+cat >>"${HOME}/.zshrc" <<'ZOXIDE_EOF'
+# zoxide initialization
+eval "$(zoxide init zsh)"
+
+ZOXIDE_EOF
+
 # ─── Witr ─────────────────────────────────────────────────────────────────────
 
 curl -fsSL https://raw.githubusercontent.com/pranshuparmar/witr/main/install.sh | bash
