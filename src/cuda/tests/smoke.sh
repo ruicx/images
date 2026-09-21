@@ -36,6 +36,11 @@ test -x /usr/local/bin/docker-entrypoint
 test "$(getent passwd root | cut -d: -f7)" = "/bin/zsh"
 command -v zsh >/dev/null
 command -v nvim >/dev/null
+command -v ty >/dev/null
+ty --version
+grep -Fq 'cmd = { "ty", "server" }' "${HOME}/.config/nvim/lua/configs/lspconfig.lua"
+grep -Fq 'vim.lsp.enable({ "html", "cssls", "ty" })' \
+    "${HOME}/.config/nvim/lua/configs/lspconfig.lua"
 command -v eza >/dev/null
 command -v starship >/dev/null
 test -x "${HOME}/.fzf/bin/fzf"

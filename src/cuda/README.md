@@ -143,7 +143,10 @@ installation step runs after those tools, reuses the distribution's default `pyt
 development headers and virtual-environment support, and bootstraps pip for that interpreter.
 
 The developer shell adds zsh, Oh My Zsh, NvChad, NVM with the current Node.js LTS, fzf, eza,
-Starship, Sheldon, Zoxide, and Witr.
+Starship, Sheldon, Zoxide, and Witr. NvChad enables `ty` as its Python language server and starts
+the pip-installed executable directly with `ty server`. The running container therefore does not
+need network access to install the language server; Neovim plugins and the `ty` executable are
+installed while the image is built.
 
 | Setting | Published value | When it can be changed |
 | --- | --- | --- |

@@ -182,6 +182,27 @@ return {
 }
 LUA
 
+# Use the system-installed ty executable directly so Python LSP support remains
+# available when the running container has no network access.
+cat >"${HOME}/.config/nvim/lua/configs/lspconfig.lua" <<'LUA'
+require("nvchad.configs.lspconfig").defaults()
+
+vim.lsp.config("ty", {
+  cmd = { "ty", "server" },
+  filetypes = { "python" },
+  root_markers = {
+    "ty.toml",
+    "pyproject.toml",
+    "setup.py",
+    "setup.cfg",
+    "requirements.txt",
+    ".git",
+  },
+})
+
+vim.lsp.enable({ "html", "cssls", "ty" })
+LUA
+
 nvim --headless "+Lazy! sync" +qa
 nvim --headless "+Lazy load nvim-treesitter" "+TSInstallSync! lua vim vimdoc c cpp python javascript" +qa
 

@@ -135,7 +135,9 @@ SSH。
 该解释器引导安装 pip。
 
 开发 shell 还包含 zsh、Oh My Zsh、NvChad、使用当前 Node.js LTS 的 NVM、fzf、eza、
-Starship、Sheldon、Zoxide 和 Witr。
+Starship、Sheldon、Zoxide 和 Witr。NvChad 会启用 `ty` 作为 Python 语言服务器，并直接以
+`ty server` 启动 pip 已安装的可执行文件。因此，运行中的容器无需联网安装语言服务器；
+Neovim 插件和 `ty` 可执行文件都在镜像构建期完成安装。
 
 | 配置 | 已发布变体的值 | 可更改时机 |
 | --- | --- | --- |
