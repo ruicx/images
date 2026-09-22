@@ -59,6 +59,7 @@ DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends \
     git-lfs \
     htop \
     iputils-ping \
+    less \
     libgflags-dev \
     libgoogle-glog-dev \
     libgmock-dev \

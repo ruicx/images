@@ -66,6 +66,7 @@ ENV EDITOR=vim \
     SSH_MODE=${SSH_MODE} \
     TZ=${TZ} \
     VISUAL=vim \
+    PAGER="less -FRX" \
     WORKSPACE_DIR=${WORKSPACE_DIR}
 
 # The root name selects the existing account; any other valid name is created above.
