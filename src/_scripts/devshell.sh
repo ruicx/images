@@ -140,6 +140,11 @@ bind -r J resize-pane -D 5
 bind -r K resize-pane -U 5
 bind -r L resize-pane -R 5
 
+bind-key -T copy-mode-vi v send-keys -X begin-selection
+bind-key -T copy-mode-vi y send-keys -X copy-selection-and-cancel
+
+set -g set-clipboard external
+
 TMUX_EOF
 
 # ── nvm + Node.js LTS ────────────────────────────────────────────────────────
