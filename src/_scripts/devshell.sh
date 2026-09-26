@@ -106,6 +106,8 @@ cat >>"${HOME}/.zshrc" <<'ZSH_EOF'
 
 setopt no_nomatch # disable * match
 
+export PATH="$PATH:${HOME}/.local/bin"
+
 # Load uv completions only in images that install uv separately.
 if command -v uv >/dev/null 2>&1; then
     eval "$(uv generate-shell-completion zsh)"
@@ -123,8 +125,22 @@ sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' "${HOME}/.bashrc"
 mkdir -p "${HOME}/.vscode-server/data/Machine"
 
 # tmux
-echo 'set -g history-limit 1000000' >>"${HOME}/.tmux.conf"
-echo '' >>"${HOME}/.tmux.conf"
+cat >>"${HOME}/.tmux.conf" <<'TMUX_EOF'
+set -g history-limit 1000000
+set -g mode-keys vi
+set -g status-keys vi
+
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R
+
+bind -r H resize-pane -L 5
+bind -r J resize-pane -D 5
+bind -r K resize-pane -U 5
+bind -r L resize-pane -R 5
+
+TMUX_EOF
 
 # ── nvm + Node.js LTS ────────────────────────────────────────────────────────
 
