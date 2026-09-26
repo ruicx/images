@@ -126,24 +126,37 @@ mkdir -p "${HOME}/.vscode-server/data/Machine"
 
 # tmux
 cat >>"${HOME}/.tmux.conf" <<'TMUX_EOF'
-set -g history-limit 1000000
+# ─── Vim Style ────────────────────────────────────────────────────────────────
+
+# Vim style key bindings for tmux
 set -g mode-keys vi
 set -g status-keys vi
 
+# copy mode
+bind-key -T copy-mode-vi v send-keys -X begin-selection
+bind-key -T copy-mode-vi y send-keys -X copy-selection-and-cancel
+
+# Pane navigation
 bind h select-pane -L
 bind j select-pane -D
 bind k select-pane -U
 bind l select-pane -R
 
+# Pane resize
 bind -r H resize-pane -L 5
 bind -r J resize-pane -D 5
 bind -r K resize-pane -U 5
 bind -r L resize-pane -R 5
 
-bind-key -T copy-mode-vi v send-keys -X begin-selection
-bind-key -T copy-mode-vi y send-keys -X copy-selection-and-cancel
+# ─── History ──────────────────────────────────────────────────────────────────
 
+set -g history-limit 1000000
+
+# ─── Clipboard over SSH ───────────────────────────────────────────────────────
 set -g set-clipboard external
+
+# uncomment if tmux info window status shows Ms missing
+# set -as terminal-features ',xterm-256color:clipboard'
 
 TMUX_EOF
 
