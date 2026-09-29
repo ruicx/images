@@ -108,6 +108,9 @@ setopt no_nomatch # disable * match
 
 export PATH="$PATH:${HOME}/.local/bin"
 
+export TERM=xterm-256color
+export COLORTERM=truecolor
+
 # Load uv completions only in images that install uv separately.
 if command -v uv >/dev/null 2>&1; then
     eval "$(uv generate-shell-completion zsh)"
