@@ -57,6 +57,7 @@ DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends \
     gdb \
     git \
     git-lfs \
+    graphviz \
     htop \
     iputils-ping \
     less \
