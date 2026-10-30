@@ -5,20 +5,26 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: pip-packages.sh
+Usage: pip-packages.sh [--preserve-existing]
 
 Options:
-  -h, --help  Show this help
+  --preserve-existing  Constrain every already installed distribution to its version
+  -h, --help           Show this help
 EOF
 }
 
-if ! PARSED=$(getopt -o h -l help -n "$(basename "$0")" -- "$@"); then
+PRESERVE_EXISTING=0
+if ! PARSED=$(getopt -o h -l help,preserve-existing -n "$(basename "$0")" -- "$@"); then
     usage >&2
     exit 64
 fi
 eval set -- "$PARSED"
 while true; do
     case "$1" in
+        --preserve-existing)
+            PRESERVE_EXISTING=1
+            shift
+            ;;
         -h | --help)
             usage
             exit 0
@@ -35,13 +41,19 @@ if [ "$#" -ne 0 ]; then
     exit 64
 fi
 
-# pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/
-
-# Debian's psutil package has no pip RECORD metadata. Install a pip-owned copy in the local scheme
-# before resolving the development package set so pip never tries to uninstall the apt-owned copy.
-python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed psutil
+pip_options=()
+if [ "${PRESERVE_EXISTING}" -eq 1 ]; then
+    # Preserve the vendor stack without importing torch_npu on builders without NPU drivers.
+    install -d /opt/image-python
+    python3 -m pip list --format=freeze >/opt/image-python/base-constraints.txt
+    pip_options+=(--constraint /opt/image-python/base-constraints.txt)
+else
+    # Debian's psutil has no pip RECORD metadata. A pip-owned copy avoids uninstalling apt files.
+    python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed psutil
+fi
 
 python3 -m pip install --no-cache-dir --break-system-packages \
+    "${pip_options[@]}" \
     setuptools pandas numpy ipython polars seaborn \
     pytest pytest-xdist pytest-html pytest-mock \
     pytest-randomly pytest-timeout coverage pytest-cov filelock \
@@ -50,6 +62,8 @@ python3 -m pip install --no-cache-dir --break-system-packages \
     flake8 ruff ty mypy delegator.py build \
     psycopg2-binary peewee python-calamine \
     loguru fastapi aiofiles "uvicorn[standard]" python-multipart "celery[redis]" \
-    "pybind11[global]"
+    "pybind11[global]" uv
 
-curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1 sh
+if [ "${PRESERVE_EXISTING}" -eq 1 ]; then
+    python3 -m pip check
+fi

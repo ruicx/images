@@ -36,6 +36,7 @@ def parser() -> argparse.ArgumentParser:
     plan.add_argument("--all", action="store_true")
     plan.add_argument("--family")
     plan.add_argument("--variant")
+    plan.add_argument("--platform", choices=("linux/amd64", "linux/arm64"))
     plan.add_argument("--output", type=Path)
 
     bake = subcommands.add_parser("bake", help="render a Docker Buildx Bake file")
@@ -296,6 +297,8 @@ def run(arguments: Sequence[str] | None = None) -> int:
                 )
             changed = repo.changed_files(args.base, args.head)
             targets = repo.affected(changed)
+        if args.platform:
+            targets = {key for key in targets if args.platform in repo.families[key[0]].platforms}
         write_json(repo.make_plan(targets, changed), args.output)
     elif args.command == "bake":
         plan = load_json(args.plan)

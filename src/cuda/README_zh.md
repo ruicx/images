@@ -36,8 +36,8 @@ cmake --version
 python3 --version
 ```
 
-已发布的变体默认以 `root` 运行。在 Linux 宿主机上，容器写入绑定挂载目录的文件通常也会归
-root 所有。如果需要让容器用户匹配宿主机用户，请参阅[构建期自定义](#构建期自定义)。可写的
+清单变体默认以 `luciole` 运行，UID/GID 为 1000，并具有免密 sudo 权限。在 Linux 宿主机上，
+容器写入绑定挂载目录的文件通常使用该 UID/GID。如果需要让容器用户匹配宿主机用户，请参阅[构建期自定义](#构建期自定义)。可写的
 绑定挂载也允许容器进程修改或删除其暴露的宿主机文件。请先提交或备份重要工作；容器只需读取
 时，请在挂载参数末尾添加 `:ro`。
 
@@ -68,7 +68,7 @@ docker stop cuda-dev
 ## 通过 SSH 连接
 
 入口脚本根据运行时 `SSH_MODE` 启动 SSH。请把发布端口绑定到可信的宿主机接口，并优先使用
-纯公钥认证。SSH 始终登录镜像的 `DEFAULT_USER`，已发布变体中的该用户为 `root`。
+纯公钥认证。SSH 始终登录镜像的 `DEFAULT_USER`，清单变体中的该用户为 `luciole`。
 
 ### 纯公钥认证
 
@@ -80,17 +80,17 @@ docker run --rm -d \
   --gpus all \
   -e SSH_MODE=key-only \
   -p 127.0.0.1:2222:22 \
-  -v "${HOME}/.ssh/id_ed25519.pub:/root/.ssh/authorized_keys:ro" \
+  -v "${HOME}/.ssh/id_ed25519.pub:/home/luciole/.ssh/authorized_keys:ro" \
   -v "${PWD}:/work" \
   ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04 \
   sleep infinity
 
-ssh -p 2222 root@localhost
+ssh -p 2222 luciole@localhost
 ```
 
 必要时请替换公钥路径。挂载的 `authorized_keys` 不存在或为空时，容器会以错误退出，不会降级
-为其他认证方式。对于自定义的非 root 镜像，请把公钥挂载到该用户的
-`~/.ssh/authorized_keys`，并使用该用户名而不是 `root` 连接。
+为其他认证方式。对于自定义用户，请把公钥挂载到该用户的
+`~/.ssh/authorized_keys`，并使用对应用户名连接。
 
 ### 密码认证
 
@@ -113,16 +113,16 @@ docker run --rm -d \
   ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04 \
   sleep infinity
 
-ssh -p 2222 root@localhost
+ssh -p 2222 luciole@localhost
 ```
 
 不再需要时请删除 `${HOME}/.cuda-dev-ssh-password`。隐藏输入可避免密码出现在终端输出和 shell
 历史中，把密码文件放在项目之外则可降低误提交风险。密码模式在未设置 `SSH_PASSWORD_FILE`
-时仍会启动 sshd，但默认 root 账号保持锁定，无法使用密码认证。不需要 SSH 时请设置
+时仍会启动 sshd，但默认 luciole 账号保持锁定，无法使用密码认证。不需要 SSH 时请设置
 `SSH_MODE=disabled`。
 
-以 root 运行容器并开放密码 SSH，意味着容器进程和成功登录的 SSH 会话拥有容器内的完整
-控制权。请使用独立的强密码，在宿主机或网络边界限制发布端口，并尽可能使用纯公钥模式或关闭
+默认账号具有免密 sudo 权限，因此成功登录的 SSH 会话可以获得容器内的完整控制权。
+自定义 root 变体也具有相同的容器控制权与绑定挂载风险。请使用独立的强密码，在宿主机或网络边界限制发布端口，并尽可能使用纯公钥模式或关闭
 SSH。
 
 ## 内置工具与默认值
@@ -141,9 +141,9 @@ Neovim 插件和 `ty` 可执行文件都在镜像构建期完成安装。
 
 | 配置 | 已发布变体的值 | 可更改时机 |
 | --- | --- | --- |
-| `DEFAULT_USER` | `root` | 构建期 |
-| `DEFAULT_UID` | `1000`（root 模式不使用） | 构建期 |
-| `DEFAULT_GID` | `1000`（root 模式不使用） | 构建期 |
+| `DEFAULT_USER` | `luciole` | 构建期 |
+| `DEFAULT_UID` | `1000` | 构建期 |
+| `DEFAULT_GID` | `1000` | 构建期 |
 | `WORKSPACE_DIR` | `/work` | 构建期 |
 | `DEVSHELL` | `true` | 构建期 |
 | `TZ` | `Asia/Shanghai` | 构建期 |
@@ -173,7 +173,7 @@ runtime:
     mode: key-only
 ```
 
-`DEFAULT_USER=root` 会复用已有的 root 账号，因此不会应用 `DEFAULT_UID` 和 `DEFAULT_GID`。
+`DEFAULT_USER=root` 会复用已有的 root 账号；root 清单变体应省略 `DEFAULT_UID` 和 `DEFAULT_GID`。
 其他合法 Linux 用户名会创建对应账号，使用声明的 UID 和 GID，将其设为 Docker 最终用户，
 并授予免密 sudo。工作目录必须是 `/` 以外的绝对路径，其所有者为 `DEFAULT_USER`。
 
@@ -207,8 +207,8 @@ digest 固定 NVIDIA 基础镜像；12.8.2 变体使用明确标签和空 digest
 
 Python 包管理能力也按用户要求持续跟随上游内容。它从当前的
 `https://bootstrap.pypa.io/get-pip.py` 引导安装 pip，安装
-`src/_scripts/pip-packages.sh` 中未固定版本的包，并通过当前的
-`https://astral.sh/uv/install.sh` 安装 uv。这些输入有意不固定版本或 checksum，因此在不同
+`src/_scripts/pip-packages.sh` 中未固定版本的包，uv 也通过 pip 安装。CUDA 与昇腾共用该包
+列表，昇腾额外约束基础镜像已有包的版本。这些输入有意不固定版本或 checksum，因此在不同
 时间重建同一 Git 提交可能选择更新的 Python 包管理工具和库。GitHub/GHCR 构建历史中保留的
 不可变镜像标签和 digest 是这些输入的回滚与审计边界。
 

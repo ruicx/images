@@ -12,7 +12,7 @@ patterns are relative to the repository root. Unknown fields are rejected.
 | `description` | string | Non-empty, user-facing family summary. |
 | `dockerfile` | path | Existing Dockerfile inside the repository. |
 | `context` | path | Existing build context inside the repository. |
-| `platforms` | list | Phase one accepts exactly `linux/amd64`. |
+| `platforms` | list | Exactly one platform: `linux/amd64` or `linux/arm64`. Internal dependencies must use the same platform. |
 | `inputs` | list | Existing path/glob patterns whose changes rebuild every family variant. |
 | `publish` | boolean | Allows selected variants to be published from `main`. |
 | `variants` | list | One or more variant definitions. |

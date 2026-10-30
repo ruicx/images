@@ -12,7 +12,7 @@
 | `description` | 字符串 | 非空、面向用户的镜像族简介。 |
 | `dockerfile` | 路径 | 仓库内已存在的 Dockerfile。 |
 | `context` | 路径 | 仓库内已存在的构建上下文。 |
-| `platforms` | 列表 | 首期必须且只能是 `linux/amd64`。 |
+| `platforms` | 列表 | 只允许一个平台：`linux/amd64` 或 `linux/arm64`；内部依赖的平台必须相同。 |
 | `inputs` | 列表 | 已存在的路径或 glob；变更时重建该族全部变体。 |
 | `publish` | 布尔值 | 是否允许从 `main` 发布选中的变体。 |
 | `variants` | 列表 | 一个或多个变体定义。 |

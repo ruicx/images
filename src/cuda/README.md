@@ -38,8 +38,8 @@ cmake --version
 python3 --version
 ```
 
-The published variants run as `root`. On a Linux host, files written to a bind mount will normally
-be owned by root. See [Build-time customization](#build-time-customization) if the container user
+The manifest variants run as `luciole` with UID/GID 1000 and passwordless sudo. On a Linux host,
+files written to a bind mount normally have that UID/GID. See [Build-time customization](#build-time-customization) if the container user
 should match a host user. A writable bind mount also lets container processes modify or delete the
 host files it exposes. Commit or back up important work first, and append `:ro` to the mount when
 the container only needs to read it.
@@ -73,7 +73,7 @@ zsh login shell, while `docker exec` callers explicitly select `bash`, `zsh`, or
 
 The entrypoint starts SSH according to the runtime `SSH_MODE`. Bind the published port to a trusted
 host interface and prefer key-only authentication. SSH always logs in as the image's `DEFAULT_USER`,
-which is `root` in the published variants.
+which is `luciole` in the manifest variants.
 
 ### Key-only authentication
 
@@ -85,17 +85,17 @@ docker run --rm -d \
   --gpus all \
   -e SSH_MODE=key-only \
   -p 127.0.0.1:2222:22 \
-  -v "${HOME}/.ssh/id_ed25519.pub:/root/.ssh/authorized_keys:ro" \
+  -v "${HOME}/.ssh/id_ed25519.pub:/home/luciole/.ssh/authorized_keys:ro" \
   -v "${PWD}:/work" \
   ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04 \
   sleep infinity
 
-ssh -p 2222 root@localhost
+ssh -p 2222 luciole@localhost
 ```
 
 Replace the public-key path if necessary. Startup fails closed when the mounted `authorized_keys`
-file is missing or empty. For a custom non-root image, mount the key at that user's
-`~/.ssh/authorized_keys` and connect as that user instead of `root`.
+file is missing or empty. For a custom user, mount the key at that user's
+`~/.ssh/authorized_keys` and connect with the corresponding name.
 
 ### Password authentication
 
@@ -119,17 +119,17 @@ docker run --rm -d \
   ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04 \
   sleep infinity
 
-ssh -p 2222 root@localhost
+ssh -p 2222 luciole@localhost
 ```
 
 Delete `${HOME}/.cuda-dev-ssh-password` when it is no longer needed. The hidden prompt keeps the
 password out of terminal output and shell history; keeping the file outside the project reduces the
 risk of committing it. Without `SSH_PASSWORD_FILE`, password mode still starts sshd, but the
-default root account remains locked and cannot authenticate with a password. Use
+default luciole account remains locked and cannot authenticate with a password. Use
 `SSH_MODE=disabled` when SSH is unnecessary.
 
-Running the container as root and exposing password SSH gives container processes and accepted SSH
-sessions full control of the container. Use a unique password, restrict the published port at the
+The default account has passwordless sudo, so an accepted SSH session can obtain full container
+control. Custom root variants have the same container-control and bind-mount risks. Use a unique password, restrict the published port at the
 host or network boundary, and prefer key-only or disabled mode when possible.
 
 ## Included tools and defaults
@@ -150,9 +150,9 @@ installed while the image is built.
 
 | Setting | Published value | When it can be changed |
 | --- | --- | --- |
-| `DEFAULT_USER` | `root` | Build time |
-| `DEFAULT_UID` | `1000` (unused for root) | Build time |
-| `DEFAULT_GID` | `1000` (unused for root) | Build time |
+| `DEFAULT_USER` | `luciole` | Build time |
+| `DEFAULT_UID` | `1000` | Build time |
+| `DEFAULT_GID` | `1000` | Build time |
 | `WORKSPACE_DIR` | `/work` | Build time |
 | `DEVSHELL` | `true` | Build time |
 | `TZ` | `Asia/Shanghai` | Build time |
@@ -183,8 +183,8 @@ runtime:
     mode: key-only
 ```
 
-`DEFAULT_USER=root` reuses the existing root account, so `DEFAULT_UID` and `DEFAULT_GID` do not
-apply. Any other valid Linux username creates that account with the declared UID and GID, makes it
+`DEFAULT_USER=root` reuses the existing root account; omit `DEFAULT_UID` and `DEFAULT_GID`
+from root manifest variants. Any other valid Linux username creates that account with the declared UID and GID, makes it
 the final Docker user, and grants passwordless sudo. The workspace must be an absolute path other
 than `/` and is owned by `DEFAULT_USER`.
 
@@ -223,8 +223,9 @@ capability.
 
 The Python packaging capability also intentionally follows rolling upstream content. It bootstraps
 pip from the current `https://bootstrap.pypa.io/get-pip.py`, installs the unpinned package set in
-`src/_scripts/pip-packages.sh`, and installs uv with the current
-`https://astral.sh/uv/install.sh`. At the user's request, these inputs are not version- or
+`src/_scripts/pip-packages.sh`, including uv installed through pip. CUDA and Ascend share this
+package list; Ascend additionally constrains the base image's installed packages. At the user's
+request, these inputs are not version- or
 checksum-pinned. Rebuilding the same Git revision can therefore select newer Python packaging tools
 and libraries. Immutable image tags and digests retained in the GitHub/GHCR build history are the
 rollback and audit boundary for these inputs.

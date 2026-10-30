@@ -20,6 +20,6 @@ are retained but are not part of the supported phase-one build surface. A script
 only after a manifest consumes it, it follows the current argument and safety rules, and relevant
 smoke tests cover the result.
 
-Phase one supports only `linux/amd64` and does not promise SBOM, provenance, or vulnerability-gate
-artifacts. Adding these features must preserve the manifest and tag contracts or introduce an
+Each family supports one native platform, `linux/amd64` or `linux/arm64`. The repository does not
+promise SBOM, provenance, or vulnerability-gate artifacts. Adding these features must preserve the manifest and tag contracts or introduce an
 explicit versioned migration.

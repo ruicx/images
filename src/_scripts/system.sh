@@ -49,9 +49,9 @@ if [[ ! "${TZ_VAL}" =~ ^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)+$ && "${TZ_VAL}" != "U
 fi
 
 case "$(uname -m)" in
-    x86_64) ;;
+    x86_64 | aarch64) ;;
     *)
-        echo "system.sh: unsupported architecture; expected x86_64" >&2
+        echo "system.sh: unsupported architecture; expected x86_64 or aarch64" >&2
         exit 1
         ;;
 esac

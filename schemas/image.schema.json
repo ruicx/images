@@ -23,7 +23,7 @@
     "context": { "type": "string", "minLength": 1 },
     "platforms": {
       "type": "array",
-      "const": ["linux/amd64"]
+      "enum": [["linux/amd64"], ["linux/arm64"]]
     },
     "inputs": {
       "type": "array",

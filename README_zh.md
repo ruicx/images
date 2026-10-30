@@ -15,10 +15,11 @@
 - **官方镜像过于精简**：上游官方基础镜像通常仅提供最小运行库，缺乏基础开发排错工具；
 - **定制 Dockerfile 维护成本高**：零散维护的 Dockerfile 极易随着时间推移变得臃肿杂乱，缺乏明确的依赖收敛与可复现构建保证。
 
-**本项目旨在消除这些重复配置开销**。仓库提供了一组经过系统验证、持续维护且公开可用的现代开发容器镜像。首发镜像族聚焦 CUDA（提供 12.6 与 12.8 变体），深度整合底层编译调试与现代终端生产力工具；同时提供了一套基于声明式清单的容器构建与管理工具。
+**本项目旨在消除这些重复配置开销**。仓库提供了一组经过系统验证、持续维护且公开可用的现代开发容器镜像。CUDA 镜像族提供 12.6 与 12.8 变体，昇腾镜像族面向鲲鹏 ARM64 + 910B，提供 CANN 9.2.0 与 TorchNPU 2.14.0，深度整合底层编译调试与现代终端生产力工具；同时提供了一套基于声明式清单的容器构建与管理工具。
 
 > 📖 **更多指引**：
 > - 关于 SSH 远程开发、后台常驻容器及自定义用户配置，详见 [CUDA 镜像使用指南](src/cuda/README_zh.md)。
+> - 鲲鹏 + 昇腾 910B 的使用方法见[昇腾镜像指南](src/ascend/README_zh.md)。
 > - English documentation is available at [README.md](README.md)。
 
 ---
@@ -27,7 +28,7 @@
 
 ### 前置要求
 
-- Linux amd64 容器运行环境；
+- 与镜像族匹配的 Linux 容器运行环境：CUDA 使用 amd64，昇腾使用 arm64；
 - 启用 GPU 支持需在宿主机安装兼容的 NVIDIA 显卡驱动以及 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)。
 
 ### 快速启动
@@ -54,7 +55,7 @@ python3 --version
 
 > [!TIP]
 > **💡 贴士 1：文件权限与用户归属**
-> 已发布的公开镜像默认以 `root` 身份运行。在 Linux 宿主机中，容器向挂载目录写入的文件在宿主机端亦归属 root。若需在宿主机侧保持非 root 用户的专属所有权，可基于构建期参数 `DEFAULT_USER` 构建定制变体（详见 [CUDA 镜像使用指南：构建期自定义](src/cuda/README_zh.md#构建期自定义)）。
+> 清单变体默认以 `luciole`（UID/GID 1000）运行，并具有免密 sudo 权限。在 Linux 宿主机中，容器向挂载目录写入的文件使用该 UID/GID。若需在宿主机侧保持非 root 用户的专属所有权，可基于构建期参数 `DEFAULT_USER` 构建定制变体（详见 [CUDA 镜像使用指南：构建期自定义](src/cuda/README_zh.md#构建期自定义)）。
 
 > [!TIP]
 > **💡 贴士 2：宿主机驱动支持上限 vs 容器工具链版本**
@@ -68,6 +69,8 @@ python3 --version
 | :--- | :--- | :--- | :--- |
 | **CUDA 12.6.3** / Ubuntu 24.04 | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` | 锁定 NVIDIA 基础镜像 digest | 追求严格可复现性、不希望任何上游更新带来构建漂移的项目 |
 | **CUDA 12.8.2** / Ubuntu 24.04 | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` | 跟踪官方明确版本标签更新 | **推荐默认起点**。兼顾版本稳定性与官方安全维护 |
+
+ARM64 昇腾变体和驱动要求见 [src/ascend](src/ascend/README_zh.md)。
 
 ### 选型说明与标签机制
 

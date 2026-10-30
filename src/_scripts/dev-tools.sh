@@ -36,9 +36,9 @@ if [ "$#" -ne 0 ]; then
 fi
 
 case "$(uname -m)" in
-    x86_64) ;;
+    x86_64 | aarch64) ;;
     *)
-        echo "dev-tools.sh: unsupported architecture; expected x86_64" >&2
+        echo "dev-tools.sh: unsupported architecture; expected x86_64 or aarch64" >&2
         exit 1
         ;;
 esac

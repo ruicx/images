@@ -19,12 +19,14 @@ scripts=(
     "src/_scripts/system.sh|--timezone"
     "src/_scripts/user.sh|--username"
     "src/_scripts/workspace.sh|--path"
+    "src/_scripts/python-install.sh|--mode"
 )
 
 no_argument_scripts=(
     "src/_scripts/dev-tools.sh"
     "src/_scripts/pip-packages.sh"
     "src/_scripts/python-install.sh"
+    "src/_scripts/ascend-environment.sh"
 )
 
 expect_usage_error() {
@@ -55,6 +57,14 @@ done
 ssh_script="${REPOSITORY_ROOT}/src/_scripts/ssh.sh"
 expect_usage_error "${ssh_script}" --login-user default
 expect_usage_error "${ssh_script}" --mode
+
+# New architecture support must not relax configuration validation before installation begins.
+expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/cmake.sh" --sha256
+expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/cmake.sh" --sha256 invalid
+expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/cmake.sh" --sha256 ''
+expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/python-install.sh" --mode unsupported
+expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/pip-packages.sh" --requirements ''
+expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/pip-packages.sh" --preserve-existing unexpected-positional
 
 # YAML booleans are stringified by the Python planner, so the script owns normalization.
 devshell_script="${REPOSITORY_ROOT}/src/_scripts/devshell.sh"

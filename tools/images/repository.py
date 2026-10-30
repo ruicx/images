@@ -370,6 +370,11 @@ class ImageRepository:
                             f"{family.name}.{variant.identifier}.dependencies: unknown target "
                             f"{dependency.family}/{dependency.variant}"
                         )
+                    if self.families[dependency.family].platforms != family.platforms:
+                        raise RepositoryError(
+                            f"{family.name}.{variant.identifier}.dependencies: "
+                            f"platform mismatch with {dependency.family}/{dependency.variant}"
+                        )
                     if dependency.context in contexts:
                         raise RepositoryError(
                             f"{family.name}.{variant.identifier}.dependencies: duplicate context "

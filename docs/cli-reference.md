@@ -10,12 +10,16 @@ message on standard error.
 | `validate` | Validate manifests, paths, DAG, and bilingual docs. | No output file. |
 | `list` | List families, variants, base-resolution modes, and direct dependencies. | Human-readable stdout; base mode is `pinned` or `tag-tracking`. |
 | `files --kind shell` | List ShellCheck/shfmt inputs. | Repository-relative paths. |
-| `plan` | Calculate publish targets and required ancestors. | Use `--base/--head`, `--all`, or `--family [--variant]`; optional `--output`. |
+| `plan` | Calculate publish targets and required ancestors. | Use `--base/--head`, `--all`, or `--family [--variant]`; optional `--platform` and `--output`. |
 | `bake` | Render a JSON Bake definition from a plan. | Requires owner, revision, mode, and plan. Modes: `load`, `preflight`, `publish`. |
 | `test` | Run declared smoke tests against locally loaded images. | Requires plan, owner, and revision. |
 | `build-test` | Build and test every independent graph component. | Requires plan and generated Bake file; reports all failed components. |
 | `guard-tags` | Compare local metadata with immutable GHCR tags. | Writes a filtered publication plan; conflicts fail. |
 | `promote` | Move each floating variant tag to its immutable release. | Runs only after immutable publication succeeds. |
+
+`plan --platform linux/arm64` filters selected outputs before adding their required ancestors.
+Internal dependency edges must stay on the same platform. A platform with no selected targets
+produces an empty plan.
 
 `plan` emits schema version `1`, changed paths, and topologically ordered targets. A target's
 `publish` flag distinguishes affected outputs from ancestors that are built only to satisfy the

@@ -1,0 +1,44 @@
+schema_version: 1
+name: ascend
+description: Kunpeng ARM64 and Ascend 910B TorchNPU development environment.
+dockerfile: src/ascend/Dockerfile
+context: .
+platforms:
+  - linux/arm64
+inputs:
+  - src/_scripts/system.sh
+  - src/_scripts/dev-tools.sh
+  - src/_scripts/python-install.sh
+  - src/_scripts/cmake.sh
+  - src/_scripts/pip-packages.sh
+  - src/_scripts/devshell.sh
+  - src/_scripts/user.sh
+  - src/_scripts/ssh.sh
+  - src/_scripts/workspace.sh
+  - src/_scripts/finalize-mirror.sh
+  - src/_scripts/ascend-environment.sh
+  - src/_assets/docker-entrypoint.sh
+  - src/_assets/ascend-entrypoint.sh
+  - src/ascend/tests/npu.sh
+publish: true
+variants:
+  - id: 2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12
+    base:
+      image: ascendai/torch-npu:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12
+      digest: sha256:ef208832ab5dbfa040e2fa406b2310cbacdd76022f35e50b0e0d242d47740d43
+    build_args:
+      DEFAULT_USER: luciole
+      DEFAULT_UID: 1000
+      DEFAULT_GID: 1000
+      DEVSHELL: true
+      TZ: Asia/Shanghai
+      CMAKE_VERSION: 4.3.2
+      CMAKE_SHA256: 377079ab739f5765176f427609d9a2015b756ea20d5cba908d279c3731a2f481
+      WORKSPACE_DIR: /work
+    mirror: upstream
+    runtime:
+      ssh:
+        mode: password
+    dependencies: []
+    tests:
+      - src/ascend/tests/smoke.sh

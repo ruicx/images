@@ -1,24 +1,30 @@
 #!/bin/bash
-# Ensure the default Python development environment exists and bootstrap the current pip release.
+# Prepare the distribution Python or preserve a preinstalled development interpreter.
 # Run as root after system.sh and dev-tools.sh.
 set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: python-install.sh
+Usage: python-install.sh [--mode <system|existing>]
 
 Options:
-  -h, --help  Show this help
+  --mode <value>  Bootstrap system Python or validate existing Python (default: system)
+  -h, --help      Show this help
 EOF
 }
 
-if ! PARSED=$(getopt -o h -l help -n "$(basename "$0")" -- "$@"); then
+MODE_VAL="system"
+if ! PARSED=$(getopt -o h -l help,mode: -n "$(basename "$0")" -- "$@"); then
     usage >&2
     exit 64
 fi
 eval set -- "$PARSED"
 while true; do
     case "$1" in
+        --mode)
+            MODE_VAL="$2"
+            shift 2
+            ;;
         -h | --help)
             usage
             exit 0
@@ -35,10 +41,30 @@ if [ "$#" -ne 0 ]; then
     exit 64
 fi
 
-case "$(uname -m)" in
-    x86_64) ;;
+case "${MODE_VAL}" in
+    system) ;;
+    existing)
+        # A vendor image owns this interpreter, its headers, and its pip. Never replace them.
+        python3 - <<'PYTHON'
+import pathlib
+import sysconfig
+import venv
+
+assert pathlib.Path(sysconfig.get_path("include"), "Python.h").is_file()
+PYTHON
+        python3 -m pip --version
+        exit 0
+        ;;
     *)
-        echo "python-install.sh: unsupported architecture; expected x86_64" >&2
+        echo "python-install.sh: unsupported mode '${MODE_VAL}'" >&2
+        exit 64
+        ;;
+esac
+
+case "$(uname -m)" in
+    x86_64 | aarch64) ;;
+    *)
+        echo "python-install.sh: unsupported architecture; expected x86_64 or aarch64" >&2
         exit 1
         ;;
 esac

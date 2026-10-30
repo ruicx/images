@@ -15,6 +15,12 @@ Targets are partitioned into disconnected graph components. CI builds and tests 
 records failures, and continues with unrelated components so one broken image graph does not hide
 results from another.
 
+CI uses native platform jobs: `ubuntu-24.04` for `linux/amd64` and `ubuntu-24.04-arm` for
+`linux/arm64`. Each job passes `--platform` to the planner; families have exactly one platform
+and internal dependency edges cannot cross platforms. Matrix jobs do not cancel one another on
+failure. Ascend CPU-only smoke checks run without NPU devices; hardware tests run separately on
+the target server.
+
 ## Workflow matrix
 
 | Behavior | Pull request | Push to `main` | Manual publish |
@@ -34,8 +40,8 @@ skips Buildx setup and all image work while repository validation still runs.
 The main workflow validates the repository, builds and smoke-tests locally, logs in with
 `GITHUB_TOKEN`, performs an unpushed preflight build, and compares each local digest with GHCR.
 A missing immutable tag remains in the publication plan, a matching digest is removed as an
-idempotent retry, and a different digest fails. Missing immutable tags are pushed before any
-floating tag is promoted.
+idempotent retry, and a different digest fails. Within each platform job, missing immutable tags are pushed before that job's floating tags are
+promoted. Publication across the two platforms is independent rather than an atomic transaction.
 
 The concurrency group `publish-images-main` serializes publishers and does not cancel an in-flight
 release. Cache scope is `<family>-<variant>` to prevent unrelated variants from overwriting one

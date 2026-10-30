@@ -15,10 +15,11 @@ Setting up consistent, high-performance GPU development environments across phys
 - **Minimal upstream bases**: Official container bases provide only runtime essentials, lacking common development, diagnostic, and troubleshooting tools;
 - **High maintenance cost of ad-hoc Dockerfiles**: Unstructured Dockerfiles easily become bloated and brittle over time, offering little dependency convergence, caching optimization, or reproducibility guarantees.
 
-**This project eliminates this recurring overhead.** It provides continuously maintained, publicly accessible development container images. The initial family focuses on CUDA (providing 12.6 and 12.8 variants), integrating low-level compilers and debuggers with modern terminal productivity tools, backed by a declarative container build and management tooling suite.
+**This project eliminates this recurring overhead.** It provides continuously maintained, publicly accessible development container images. The CUDA family provides 12.6 and 12.8 variants, and the Ascend family targets Kunpeng ARM64 + 910B with CANN 9.2.0 and TorchNPU 2.14.0, integrating low-level compilers and debuggers with modern terminal productivity tools, backed by a declarative container build and management tooling suite.
 
 > 📖 **Additional Guides**:
 > - For SSH remote development, long-running containers, non-root users, and runtime credentials, see the [CUDA Image Guide](src/cuda/README.md).
+> - For Kunpeng + Ascend 910B, see the [Ascend Image Guide](src/ascend/README.md).
 > - 中文文档请参阅 [README_zh.md](README_zh.md)。
 
 ---
@@ -27,7 +28,7 @@ Setting up consistent, high-performance GPU development environments across phys
 
 ### Prerequisites
 
-- A Linux amd64 container runtime;
+- A Linux container runtime matching the family: amd64 for CUDA, arm64 for Ascend;
 - GPU acceleration requires a compatible host NVIDIA GPU driver and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 
 ### Quick Start
@@ -54,7 +55,7 @@ python3 --version
 
 > [!TIP]
 > **💡 Tip 1: File Ownership & Permissions**
-> Published images run as `root` by default. On Linux hosts, files created inside bind mounts will be owned by root on the host side. When matching host non-root UID/GID is required, custom variants can specify `DEFAULT_USER` at build time (see [CUDA Image Guide: Build-time Customization](src/cuda/README.md#build-time-customization)).
+> Manifest variants run as `luciole` (UID/GID 1000) with passwordless sudo. Files created inside bind mounts use that UID/GID on Linux hosts. When matching host non-root UID/GID is required, custom variants can specify `DEFAULT_USER` at build time (see [CUDA Image Guide: Build-time Customization](src/cuda/README.md#build-time-customization)).
 
 > [!TIP]
 > **💡 Tip 2: Host Driver Capability vs Container Toolkit Version**
@@ -68,6 +69,8 @@ python3 --version
 | :--- | :--- | :--- | :--- |
 | **CUDA 12.6.3** / Ubuntu 24.04 | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` | Pinned NVIDIA base digest | Projects requiring byte-level reproducible builds without upstream drift |
 | **CUDA 12.8.2** / Ubuntu 24.04 | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` | Tracks upstream exact tag updates | **Recommended starting point.** Balances version stability with official security updates |
+
+For the ARM64 Ascend variant and its driver requirements, see [src/ascend](src/ascend/README.md).
 
 ### Selection Notes & Tagging Policy
 1. **Driver Compatibility**: Select the CUDA version required by the target project, then consult NVIDIA's [CUDA Compatibility Guide](https://docs.nvidia.com/deploy/cuda-compatibility/) to ensure host driver compatibility. When the driver is compatible and no legacy constraints exist, `12.8.2` is the recommended default.

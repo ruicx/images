@@ -73,9 +73,9 @@ fi
 RESOLVED_LOGIN_USER="${DEFAULT_USER_VAL}"
 
 case "$(uname -m)" in
-    x86_64) ;;
+    x86_64 | aarch64) ;;
     *)
-        echo "ssh.sh: unsupported architecture; expected x86_64" >&2
+        echo "ssh.sh: unsupported architecture; expected x86_64 or aarch64" >&2
         exit 1
         ;;
 esac

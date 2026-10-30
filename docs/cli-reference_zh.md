@@ -9,12 +9,15 @@
 | `validate` | 校验清单、路径、DAG 和双语文档。 | 不生成输出文件。 |
 | `list` | 列出镜像族、变体、基础镜像解析模式和直接依赖。 | 人类可读的标准输出；基础模式为 `pinned` 或 `tag-tracking`。 |
 | `files --kind shell` | 列出 ShellCheck/shfmt 输入。 | 仓库相对路径。 |
-| `plan` | 计算发布目标和所需上游。 | 使用 `--base/--head`、`--all` 或 `--family [--variant]`；可选 `--output`。 |
+| `plan` | 计算发布目标和所需上游。 | 使用 `--base/--head`、`--all` 或 `--family [--variant]`；可选 `--platform` 和 `--output`。 |
 | `bake` | 从计划生成 JSON Bake 定义。 | 需要 owner、revision、mode 和 plan；模式为 `load`、`preflight`、`publish`。 |
 | `test` | 对本地加载的镜像运行清单声明的冒烟测试。 | 需要 plan、owner、revision。 |
 | `build-test` | 构建并测试每个独立图组件。 | 需要 plan 和 Bake 文件；汇总所有失败组件。 |
 | `guard-tags` | 比较本地 metadata 与 GHCR 不可变标签。 | 输出过滤后的发布计划；冲突即失败。 |
 | `promote` | 把每个浮动变体标签移动到不可变版本。 | 仅在不可变发布成功后执行。 |
+
+`plan --platform linux/arm64` 先按平台过滤选中产物，再补齐所需上游。内部依赖边必须保持
+同一平台；没有选中目标的平台会产生空计划。
 
 `plan` 输出 schema version `1`、变更路径和拓扑排序后的目标。目标的 `publish` 字段用于区分
 受影响产物和仅为满足 DAG 而构建的上游。生成的计划和 Bake 文件是临时 CI 产物，禁止手工编辑。

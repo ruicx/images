@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,7 @@ from typing import Any
 import pytest
 import yaml
 
+from tools.images.cli import run
 from tools.images.repository import ImageRepository, RepositoryError
 
 
@@ -105,6 +107,110 @@ def test_loads_valid_repository(repo_root: Path) -> None:
     write_family(repo_root, "demo", manifest("demo", [variant("24.04")]))
     repository = ImageRepository(repo_root).load()
     assert list(repository.families) == ["demo"]
+
+
+@pytest.mark.parametrize("platform", ["linux/amd64", "linux/arm64"])
+def test_platform_selection_preserves_build_dependencies(repo_root: Path, platform: str) -> None:
+    """Filter publication by platform while retaining same-platform build ancestors.
+
+    Parameters
+    ----------
+    repo_root:
+        Temporary repository containing the production schema.
+    platform:
+        Architecture selected for the native CI worker.
+    """
+    write_family(repo_root, "other", manifest("other", [variant("one")]))
+    dependency = {"context": "internal_base", "family": "base", "variant": "one"}
+    for name, dependencies in [("base", None), ("child", [dependency])]:
+        data = manifest(name, [variant("one", dependencies)])
+        data["platforms"] = ["linux/arm64"]
+        write_family(repo_root, name, data)
+    plan_path = repo_root / "plan.json"
+    assert (
+        run(
+            [
+                "--root",
+                str(repo_root),
+                "plan",
+                "--all",
+                "--platform",
+                platform,
+                "--output",
+                str(plan_path),
+            ]
+        )
+        == 0
+    )
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    families = [item["family"] for item in plan["targets"]]
+    assert families == (["base", "child"] if platform == "linux/arm64" else ["other"])
+    repository = ImageRepository(repo_root).load()
+    bake = repository.render_bake(plan, "example", "1" * 40, "load")
+    assert all(target["platforms"] == [platform] for target in bake["target"].values())
+
+
+def test_platform_plan_retains_unselected_ancestor(repo_root: Path) -> None:
+    """Keep an ARM64 ancestor private when only its consumer is selected for publication."""
+    dependency = {"context": "base", "family": "base", "variant": "one"}
+    for name, dependencies in [("base", None), ("child", [dependency])]:
+        data = manifest(name, [variant("one", dependencies)])
+        data["platforms"] = ["linux/arm64"]
+        write_family(repo_root, name, data)
+    plan_path = repo_root / "plan.json"
+    run(
+        [
+            "--root",
+            str(repo_root),
+            "plan",
+            "--family",
+            "child",
+            "--platform",
+            "linux/arm64",
+            "--output",
+            str(plan_path),
+        ]
+    )
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    assert [(item["family"], item["publish"]) for item in plan["targets"]] == [
+        ("base", False),
+        ("child", True),
+    ]
+    run(
+        [
+            "--root",
+            str(repo_root),
+            "plan",
+            "--family",
+            "child",
+            "--platform",
+            "linux/amd64",
+            "--output",
+            str(plan_path),
+        ]
+    )
+    assert json.loads(plan_path.read_text(encoding="utf-8"))["targets"] == []
+
+
+@pytest.mark.parametrize("platforms", [[], ["linux/ppc64le"], ["linux/amd64", "linux/arm64"]])
+def test_rejects_unsupported_platform_sets(repo_root: Path, platforms: list[str]) -> None:
+    """Reject platform sets that cannot use the native single-platform load workflow."""
+    data = manifest("demo", [variant("one")])
+    data["platforms"] = platforms
+    write_family(repo_root, "demo", data)
+    with pytest.raises(RepositoryError, match="platforms"):
+        ImageRepository(repo_root).load()
+
+
+def test_rejects_cross_platform_internal_dependencies(repo_root: Path) -> None:
+    """Prevent architecture-filtered jobs from requiring a foreign-platform build ancestor."""
+    write_family(repo_root, "base", manifest("base", [variant("one")]))
+    dependency = {"context": "base", "family": "base", "variant": "one"}
+    data = manifest("child", [variant("one", [dependency])])
+    data["platforms"] = ["linux/arm64"]
+    write_family(repo_root, "child", data)
+    with pytest.raises(RepositoryError, match="platform mismatch"):
+        ImageRepository(repo_root).load()
 
 
 @pytest.mark.parametrize("blank_style", ["null", "empty"])
