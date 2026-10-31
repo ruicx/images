@@ -85,6 +85,45 @@ Adjust shared memory for the workload. For several NPUs, use an explicit list su
 For the non-root user, configure host device access groups or matching supplemental GIDs as
 required by the installed runtime and driver. Do not make device nodes world-writable.
 
+The [upstream TorchNPU example](https://hub.docker.com/r/ascendai/torch-npu) explicitly passes
+`--device` and `-v` options for manual mounting. This Compose file selects `runtime: ascend`
+instead. With `ASCEND_VISIBLE_DEVICES` set, Ascend Docker Runtime mounts the selected NPU device
+nodes and the driver paths listed in the host's `/etc/ascend-docker-runtime.d/base.list`; those
+runtime mounts are therefore absent from the Compose file. See the
+[runtime mount documentation](https://www.hiascend.com/document/detail/en/mindcluster/2610/clustersched/schedulingug/docs/en/scheduling/04_usage/00_containerization/01_configuring_custom_mounted_content.md).
+
+For a persistent container with every NPU on the host, run this Compose example from the
+repository root. The command collects every `/dev/davinciN` device ID and passes the full list
+to Ascend Docker Runtime; the runtime mounts the devices and driver files. An empty list makes
+Compose stop before starting the container.
+
+```bash
+docker info --format '{{json .Runtimes}}'  # Confirm that ascend is registered.
+export ASCEND_VISIBLE_DEVICES="$(
+  find /dev -maxdepth 1 -regextype posix-extended -regex '/dev/davinci[0-9]+' \
+    -printf '%f\n' | sed 's/^davinci//' | sort -n | paste -sd, -
+)"
+docker compose -f src/ascend/compose.yaml up -d
+docker compose -f src/ascend/compose.yaml exec ascend zsh
+```
+
+After startup, verify the devices and driver tool inside the container:
+
+```bash
+docker compose -f src/ascend/compose.yaml exec ascend sh -lc \
+  'ls /dev/davinci[0-9]* /dev/davinci_manager && npu-smi info'
+```
+
+The example uses the same image tag, 8 GiB shared memory, key-only SSH on host port `2222`, and a
+repository bind mount at `/work`. Port `2222` listens on all host interfaces; restrict access to
+trusted networks. The SSH daemon starts before a key is added, but password authentication remains
+disabled. Inside the container, run `cat >> ~/.ssh/authorized_keys`, paste your public key as one
+line, and press Ctrl-D. Then connect with `ssh -p 2222 luciole@<host>`. The `ssh-keys` volume
+preserves authorized keys across container recreation. This opt-in behavior requires an image built
+with the updated entrypoint. The host must have Ascend Docker Runtime registered as `ascend`. See the
+[Ascend Docker Runtime device selection guide](https://www.hiascend.com/document/detail/en/mindcluster/2600/clustersched/schedulingug/docs/en/scheduling/usage/containerization/04_usage_on_the_containerd_client.md)
+for supported device ID formats.
+
 If Ascend Docker Runtime is unavailable, a single-device manual mounting example is:
 
 ```bash
@@ -136,7 +175,8 @@ For key authentication, use the same NPU options and add:
 ```
 
 Start with `sleep infinity` and connect using `ssh -p 2222 luciole@localhost`. A missing or empty
-authorized key causes startup to fail. For password authentication, create a password file outside
+authorized key causes startup to fail unless the Compose example's explicit opt-in is used. For
+password authentication, create a password file outside
 the project and mount it at runtime:
 
 ```bash

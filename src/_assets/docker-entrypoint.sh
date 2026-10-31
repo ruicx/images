@@ -21,15 +21,18 @@ if ! id "${RESOLVED_LOGIN_USER}" >/dev/null 2>&1; then
     exit 64
 fi
 
-# Start sshd only after validating the explicit mode and mounted public key.
+# Start sshd only after validating the explicit mode and public-key policy.
 case "${SSH_MODE_VAL}" in
     disabled) ;;
     key-only)
         USER_HOME="$(getent passwd "${RESOLVED_LOGIN_USER}" | cut -d: -f6)"
         AUTHORIZED_KEYS="${USER_HOME}/.ssh/authorized_keys"
         if [ ! -s "${AUTHORIZED_KEYS}" ]; then
-            echo "[entrypoint] SSH_MODE=key-only requires a non-empty ${AUTHORIZED_KEYS}" >&2
-            exit 64
+            if [ "${SSH_ALLOW_EMPTY_AUTHORIZED_KEYS:-false}" != "true" ]; then
+                echo "[entrypoint] SSH_MODE=key-only requires a non-empty ${AUTHORIZED_KEYS}" >&2
+                exit 64
+            fi
+            echo "[entrypoint] SSH awaits a public key in ${AUTHORIZED_KEYS}" >&2
         fi
         run_as_root mkdir -p /run/sshd
         run_as_root ssh-keygen -A >/dev/null

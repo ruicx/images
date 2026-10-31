@@ -1,0 +1,19 @@
+services:
+  ascend:
+    image: ghcr.io/ruicx/ascend:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12
+    platform: linux/arm64
+    runtime: ascend
+    environment:
+      ASCEND_VISIBLE_DEVICES: ${ASCEND_VISIBLE_DEVICES:?Set ASCEND_VISIBLE_DEVICES to the host NPU IDs}
+      SSH_MODE: key-only
+      SSH_ALLOW_EMPTY_AUTHORIZED_KEYS: "true"
+    shm_size: 8g
+    ports:
+      - "2222:22"
+    volumes:
+      - ../../:/work
+      - ssh-keys:/home/luciole/.ssh
+    command: sleep infinity
+
+volumes:
+  ssh-keys:

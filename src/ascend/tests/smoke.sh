@@ -74,6 +74,9 @@ SSH_MODE=key-only /usr/local/bin/ascend-entrypoint true
 status=$?
 set -e
 test "${status}" -eq 64
+SSH_MODE=key-only SSH_ALLOW_EMPTY_AUTHORIZED_KEYS=true /usr/local/bin/ascend-entrypoint true
+pgrep -x sshd >/dev/null
+sudo -n pkill -x sshd
 SSH_MODE=password /usr/local/bin/ascend-entrypoint true
 pgrep -x sshd >/dev/null
 test "$(sudo -n passwd --status luciole | awk '{print $2}')" = "L"

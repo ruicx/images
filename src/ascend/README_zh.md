@@ -76,6 +76,41 @@ docker run --rm -it \
 卡数和拓扑属于服务器配置。非 root 用户需要按已安装的运行时和驱动配置设备访问组，或添加
 匹配的补充 GID。不要把设备节点设为所有用户可写。
 
+[上游 TorchNPU 示例](https://hub.docker.com/r/ascendai/torch-npu)通过 `--device` 和 `-v`
+显式手动挂载；此 Compose 文件则选用 `runtime: ascend`。设置 `ASCEND_VISIBLE_DEVICES` 后，
+Ascend Docker Runtime 会挂载所选 NPU 设备节点，以及宿主机
+`/etc/ascend-docker-runtime.d/base.list` 列出的驱动路径，因此这些运行时挂载不会写在
+Compose 文件中。参见[运行时挂载说明](https://www.hiascend.com/document/detail/en/mindcluster/2610/clustersched/schedulingug/docs/en/scheduling/04_usage/00_containerization/01_configuring_custom_mounted_content.md)。
+
+如需启动可访问宿主机全部 NPU 的常驻容器，在仓库根目录运行以下 Compose 示例。命令收集全部
+`/dev/davinciN` 设备编号，将完整列表传给 Ascend Docker Runtime，由运行时挂载设备和驱动文件。
+列表为空时，Compose 会在启动容器前报错。
+
+```bash
+docker info --format '{{json .Runtimes}}'  # Confirm that ascend is registered.
+export ASCEND_VISIBLE_DEVICES="$(
+  find /dev -maxdepth 1 -regextype posix-extended -regex '/dev/davinci[0-9]+' \
+    -printf '%f\n' | sed 's/^davinci//' | sort -n | paste -sd, -
+)"
+docker compose -f src/ascend/compose.yaml up -d
+docker compose -f src/ascend/compose.yaml exec ascend zsh
+```
+
+启动后在容器内检查设备和驱动工具：
+
+```bash
+docker compose -f src/ascend/compose.yaml exec ascend sh -lc \
+  'ls /dev/davinci[0-9]* /dev/davinci_manager && npu-smi info'
+```
+
+示例使用相同的镜像标签、8 GiB 共享内存、仅公钥认证的 SSH（宿主机端口 `2222`），并将仓库
+挂载到 `/work`。端口 `2222` 监听宿主机所有网络接口；请限制为可信网络。尚未添加公钥时 SSH
+服务会启动，但密码认证保持关闭。进入容器后执行 `cat >> ~/.ssh/authorized_keys`，粘贴一行
+公钥并按 Ctrl-D，然后用 `ssh -p 2222 luciole@<host>` 登录。`ssh-keys` 卷会在容器重建后
+保留公钥。此行为需要使用包含更新后入口脚本的镜像。宿主机须已将 Ascend Docker Runtime
+注册为 `ascend`。支持的设备编号格式参见
+[Ascend Docker Runtime 设备选择说明](https://www.hiascend.com/document/detail/en/mindcluster/2600/clustersched/schedulingug/docs/en/scheduling/usage/containerization/04_usage_on_the_containerd_client.md)。
+
 没有 Ascend Docker Runtime 时，单卡手动挂载示例如下：
 
 ```bash
@@ -126,7 +161,7 @@ docker run --rm -i --runtime=ascend \
 ```
 
 以 `sleep infinity` 启动，并使用 `ssh -p 2222 luciole@localhost` 连接。公钥缺失或为空时
-启动失败。密码认证先在项目外创建密码文件，再于运行时挂载：
+启动失败，除非使用 Compose 示例中明确启用的例外。密码认证先在项目外创建密码文件，再于运行时挂载：
 
 ```bash
 read -rsp 'SSH password: ' ASCEND_DEV_PASSWORD && printf '\n'
