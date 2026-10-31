@@ -88,6 +88,9 @@ Compose 文件中。参见[运行时挂载说明](https://www.hiascend.com/docum
 
 ```bash
 docker info --format '{{json .Runtimes}}'  # Confirm that ascend is registered.
+mkdir -p secret
+sudo chown 1000:1000 secret
+sudo chmod 700 secret
 export ASCEND_VISIBLE_DEVICES="$(
   find /dev -maxdepth 1 -regextype posix-extended -regex '/dev/davinci[0-9]+' \
     -printf '%f\n' | sed 's/^davinci//' | sort -n | paste -sd, -
@@ -106,8 +109,11 @@ docker compose -f src/ascend/compose.yaml exec ascend sh -lc \
 示例使用相同的镜像标签、8 GiB 共享内存、仅公钥认证的 SSH（宿主机端口 `2222`），并将仓库
 挂载到 `/work`。端口 `2222` 监听宿主机所有网络接口；请限制为可信网络。尚未添加公钥时 SSH
 服务会启动，但密码认证保持关闭。进入容器后执行 `cat >> ~/.ssh/authorized_keys`，粘贴一行
-公钥并按 Ctrl-D，然后用 `ssh -p 2222 luciole@<host>` 登录。`ssh-keys` 卷会在容器重建后
-保留公钥。此行为需要使用包含更新后入口脚本的镜像。宿主机须已将 Ascend Docker Runtime
+公钥并按 Ctrl-D，再执行 `chmod 600 ~/.ssh/authorized_keys`，然后用
+`ssh -p 2222 luciole@<host>` 登录。宿主机的 `secret/` 目录绑定
+挂载到 `/home/luciole/.ssh`，容器重建后仍保留公钥；其中的文件会被 Git 忽略。目录归
+UID/GID 1000 所有且权限为 700，使容器用户能写入公钥并满足 SSH 的文件权限检查。此行为需要
+使用包含更新后入口脚本的镜像。宿主机须已将 Ascend Docker Runtime
 注册为 `ascend`。支持的设备编号格式参见
 [Ascend Docker Runtime 设备选择说明](https://www.hiascend.com/document/detail/en/mindcluster/2600/clustersched/schedulingug/docs/en/scheduling/usage/containerization/04_usage_on_the_containerd_client.md)。
 

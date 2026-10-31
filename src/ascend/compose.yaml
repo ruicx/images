@@ -9,11 +9,20 @@ services:
       SSH_ALLOW_EMPTY_AUTHORIZED_KEYS: "true"
     shm_size: 8g
     ports:
-      - "2222:22"
+      - "8101:22"
     volumes:
-      - ../../:/work
-      - ssh-keys:/home/luciole/.ssh
+      - ./mount:/work
+      - ./secret:/home/luciole/.ssh
     command: sleep infinity
 
-volumes:
-  ssh-keys:
+# Usage
+# docker info --format '{{json .Runtimes}}'  # Confirm that ascend is registered.
+# mkdir -p secret
+# sudo chown 1000:1000 secret
+# sudo chmod 700 secret
+# export ASCEND_VISIBLE_DEVICES="$(
+#   find /dev -maxdepth 1 -regextype posix-extended -regex '/dev/davinci[0-9]+' \
+#     -printf '%f\n' | sed 's/^davinci//' | sort -n | paste -sd, -
+# )"
+# docker compose -f src/ascend/compose.yaml up -d
+# docker compose -f src/ascend/compose.yaml exec ascend zsh

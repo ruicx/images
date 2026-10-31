@@ -99,6 +99,9 @@ Compose stop before starting the container.
 
 ```bash
 docker info --format '{{json .Runtimes}}'  # Confirm that ascend is registered.
+mkdir -p secret
+sudo chown 1000:1000 secret
+sudo chmod 700 secret
 export ASCEND_VISIBLE_DEVICES="$(
   find /dev -maxdepth 1 -regextype posix-extended -regex '/dev/davinci[0-9]+' \
     -printf '%f\n' | sed 's/^davinci//' | sort -n | paste -sd, -
@@ -118,8 +121,11 @@ The example uses the same image tag, 8 GiB shared memory, key-only SSH on host p
 repository bind mount at `/work`. Port `2222` listens on all host interfaces; restrict access to
 trusted networks. The SSH daemon starts before a key is added, but password authentication remains
 disabled. Inside the container, run `cat >> ~/.ssh/authorized_keys`, paste your public key as one
-line, and press Ctrl-D. Then connect with `ssh -p 2222 luciole@<host>`. The `ssh-keys` volume
-preserves authorized keys across container recreation. This opt-in behavior requires an image built
+line, press Ctrl-D, and run `chmod 600 ~/.ssh/authorized_keys`. Then connect with
+`ssh -p 2222 luciole@<host>`. The host's `secret/`
+directory is bind-mounted to `/home/luciole/.ssh`, so authorized keys survive container recreation;
+its contents are ignored by Git. UID/GID 1000 ownership and mode 700 let the container user write
+keys while satisfying SSH file-permission checks. This opt-in behavior requires an image built
 with the updated entrypoint. The host must have Ascend Docker Runtime registered as `ascend`. See the
 [Ascend Docker Runtime device selection guide](https://www.hiascend.com/document/detail/en/mindcluster/2600/clustersched/schedulingug/docs/en/scheduling/usage/containerization/04_usage_on_the_containerd_client.md)
 for supported device ID formats.
