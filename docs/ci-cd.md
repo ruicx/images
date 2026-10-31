@@ -37,6 +37,11 @@ skips Buildx setup and all image work while repository validation still runs.
 
 ## Publication transaction
 
+Every stage receives the same `--build-id <run-id>-<attempt>` from GitHub Actions. Immutable tags
+are `<variant>-<short-sha>-<run-id>-<attempt>`, so a new run or rerun of the same commit can publish
+updated upstream content under a new tag. Historical tags are retained. Generated Bake targets
+check for base updates with `pull: true`; unchanged layers can still reuse the scoped cache.
+
 The main workflow validates the repository, builds and smoke-tests locally, logs in with
 `GITHUB_TOKEN`, performs an unpushed preflight build, and compares each local digest with GHCR.
 A missing immutable tag remains in the publication plan, a matching digest is removed as an

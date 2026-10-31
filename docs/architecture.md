@@ -24,9 +24,10 @@ results from unrelated families. Exact change-impact rules are documented in
 External bases have two explicit resolution policies. A non-null `base.digest` pins BuildKit to
 `image:tag@digest` and provides reproducible base resolution. A null or blank value follows the
 exact `image:tag`, allowing deliberate rolling updates without manifest edits. The `digest` key
-remains required to prevent accidental loss of a pin. Tag tracking trades reproducibility for
-freshness: if upstream moves the tag, rebuilding the same Git commit may produce a different image
-and the immutable-tag conflict guard will reject publication under an existing SHA tag.
+remains required to make the resolution policy explicit. Development manifests use null digests,
+and generated Bake targets set `pull: true` to check for upstream updates. Rebuilding the same Git
+commit may produce a different image; each CI build batch has a separate immutable release tag.
+Existing layer caches remain enabled, so unchanged base images do not force package steps to rerun.
 
 ## Image composition and cache boundaries
 
@@ -64,9 +65,14 @@ visible in the final environment for introspection, but runtime startup never ac
 
 ## Tag lifecycle
 
-The immutable tag is `<variant>-<short-sha>`. Before publishing, CI calculates the local manifest
-digest and inspects GHCR. A missing tag is pushed, a matching tag is skipped, and a conflicting tag
-fails the release. Only after all immutable tags exist does CI update the floating `<variant>` tags.
+The CI immutable tag is `<variant>-<short-sha>-<run-id>-<attempt>`. The run ID and attempt identify
+each build batch, so rerunning the same commit can publish upstream fixes without overwriting an
+earlier build. Build, smoke tests, preflight, publication, and promotion share this identifier.
+The OCI revision label keeps the full source SHA; the version label includes the build batch.
+Before publishing, CI calculates the local manifest digest and inspects GHCR. A missing tag is
+pushed, a matching tag is skipped, and a conflicting tag within the same batch fails the release.
+Only after all immutable tags exist does CI update the floating `<variant>` tags. Historical
+`<variant>-<short-sha>` tags remain available and are never rewritten by this migration.
 
 Consumers that need reproducibility must pin an immutable tag or digest. Floating variant tags are
 convenience channels and can change after every successful merge.

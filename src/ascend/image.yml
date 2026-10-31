@@ -27,7 +27,7 @@ variants:
   - id: 2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12
     base:
       image: ascendai/torch-npu:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12
-      digest: sha256:ef208832ab5dbfa040e2fa406b2310cbacdd76022f35e50b0e0d242d47740d43
+      digest: null
     build_args:
       DEFAULT_USER: luciole
       DEFAULT_UID: 1000

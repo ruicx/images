@@ -26,8 +26,9 @@ bash tools/shell-tests/install-arguments.sh
   或手动工作流会写 Registry 镜像和缓存。
 - **GHCR 返回 permission denied：** 检查 Actions 包权限、仓库与包的连接，以及发布任务的
   `packages: write`。不要用长期 token 替换 `GITHUB_TOKEN`。
-- **报告不可变标签冲突：** 禁止覆盖。调查为什么同一 Git SHA 产生不同 manifest digest，
-  然后从修正后的提交发布。
+- **报告不可变标签冲突：** 禁止覆盖。确认各阶段传入相同构建 ID，并调查同一批次为什么
+  产生不同 manifest digest。新的工作流运行或尝试使用独立不可变标签，可接收上游变化并
+  保留历史产物。
 - **不可变标签被跳过：** 远端 digest 与预检结果相同，属于安全的幂等重试。
 - **发布后匿名拉取失败：** 新 GHCR 包可能是私有的。把包设为 Public，执行
   `docker logout ghcr.io` 后重试。
@@ -36,5 +37,5 @@ bash tools/shell-tests/install-arguments.sh
   `SSH_PASSWORD_FILE` 为 `DEFAULT_USER` 提供可选密码。请检查该变体的 `runtime.ssh.mode` 和
   对应镜像族 README。
 
-回滚时让消费者使用之前已知的不可变 SHA 标签或 digest。不要删除或覆盖错误的不可变标签；
+回滚时让消费者使用之前已知的不可变构建标签或 digest。不要删除或覆盖错误的不可变标签；
 保留它用于审计，并排查产生该产物的构建。

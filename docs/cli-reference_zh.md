@@ -25,6 +25,14 @@
 `bake --mode load` 把镜像载入本地 Docker，并附加浮动标签供冒烟测试使用；`preflight` 构建但
 不推送，同时产生 digest metadata；`publish` 只推送计划中仍为 `publish: true` 的目标，并写入
 按变体隔离的主分支缓存。
+所有生成的目标都设置 `pull: true`，检查上游基础镜像更新，同时保留层缓存。
+
+`bake`、`test`、`build-test`、`guard-tags` 和 `promote` 接受可选参数
+`--build-id <run-id>-<attempt>`，两部分均须为正整数。CI 向所有阶段统一传入
+`${{ github.run_id }}-${{ github.run_attempt }}`，生成
+`<variant>-<12位-git-sha>-<run-id>-<attempt>` 标签。本地调用可省略该参数，保留原有的
+`<variant>-<12位-git-sha>` 格式；也可在一次重建的所有阶段传入同一个唯一数字批次，例如
+`--build-id "$(date +%s)-1"`。OCI revision 标签始终保留完整源码 SHA。
 
 以 `images <command> --help` 作为权威选项列表。命令名、计划 schema 和退出码含义均属于需
 保持兼容的接口。

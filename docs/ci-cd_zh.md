@@ -33,6 +33,11 @@ CI 使用原生平台任务：`linux/amd64` 对应 `ubuntu-24.04`，`linux/arm64
 
 ## 发布事务
 
+所有阶段接收来自 GitHub Actions 的同一个 `--build-id <run-id>-<attempt>`。不可变标签为
+`<variant>-<short-sha>-<run-id>-<attempt>`，因此同一提交的新运行或重跑可使用新标签发布
+更新的上游内容，历史标签继续保留。生成的 Bake 目标通过 `pull: true` 检查基础镜像更新；
+未变化的层仍可复用对应 scope 的缓存。
+
 main 工作流依次执行仓库校验、本地构建与冒烟测试、使用 `GITHUB_TOKEN` 登录、未推送的预检
 构建，以及本地 digest 与 GHCR 的比较。不可变标签缺失时保留在发布计划中；digest 一致时作为
 幂等重试移除；digest 不同则失败。每个平台任务先推送该任务全部缺失的不可变标签，再提升相应浮动标签。两个平台独立发布，不是跨平台原子事务。

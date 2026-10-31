@@ -193,9 +193,10 @@ images plan --family cuda --variant <variant-id> --output build-plan.json
 
 ## 可复现性与能力边界
 
-支持的 CUDA/Ubuntu 组合及基础镜像解析策略在 `src/cuda/image.yml` 中声明。12.6.3 变体通过
-digest 固定 NVIDIA 基础镜像；12.8.2 变体使用明确标签和空 digest，因此会跟随该标签的更新。
-需要可重复环境时，请使用不可变镜像标签或 digest。
+支持的 CUDA/Ubuntu 组合及基础镜像解析策略在 `src/cuda/image.yml` 中声明。两个变体均使用
+明确的 NVIDIA 基础镜像标签和空 digest，跟随这些标签下的更新。每个生成的 Bake 目标通过
+`pull: true` 检查上游基础镜像更新。CI 按 `<variant>-<short-sha>-<run-id>-<attempt>` 保留
+每次构建，包括同一提交的重跑。需要可重复环境时，请使用保留的不可变镜像标签或 digest。
 
 固定已发布镜像的 digest 可以让后续拉取结果保持一致，但不能保证重新从源码构建时逐字节一致。
 使用 `docker buildx imagetools inspect <image>` 查看 digest，然后按

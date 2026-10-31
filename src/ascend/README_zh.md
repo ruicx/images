@@ -1,8 +1,8 @@
 # 昇腾 910B 开发镜像
 
 面向鲲鹏 CPU 与昇腾 910B NPU 的 ARM64 开发环境，基础镜像为
-`ascendai/torch-npu:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12`。清单固定上游多架构索引的
-digest，本镜像族只构建 `linux/arm64`。英文说明见 [README.md](README.md)。
+`ascendai/torch-npu:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12`。清单使用 `digest: null` 跟踪
+该明确标签下的上游更新，本镜像族只构建 `linux/arm64`。英文说明见 [README.md](README.md)。
 
 ## 内容与默认值
 
@@ -15,7 +15,7 @@ TorchNPU 2.14.0 和 Python 3.12.15。CPU 版 PyTorch 通过 TorchNPU 使用 NPU�
 开发库、网络工具、ripgrep、fd、bat、Python 开发包、uv，以及 zsh/Oh My Zsh/NvChad/Node.js
 开发 shell。两个镜像族共用 `src/_assets/python-dev-requirements.txt` 中不指定版本的包列表，
 uv 也通过 pip 安装。昇腾使用专用的 `src/_scripts/ascend-pip-packages.sh` 安装脚本，通过
-`--requirements` 传入该清单，并用构建期约束保留固定基础镜像中已有包的版本；发生依赖冲突时
+`--requirements` 传入该清单，并用构建期约束保留所选基础镜像中已有包的版本；发生依赖冲突时
 构建失败，不替换上游软件栈。CUDA 使用独立的 `pip-packages.sh` 安装脚本。有效约束保留在
 `/opt/image-python/base-constraints.txt`，并完整打印到构建日志，便于按全部预装约束复现解析失败。
 
@@ -154,11 +154,13 @@ python -m tools.images plan --family ascend --platform linux/arm64 --output buil
 Python 元数据和 venv、shell 环境及 SSH 策略；不导入 TorchNPU，也不声称已验证硬件兼容。
 请在目标服务器单独运行 `tests/npu.sh`。
 
-基础镜像已固定，ARM64 CMake 压缩包按清单中的 SHA-256 校验。按用户要求，新增 Python 包
+基础镜像跟随明确的上游标签，生成的 Bake 目标通过 `pull: true` 检查更新。
+ARM64 CMake 压缩包按清单中的 SHA-256 校验。按用户要求，新增 Python 包
 采用共享包列表，不指定版本，同时用约束保留上游软件栈的已安装版本。这项经用户批准的滚动
 Python 包策略意味着重建时新增包和传递依赖可能变化，apt 包也未锁定。为保持 CUDA 开发体验，
 本镜像复用其
 经用户批准的滚动交互式开发 shell 例外：当前上游 release、分支、安装器和插件可不固定版本或
 checksum。此例外仅适用于开发 shell 工具，不适用于 CANN、PyTorch、TorchNPU 或应用依赖。
 因此，重建同一提交不保证得到逐字节相同的内容。设置 `DEVSHELL: false` 可跳过交互式 shell
-安装。发布的不可变 revision 标签和 digest 标识实际构建产物；不发布全局 `latest` 标签。
+安装。CI 按 `<variant>-<short-sha>-<run-id>-<attempt>` 保留每次构建，包括同一提交的重跑。
+这些不可变标签和镜像 digest 标识实际构建产物，供回滚使用；不发布全局 `latest` 标签。

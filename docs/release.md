@@ -5,6 +5,12 @@ Merges to `main` repeat validation, build and test locally, compare immutable ta
 artifacts, and finally promote floating tags. A manual run can select all images, one family, or one
 variant.
 
+CI identifies each release as `<variant>-<short-sha>-<run-id>-<attempt>`. To refresh an existing
+commit from updated upstream base tags, start a manual publish or rerun the workflow: the new run
+or attempt gets a separate immutable tag. No scheduled rebuild is configured. Historical images
+and legacy `<variant>-<short-sha>` tags are retained; pin one of those artifacts or its digest to
+restore an old environment. Actions logs alone do not preserve an image.
+
 The precise change-selection, cache, permission, idempotency, concurrency, and failure-isolation
 rules are defined in [CI/CD behavior](ci-cd.md). Operational recovery is covered by
 [Troubleshooting](troubleshooting.md).

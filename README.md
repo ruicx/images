@@ -93,15 +93,15 @@ python3 --version
 | Platform & Hardware | Image Tag | Base Image Policy | Recommended For |
 | :--- | :--- | :--- | :--- |
 | **CUDA 12.8.2**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` | Tracks upstream exact tag | **Recommended starting point for NVIDIA GPUs.** Balances version stability with official updates. |
-| **CUDA 12.6.3**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` | Pinned NVIDIA base digest | Projects requiring byte-level reproducible builds without upstream drift. |
-| **Ascend 910B**<br>`linux/arm64` (Ubuntu 22.04) | `ghcr.io/ruicx/ascend:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12` | Pinned upstream base digest | Kunpeng ARM64 + Ascend 910B environments (CANN 9.2.0, PyTorch 2.14.0, TorchNPU 2.14.0). |
+| **CUDA 12.6.3**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` | Tracks the exact NVIDIA base tag | Projects using CUDA 12.6.3 with upstream fixes published under the same base tag. |
+| **Ascend 910B**<br>`linux/arm64` (Ubuntu 22.04) | `ghcr.io/ruicx/ascend:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12` | Tracks the exact upstream base tag | Kunpeng ARM64 + Ascend 910B environments (CANN 9.2.0, PyTorch 2.14.0, TorchNPU 2.14.0). |
 
 ### Selection Notes & Tagging Policy
 
 1. **Driver Compatibility**: Select the CUDA/CANN version required by your project, then check host driver compatibility. For NVIDIA GPUs, consult the [CUDA Compatibility Guide](https://docs.nvidia.com/deploy/cuda-compatibility/). When host drivers meet requirements and no legacy constraints exist, `12.8.2` is the recommended default.
 2. **Convenience Tags vs Immutable Pins**:
    - The short tags shown above (e.g., `12.8.2-devel-ubuntu24.04`) serve as **convenience channels** that automatically track newly published builds.
-   - For mission-critical CI or strictly reproducible production baselines where **zero drift** is required, lock to the immutable `<variant>-<12-character-git-sha>` tag generated with each release, or pull directly by manifest digest (`ghcr.io/ruicx/cuda@sha256:<digest>`), inspectable via `docker buildx imagetools inspect <image>`.
+   - To reuse a published environment, lock to its immutable `<variant>-<12-character-git-sha>-<run-id>-<attempt>` release tag, or pull directly by manifest digest (`ghcr.io/ruicx/cuda@sha256:<digest>`), inspectable via `docker buildx imagetools inspect <image>`. Rebuilding the same source may produce a newer environment; historical images remain available for rollback.
    - 📌 *Note: This repository follows strict versioning discipline and deliberately does not publish a global `latest` tag.*
 
 ---
@@ -148,7 +148,7 @@ variants:
 - 📄 **Manifest-driven Variants**: A single parameterized Dockerfile powers an entire image family. Adding a new combination requires only a declaration in `image.yml`, without modifying CI workflow code.
 - 🧩 **Reusable Capabilities**: Tool installations are decoupled into modular capability scripts (e.g., `cmake.sh`, `python-install.sh`, `devshell.sh`) with strict argument validation; adjacent `COPY` and `RUN` steps preserve optimal BuildKit caching boundaries.
 - 🧭 **Dependency-aware Incremental Builds**: `images plan` analyzes changed inputs to rebuild only affected image families and their transitive dependents; internal dependencies are always built from the same commit.
-- 🔒 **Transparent Reproducibility**: External bases must specify an exact tag and declare whether they pin a digest or track upstream; publications seal immutable revision tags before updating convenience tags.
+- 🔒 **Transparent Reproducibility**: Development images track exact upstream base tags and check for updates on each build; publications retain immutable tags for each build batch before updating convenience tags.
 - 🛡️ **Pre-flight Validation**: Schema and semantic linters guard against circular dependencies, undeclared build arguments, or leaked secrets; all images must pass full builds and smoke tests before deployment.
 
 Learn more about the design and schema in [Architecture](docs/architecture.md) and the [Manifest Reference](docs/manifest-reference.md).

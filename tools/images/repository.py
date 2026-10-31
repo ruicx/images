@@ -670,6 +670,7 @@ class ImageRepository:
         revision: str,
         mode: str,
         source_repository: str | None = None,
+        build_id: str | None = None,
     ) -> dict[str, Any]:
         """Render a Docker Buildx Bake definition for a build plan.
 
@@ -685,6 +686,8 @@ class ImageRepository:
             One of ``load``, ``preflight``, or ``publish``.
         source_repository:
             Optional ``owner/repository`` value for the OCI source label.
+        build_id:
+            Optional ``run-id-attempt`` suffix distinguishing builds of one revision.
 
         Returns
         -------
@@ -694,14 +697,10 @@ class ImageRepository:
         Raises
         ------
         RepositoryError
-            If the revision or requested mode is invalid.
+            If the revision, build identifier, or requested mode is invalid.
         """
         normalized_owner = owner.lower()
-        short_revision = revision[:12].lower()
-        if not SHA_PATTERN.fullmatch(short_revision):
-            raise RepositoryError(
-                "revision must contain at least 12 lowercase hexadecimal characters"
-            )
+        suffix = release_suffix(revision, build_id)
         planned = {(item["family"], item["variant"]): item for item in plan["targets"]}
         targets: dict[str, Any] = {}
         default_targets: list[str] = []
@@ -710,7 +709,7 @@ class ImageRepository:
             family = self.families[variant.family]
             planned_item = planned[key]
             immutable_tag = (
-                f"ghcr.io/{normalized_owner}/{variant.family}:{variant.identifier}-{short_revision}"
+                f"ghcr.io/{normalized_owner}/{variant.family}:{variant.identifier}-{suffix}"
             )
             floating_tag = f"ghcr.io/{normalized_owner}/{variant.family}:{variant.identifier}"
             build_args = dict(variant.build_args)
@@ -718,7 +717,7 @@ class ImageRepository:
                 {
                     "BASE_IMAGE": variant.base_reference,
                     "IMAGE_REVISION": revision,
-                    "IMAGE_VERSION": f"{variant.identifier}-{short_revision}",
+                    "IMAGE_VERSION": f"{variant.identifier}-{suffix}",
                     "PACKAGE_MIRROR": variant.mirror,
                     "SSH_MODE": variant.ssh_mode,
                 }
@@ -727,6 +726,7 @@ class ImageRepository:
                 "context": str(family.context.relative_to(self.root)).replace("\\", "/"),
                 "dockerfile": str(family.dockerfile.relative_to(self.root)).replace("\\", "/"),
                 "platforms": list(family.platforms),
+                "pull": True,
                 "args": build_args,
                 "contexts": {
                     dependency.context: f"target:{self.variants[dependency.key].target_name}"
@@ -739,7 +739,7 @@ class ImageRepository:
                         else f"https://github.com/{normalized_owner}"
                     ),
                     "org.opencontainers.image.revision": revision,
-                    "org.opencontainers.image.version": f"{variant.identifier}-{short_revision}",
+                    "org.opencontainers.image.version": f"{variant.identifier}-{suffix}",
                     "org.opencontainers.image.title": variant.family,
                 },
                 "cache-from": [f"type=gha,scope={variant.family}-{variant.identifier}"],
@@ -805,6 +805,36 @@ class ImageRepository:
                 return {key}
             return {item.key for item in self.families[family].variants}
         return set(self.variants)
+
+
+def release_suffix(revision: str, build_id: str | None = None) -> str:
+    """Create the shared release suffix for builds, tests, and publication.
+
+    Parameters
+    ----------
+    revision:
+        Git revision containing at least twelve hexadecimal characters.
+    build_id:
+        Optional positive numeric run identifier and attempt, separated by a hyphen.
+
+    Returns
+    -------
+    str
+        Short revision followed by the build identifier when supplied.
+
+    Raises
+    ------
+    RepositoryError
+        If the revision or build identifier is invalid.
+    """
+    short_revision = revision[:12].lower()
+    if not SHA_PATTERN.fullmatch(short_revision):
+        raise RepositoryError("revision must contain at least 12 lowercase hexadecimal characters")
+    if build_id is None:
+        return short_revision
+    if not re.fullmatch(r"[1-9][0-9]*-[1-9][0-9]*", build_id):
+        raise RepositoryError("build-id must use positive numeric run-id-attempt format")
+    return f"{short_revision}-{build_id}"
 
 
 def load_json(path: Path) -> dict[str, Any]:

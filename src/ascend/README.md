@@ -1,8 +1,8 @@
 # Ascend 910B development image
 
 An ARM64 development environment for Kunpeng CPUs and Ascend 910B NPUs, based on
-`ascendai/torch-npu:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12`. The manifest pins the upstream
-multi-platform index digest; this family builds only `linux/arm64`. See [中文说明](README_zh.md).
+`ascendai/torch-npu:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12`. The manifest tracks updates under
+that exact tag with `digest: null`; this family builds only `linux/arm64`. See [中文说明](README_zh.md).
 
 ## Contents and defaults
 
@@ -17,7 +17,7 @@ Git LFS, OpenCV development libraries, network tools, ripgrep, fd, bat, Python d
 packages, uv, and the zsh/Oh My Zsh/NvChad/Node.js developer shell. Both families use the same
 unversioned package list in `src/_assets/python-dev-requirements.txt`, including pip-installed uv.
 Ascend uses its own `src/_scripts/ascend-pip-packages.sh` installer, passing this file through
-`--requirements`. It constrains every package already supplied by the pinned base; resolution
+`--requirements`. It constrains every package already supplied by the selected base; resolution
 fails instead of replacing the vendor stack. CUDA uses an independent `pip-packages.sh` installer.
 The effective constraints are retained at `/opt/image-python/base-constraints.txt` for inspection
 and printed in build logs so resolver failures can be reproduced with the complete baseline.
@@ -167,7 +167,8 @@ Standard CI builds and runs `tests/smoke.sh` on a native ARM64 runner without NP
 checks tools, Python metadata and venv, shell environments, and SSH policy; it does not import
 TorchNPU or claim hardware compatibility. Run `tests/npu.sh` separately on the intended server.
 
-The base is pinned, and the ARM64 CMake archive is verified against its manifest SHA-256. At the
+The base follows its exact upstream tag, and generated Bake targets check for updates with
+`pull: true`. The ARM64 CMake archive is verified against its manifest SHA-256. At the
 user's request, added Python packages follow the unversioned shared package list, while constraints
 retain the vendor stack's installed versions. This approved rolling Python-package policy means
 rebuilds can select different added packages and transitive dependencies. Apt packages are also
@@ -176,5 +177,6 @@ user-approved rolling interactive developer-shell exception: current upstream re
 installers, and plugins may change without version or checksum pins. This exception applies only
 to developer-shell tooling, not CANN, PyTorch, TorchNPU, or application dependencies. Rebuilding
 the same commit is therefore not guaranteed to reproduce identical bytes. Set `DEVSHELL: false`
-to omit the interactive shell installation. Published immutable revision tags and digests identify
-the actual built artifacts; no global `latest` tag is published.
+to omit the interactive shell installation. CI retains each build, including reruns of the same
+commit, as `<variant>-<short-sha>-<run-id>-<attempt>`. These immutable tags and image digests identify
+the actual built artifacts for rollback; no global `latest` tag is published.

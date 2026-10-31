@@ -11,9 +11,13 @@ keep the old identifier for an appropriate deprecation window when practical, an
 old channel to semantically unrelated software.
 
 Removing a variant stops future builds only. Automation does not delete existing immutable tags.
-Floating tags are mutable convenience channels; immutable SHA tags and digests remain the rollback
+Floating tags are mutable convenience channels; immutable build tags and digests remain the rollback
 mechanism. To roll back a consumer, pin the previous immutable tag or digest. Moving a floating tag
 backward is a deliberate maintainer operation outside the automatic workflow and must be recorded.
+
+New CI releases use `<variant>-<short-sha>-<run-id>-<attempt>` instead of the legacy
+`<variant>-<short-sha>` format. Existing immutable tags remain untouched. Local CLI calls without
+`--build-id` retain the legacy format; CI always supplies a build batch to support rolling rebuilds.
 
 Shared scripts that are not referenced by any manifest `inputs` entry are pending migration. They
 are retained but are not part of the supported phase-one build surface. A script becomes supported

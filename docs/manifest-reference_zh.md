@@ -49,9 +49,10 @@ Buildx Bake 会把 `internal_base` 解析为 `target:<generated-base-target>`，
 
 对于外部基础镜像，有 digest 时会把 `BASE_IMAGE` 生成为 `image:tag@sha256:...`；值为 `null`
 时则生成为 `image:tag`。YAML 的 `digest: null` 与 `digest:` 等价，但完全省略该键是非法的，
-从而要求清单明确表达可复现性选择。推荐默认固定 digest。标签跟踪适合有意滚动更新的镜像，
-但上游移动标签后，同一个 Git 提交的两次构建可能不同，并可能触发不可变标签冲突保护。基础
-镜像仍必须使用明确版本标签，且仍禁止 `latest` 和 `master`。
+从而要求清单明确表达可复现性选择。开发镜像使用 `digest: null` 接收同一明确标签下发布的
+更新；需要固定基础镜像时仍可使用 `sha256`。生成的 Bake 目标通过 `pull: true` 检查更新。
+同一个 Git 提交的两次构建可能不同，因此 CI 为每个构建批次分配独立的不可变发布标签。
+基础镜像仍必须使用明确版本标签，且仍禁止 `latest` 和 `master`。
 
 `build_args` 是镜像专用构建选项的扩展点，不需要修改 Python 解析器。Bake 生成前，值会统一
 转换为字符串。因此接收布尔选项的脚本必须自行归一化，例如 YAML 的 `true` 可能变为 `True`；

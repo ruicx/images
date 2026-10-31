@@ -28,6 +28,14 @@ DAG. Generated plan and Bake files are ephemeral CI artifacts and must not be ed
 `bake --mode load` loads images into the local Docker daemon and includes floating tags for smoke
 tests. `preflight` builds without pushing and produces digest metadata. `publish` pushes only
 targets whose plan record still has `publish: true` and writes the scoped main-branch cache.
+All generated targets set `pull: true` to check for upstream base updates while retaining layer caches.
+
+`bake`, `test`, `build-test`, `guard-tags`, and `promote` accept optional `--build-id <run-id>-<attempt>`.
+Both parts must be positive integers. CI passes `${{ github.run_id }}-${{ github.run_attempt }}`
+consistently to every stage, generating `<variant>-<12-character-git-sha>-<run-id>-<attempt>` tags.
+Local callers may omit the option to retain the existing `<variant>-<12-character-git-sha>` format,
+or pass a unique numeric batch such as `--build-id "$(date +%s)-1"` to every stage of a rebuild.
+The OCI revision label always remains the full source SHA.
 
 Use `images <command> --help` as the authoritative option list. The command names, plan schema,
 and exit-status meanings are compatibility-sensitive interfaces.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +12,7 @@ import pytest
 import yaml
 
 from tools.images.cli import run
-from tools.images.repository import ImageRepository, RepositoryError
+from tools.images.repository import ImageRepository, RepositoryError, release_suffix
 
 
 def variant(identifier: str, dependencies: list[dict[str, str]] | None = None) -> dict[str, Any]:
@@ -404,6 +405,131 @@ def test_bake_tracks_base_tag_when_digest_is_null(repo_root: Path) -> None:
     bake = repository.render_bake(plan, "example", "1" * 40, "load")
     target = next(iter(bake["target"].values()))
     assert target["args"]["BASE_IMAGE"] == "ubuntu:24.04"
+    assert target["pull"] is True
+
+
+@pytest.mark.parametrize("mode", ["load", "preflight", "publish"])
+def test_rebuilds_have_distinct_tags_and_preserve_revision(repo_root: Path, mode: str) -> None:
+    """Distinguish workflow runs and attempts while preserving source attribution.
+
+    Parameters
+    ----------
+    repo_root:
+        Temporary repository containing the production schema.
+    mode:
+        Build stage whose tags and labels must match the release contract.
+    """
+    write_family(repo_root, "demo", manifest("demo", [variant("24.04")]))
+    repository = ImageRepository(repo_root).load()
+    plan = repository.make_plan({("demo", "24.04")})
+    revision = "abcdef012345" + "0" * 28
+    tags = []
+    for build_id in ("123-1", "123-2", "124-1"):
+        bake = repository.render_bake(plan, "Example", revision, mode, build_id=build_id)
+        target = next(iter(bake["target"].values()))
+        version = f"24.04-abcdef012345-{build_id}"
+        assert target["tags"][0] == f"ghcr.io/example/demo:{version}"
+        assert target["labels"]["org.opencontainers.image.revision"] == revision
+        assert target["labels"]["org.opencontainers.image.version"] == version
+        assert target["args"]["IMAGE_VERSION"] == version
+        assert target["pull"] is True
+        tags.append(target["tags"][0])
+    assert len(set(tags)) == 3
+
+
+@pytest.mark.parametrize("build_id", ["", "123", "0-1", "123-0", "123/1", "123-1:bad"])
+def test_rejects_invalid_build_identifier(build_id: str) -> None:
+    """Reject identifiers that cannot represent a workflow run and attempt.
+
+    Parameters
+    ----------
+    build_id:
+        Invalid release batch identifier.
+    """
+    with pytest.raises(RepositoryError, match="build-id"):
+        release_suffix("1" * 40, build_id)
+
+
+@pytest.mark.parametrize("remote_digest", [None, "sha256:matching", "sha256:conflicting"])
+def test_release_commands_share_build_tags_and_guard_conflicts(
+    repo_root: Path, monkeypatch: pytest.MonkeyPatch, remote_digest: str | None
+) -> None:
+    """Use one release identity for smoke tests, conflict checks, and promotion.
+
+    Parameters
+    ----------
+    repo_root:
+        Temporary repository containing the production schema.
+    monkeypatch:
+        Fixture replacing Docker calls with recorded responses.
+    remote_digest:
+        Missing, matching, or conflicting registry manifest digest.
+    """
+    write_family(repo_root, "demo", manifest("demo", [variant("24.04")]))
+    repository = ImageRepository(repo_root).load()
+    plan = repository.make_plan({("demo", "24.04")})
+    plan_path = repo_root / "plan.json"
+    metadata_path = repo_root / "metadata.json"
+    output_path = repo_root / "publish.json"
+    bake_path = repo_root / "bake.json"
+    plan_path.write_text(json.dumps(plan), encoding="utf-8")
+    metadata_path.write_text(
+        json.dumps({plan["targets"][0]["target"]: {"containerimage.digest": "sha256:matching"}}),
+        encoding="utf-8",
+    )
+    calls: list[list[str]] = []
+
+    def docker_run(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        """Record Docker invocations and return the configured registry response.
+
+        Parameters
+        ----------
+        command:
+            Docker command and arguments.
+        **kwargs:
+            Subprocess execution options.
+
+        Returns
+        -------
+        subprocess.CompletedProcess[str]
+            Simulated Docker process result.
+        """
+        calls.append(command)
+        missing = "inspect" in command and remote_digest is None
+        return subprocess.CompletedProcess(command, 1 if missing else 0, stdout=remote_digest or "")
+
+    monkeypatch.setattr("tools.images.cli.subprocess.run", docker_run)
+    prefix = ["--root", str(repo_root)]
+    options = [
+        "--plan",
+        str(plan_path),
+        "--owner",
+        "Example",
+        "--revision",
+        "1" * 40,
+        "--build-id",
+        "123-2",
+    ]
+    expected_image = "ghcr.io/example/demo:24.04-111111111111-123-2"
+    assert run([*prefix, "bake", *options, "--mode", "load", "--output", str(bake_path)]) == 0
+    bake = json.loads(bake_path.read_text(encoding="utf-8"))
+    assert next(iter(bake["target"].values()))["tags"][0] == expected_image
+    assert run([*prefix, "build-test", *options, "--bake", str(bake_path)]) == 0
+    assert expected_image in calls[-1]
+    assert run([*prefix, "test", *options]) == 0
+    assert expected_image in calls[-1]
+    guard_options = ["--metadata", str(metadata_path), "--output", str(output_path)]
+    if remote_digest == "sha256:conflicting":
+        with pytest.raises(RepositoryError, match="immutable tag conflict"):
+            run([*prefix, "guard-tags", *options, *guard_options])
+        assert not output_path.exists()
+    else:
+        assert run([*prefix, "guard-tags", *options, *guard_options]) == 0
+        filtered = json.loads(output_path.read_text(encoding="utf-8"))
+        assert filtered["targets"][0]["publish"] is (remote_digest is None)
+    assert expected_image in calls[-1]
+    assert run([*prefix, "promote", *options]) == 0
+    assert calls[-1][-2:] == ["ghcr.io/example/demo:24.04", expected_image]
 
 
 def test_independent_graph_branches_get_separate_bake_groups(repo_root: Path) -> None:

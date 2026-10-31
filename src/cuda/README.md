@@ -206,9 +206,10 @@ In `load` mode, the resulting local image receives the floating tag
 ## Reproducibility and scope
 
 Supported CUDA and Ubuntu combinations and their base-resolution policies are declared in
-`src/cuda/image.yml`. The 12.6.3 variant pins its NVIDIA base by digest. The 12.8.2 variant uses an
-explicitly tagged base with a null digest and therefore follows updates published under that tag.
-Use an immutable image tag or digest when repeatability matters.
+`src/cuda/image.yml`. Both variants use exact NVIDIA base tags with null digests to follow updates
+published under those tags. Every generated Bake target checks for upstream base updates with
+`pull: true`. CI retains each build as `<variant>-<short-sha>-<run-id>-<attempt>`, including reruns
+of the same commit. Use a retained immutable image tag or digest when repeatability matters.
 
 Pinning an already-published image digest makes subsequent pulls repeatable; it does not make a
 fresh source rebuild byte-for-byte reproducible. Discover the digest with

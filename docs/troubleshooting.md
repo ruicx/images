@@ -27,8 +27,9 @@ README to reproduce image builds. Generated JSON files are disposable.
   permissions; only trusted main/manual workflows write Registry images and caches.
 - **GHCR returns permission denied:** confirm Actions package access, the repository/package link,
   and `packages: write` on the publish job. Do not replace `GITHUB_TOKEN` with a long-lived token.
-- **An immutable tag conflict is reported:** do not overwrite it. Investigate why the same Git SHA
-  produced a different manifest digest, then publish from a corrected commit.
+- **An immutable tag conflict is reported:** do not overwrite it. Confirm every stage received the
+  same build ID and investigate why that batch produced different manifest digests. A new workflow
+  run or attempt uses a separate immutable tag, allowing upstream changes without replacing history.
 - **An immutable tag is skipped:** its remote digest matches the preflight result; this is a safe
   idempotent retry.
 - **Anonymous pull fails after publication:** new GHCR packages may be private. Set the package to
@@ -39,5 +40,5 @@ README to reproduce image builds. Generated JSON files are disposable.
   `password` accepts an optional password for `DEFAULT_USER` only through `SSH_PASSWORD_FILE`.
   Check the variant's `runtime.ssh.mode` and the image-family README.
 
-For rollback, change the consumer to a previously known immutable SHA tag or digest. Never delete
+For rollback, change the consumer to a previously known immutable build tag or digest. Never delete
 or overwrite the bad immutable tag; retain it for auditability and diagnose the originating build.

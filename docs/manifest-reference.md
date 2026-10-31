@@ -49,10 +49,11 @@ uses an older registry copy for an internal dependency.
 
 For an external base, a digest value renders `BASE_IMAGE` as `image:tag@sha256:...`; `null` renders
 it as `image:tag`. YAML `digest: null` and `digest:` are equivalent, but omitting the key is invalid
-so the reproducibility choice is always explicit. Pinning is the default recommendation. Tag
-tracking is useful for deliberately rolling images, but an upstream tag move can make two builds
-of the same Git commit differ and can therefore trigger the immutable-tag conflict guard. Exact
-version tags remain required, and `latest` and `master` remain forbidden.
+so the reproducibility choice is always explicit. Development images use `digest: null` to receive
+updates published under the same exact tag; a `sha256` pin remains available when a fixed base is
+needed. Generated Bake targets check for updates with `pull: true`. Two builds of the same Git
+commit can differ, so CI assigns each build batch its own immutable release tag. Exact version
+tags remain required, and `latest` and `master` remain forbidden.
 
 `build_args` is the extension point for image-specific build options and does not require a Python
 parser change. Values are normalized to strings before Bake rendering. Scripts that accept boolean

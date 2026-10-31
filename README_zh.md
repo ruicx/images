@@ -93,15 +93,15 @@ python3 --version
 | 平台与硬件环境 | 镜像标签 | 基础镜像策略 | 推荐适用场景 |
 | :--- | :--- | :--- | :--- |
 | **CUDA 12.8.2**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` | 跟踪官方明确版本标签 | **NVIDIA GPU 推荐默认起点**。兼顾版本稳定性与官方安全更新。 |
-| **CUDA 12.6.3**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` | 锁定 NVIDIA 基础镜像 digest | 追求严格可复现性、杜绝上游隐式更新带来构建漂移的项目。 |
-| **Ascend 910B**<br>`linux/arm64` (Ubuntu 22.04) | `ghcr.io/ruicx/ascend:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12` | 锁定上游基础镜像 digest | 鲲鹏 ARM64 + 昇腾 910B 环境（集成 CANN 9.2.0、PyTorch 2.14.0 与 TorchNPU 2.14.0）。 |
+| **CUDA 12.6.3**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` | 跟踪明确的 NVIDIA 基础镜像标签 | 使用 CUDA 12.6.3，并接收上游在同一基础镜像标签下发布的修复。 |
+| **Ascend 910B**<br>`linux/arm64` (Ubuntu 22.04) | `ghcr.io/ruicx/ascend:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12` | 跟踪明确的上游基础镜像标签 | 鲲鹏 ARM64 + 昇腾 910B 环境（集成 CANN 9.2.0、PyTorch 2.14.0 与 TorchNPU 2.14.0）。 |
 
 ### 选型说明与标签策略
 
 1. **驱动兼容性确认**：根据具体工程需求选定 CUDA 或 CANN 版本，并对照官方文档确保宿主机驱动满足最低要求（NVIDIA 环境请参阅 [CUDA 兼容性指南](https://docs.nvidia.com/deploy/cuda-compatibility/)）。在宿主机驱动满足条件且无历史基线约束时，推荐选用 `12.8.2` 变体。
 2. **便捷标签与不可变锁定**：
    - 上述表格中的短标签（如 `12.8.2-devel-ubuntu24.04`）为**便捷通道**，成功发布新构建后会自动向前滚动更新。
-   - 在生产环境、长期固定基线或严格可复现的 CI 流水线中，建议锁定带有提交特征的不可变 `<variant>-<12位-git-sha>` 标签，或通过 `docker buildx imagetools inspect <image>` 查询 manifest digest 并采用 `ghcr.io/ruicx/cuda@sha256:<digest>` 进行明确引用。
+   - 需要复用已发布环境时，锁定不可变的 `<variant>-<12位-git-sha>-<run-id>-<attempt>` 发布标签，或通过 `docker buildx imagetools inspect <image>` 查询 manifest digest 并采用 `ghcr.io/ruicx/cuda@sha256:<digest>` 引用。相同源码重建可能生成更新的环境，历史镜像保留供回滚。
    - 📌 *注：本仓库遵循明确的版本追踪规范，不发布语义模糊的全局 `latest` 标签。*
 
 ---
@@ -148,7 +148,7 @@ variants:
 - 📄 **清单驱动变体（Manifest-driven）**：单个参数化 Dockerfile 支撑整个镜像族。新增环境变体或组合只需在 `image.yml` 中声明，无需改写 CI 工作流代码。
 - 🧩 **积木式能力复用（Reusable Capabilities）**：将工具安装解耦为独立的职责脚本（如 `cmake.sh`、`python-install.sh`、`devshell.sh`），各脚本内建严格的参数校验；相邻的 `COPY` 与 `RUN` 保证最佳的 BuildKit 缓存边界。
 - 🧭 **依赖感知与增量构建（Dependency-aware）**：`images plan` 根据变更输入自动分析受影响的镜像族与传递依赖，避免不必要的全量重构；内部镜像依赖始终基于同一次提交构建。
-- 🔒 **透明的可复现策略**：外部基础镜像必须显式指定标签，并主动决定是绑定 digest 还是跟随上游；发布时优先固化不可变 revision 标签。
+- 🔒 **透明的可复现策略**：开发镜像跟踪明确的上游基础镜像标签，每次构建检查更新；发布时先保留每个构建批次的不可变标签，再更新便捷标签。
 - 🛡️ **发布前多重校验**：Schema 与语义检查自动拦截环形依赖、未声明的构建参数或遗漏的依赖；所有镜像在推送到 Registry 前，均需通过真实构建与冒烟测试验证。
 
 详细架构设计与配置契约请参阅[架构设计](docs/architecture_zh.md)与[清单参考手册](docs/manifest-reference_zh.md)。

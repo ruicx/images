@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from .repository import ImageRepository, RepositoryError, load_json, write_json
+from .repository import ImageRepository, RepositoryError, load_json, release_suffix, write_json
 
 
 def parser() -> argparse.ArgumentParser:
@@ -71,6 +71,8 @@ def parser() -> argparse.ArgumentParser:
     promote.add_argument("--plan", type=Path, required=True)
     promote.add_argument("--owner", required=True)
     promote.add_argument("--revision", required=True)
+    for command in (bake, test, build_test, guard, promote):
+        command.add_argument("--build-id", help="numeric run-id-attempt suffix for release tags")
     return result
 
 
@@ -136,15 +138,13 @@ def _guard_tags(args: argparse.Namespace, plan: dict[str, Any]) -> None:
         If local digest metadata is missing or a remote digest conflicts.
     """
     metadata = load_json(args.metadata)
-    short_revision = args.revision[:12].lower()
+    suffix = release_suffix(args.revision, args.build_id)
     # Copy through JSON because plan records are intentionally JSON-compatible data.
     filtered = json.loads(json.dumps(plan))
     for item in filtered["targets"]:
         if not item["publish"]:
             continue
-        reference = (
-            f"ghcr.io/{args.owner.lower()}/{item['family']}:{item['variant']}-{short_revision}"
-        )
+        reference = f"ghcr.io/{args.owner.lower()}/{item['family']}:{item['variant']}-{suffix}"
         remote = _remote_digest(reference)
         if remote is None:
             continue
@@ -170,10 +170,10 @@ def _promote(args: argparse.Namespace, plan: dict[str, Any]) -> None:
     plan:
         Successfully published build plan.
     """
-    short_revision = args.revision[:12].lower()
+    suffix = release_suffix(args.revision, args.build_id)
     for item in _published_items(plan):
         prefix = f"ghcr.io/{args.owner.lower()}/{item['family']}"
-        immutable = f"{prefix}:{item['variant']}-{short_revision}"
+        immutable = f"{prefix}:{item['variant']}-{suffix}"
         floating = f"{prefix}:{item['variant']}"
         subprocess.run(
             ["docker", "buildx", "imagetools", "create", "--tag", floating, immutable],
@@ -189,16 +189,14 @@ def _run_tests(repo: ImageRepository, args: argparse.Namespace, plan: dict[str, 
     repo:
         Loaded repository model.
     args:
-        Parsed command arguments containing owner and revision.
+        Parsed command arguments containing owner, revision, and build identifier.
     plan:
         Plan whose targets should be tested.
     """
-    short_revision = args.revision[:12].lower()
+    suffix = release_suffix(args.revision, args.build_id)
     for item in plan["targets"]:
         variant = repo.variants[(item["family"], item["variant"])]
-        image = (
-            f"ghcr.io/{args.owner.lower()}/{variant.family}:{variant.identifier}-{short_revision}"
-        )
+        image = f"ghcr.io/{args.owner.lower()}/{variant.family}:{variant.identifier}-{suffix}"
         for script_name in variant.tests:
             script = repo.root / script_name
             print(f"testing {image} with {script_name}")
@@ -309,6 +307,7 @@ def run(arguments: Sequence[str] | None = None) -> int:
                 args.revision,
                 args.mode,
                 source_repository=args.repository,
+                build_id=args.build_id,
             ),
             args.output,
         )
