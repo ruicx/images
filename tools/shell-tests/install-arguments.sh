@@ -97,6 +97,10 @@ expect_usage_error "${llama_cpp_script}" --cuda-version 12
 # Selecting root must be a non-mutating success path owned by the user capability.
 user_script="${REPOSITORY_ROOT}/src/_scripts/user.sh"
 bash "${user_script}" --username root --uid 1000 --gid 1000
+bash "${user_script}" --username root --groups ""
+expect_usage_error "${user_script}" --groups
+expect_usage_error "${user_script}" --username root --groups video
+expect_usage_error "${user_script}" --username root --groups video,,render
 
 # Reject paths that could assign ownership to the filesystem root or escape lexically.
 workspace_script="${REPOSITORY_ROOT}/src/_scripts/workspace.sh"

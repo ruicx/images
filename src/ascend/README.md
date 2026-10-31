@@ -44,6 +44,7 @@ resolve the corresponding dependencies before using those features.
 | --- | --- |
 | Platform | `linux/arm64` |
 | Default user | `luciole` (UID/GID `1000`, passwordless sudo) |
+| Supplementary groups | None (`DEFAULT_GROUPS` is empty) |
 | Workspace | `/work` |
 | Developer shell | Enabled; default container command is Bash, login shell is zsh |
 | Time zone | `Asia/Shanghai` |
@@ -84,6 +85,10 @@ Adjust shared memory for the workload. For several NPUs, use an explicit list su
 `ASCEND_VISIBLE_DEVICES=0,1`; device count and topology belong to the server configuration.
 For the non-root user, configure host device access groups or matching supplemental GIDs as
 required by the installed runtime and driver. Do not make device nodes world-writable.
+
+To add existing groups at build time, set `build_args.DEFAULT_GROUPS: "video,render"` in
+`src/ascend/image.yml`, replacing the names with groups present in the base image. The build fails
+if a named group does not exist. Leave the value empty when no supplementary groups are needed.
 
 The [upstream TorchNPU example](https://hub.docker.com/r/ascendai/torch-npu) explicitly passes
 `--device` and `-v` options for manual mounting. This Compose file selects `runtime: ascend`

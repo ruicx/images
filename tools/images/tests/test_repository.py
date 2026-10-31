@@ -295,6 +295,7 @@ def test_accepts_custom_default_user_and_renders_ssh_mode(repo_root: Path) -> No
         "DEFAULT_USER": "builder",
         "DEFAULT_UID": 1001,
         "DEFAULT_GID": 1001,
+        "DEFAULT_GROUPS": "video,render",
     }
     item["runtime"]["ssh"]["mode"] = "password"
     write_family(repo_root, "demo", manifest("demo", [item]))
@@ -303,6 +304,7 @@ def test_accepts_custom_default_user_and_renders_ssh_mode(repo_root: Path) -> No
     bake = repository.render_bake(plan, "example", "1" * 40, "load")
     target = next(iter(bake["target"].values()))
     assert target["args"]["DEFAULT_USER"] == "builder"
+    assert target["args"]["DEFAULT_GROUPS"] == "video,render"
     assert target["args"]["SSH_MODE"] == "password"
     assert "SSH_LOGIN_USER" not in target["args"]
 
@@ -321,6 +323,19 @@ def test_accepts_custom_default_user_and_renders_ssh_mode(repo_root: Path) -> No
         (
             {"DEFAULT_USER": "builder"},
             "are required for a non-root DEFAULT_USER",
+        ),
+        (
+            {
+                "DEFAULT_USER": "builder",
+                "DEFAULT_UID": 1001,
+                "DEFAULT_GID": 1001,
+                "DEFAULT_GROUPS": "video,,render",
+            },
+            "must be comma-separated Linux group names",
+        ),
+        (
+            {"DEFAULT_USER": "root", "DEFAULT_GROUPS": "video"},
+            "cannot be set when DEFAULT_USER is root",
         ),
     ],
 )

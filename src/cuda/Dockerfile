@@ -6,6 +6,7 @@ FROM ${BASE_IMAGE}
 ARG DEFAULT_USER=root
 ARG DEFAULT_UID=1000
 ARG DEFAULT_GID=1000
+ARG DEFAULT_GROUPS=""
 ARG TZ=Asia/Shanghai
 ARG CMAKE_VERSION=4.3.2
 ARG DEVSHELL=false
@@ -35,7 +36,8 @@ COPY --chmod=0755 src/_scripts/user.sh /tmp/image-scripts/user.sh
 RUN /tmp/image-scripts/user.sh \
       --username "${DEFAULT_USER}" \
       --uid "${DEFAULT_UID}" \
-      --gid "${DEFAULT_GID}"
+      --gid "${DEFAULT_GID}" \
+      --groups "${DEFAULT_GROUPS}"
 
 COPY --chmod=0755 src/_scripts/ssh.sh /tmp/image-scripts/ssh.sh
 RUN /tmp/image-scripts/ssh.sh \

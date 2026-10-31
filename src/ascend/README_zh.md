@@ -39,6 +39,7 @@ OpenTelemetry OTLP exporter 要求 protobuf >=5，因此不安装这两个 expor
 | --- | --- |
 | 平台 | `linux/arm64` |
 | 默认用户 | `luciole`（UID/GID 为 `1000`，免密 sudo） |
+| 附加组 | 无（`DEFAULT_GROUPS` 为空） |
 | 工作目录 | `/work` |
 | 开发 shell | 启用；容器默认命令为 Bash，登录 shell 为 zsh |
 | 时区 | `Asia/Shanghai` |
@@ -75,6 +76,10 @@ docker run --rm -it \
 根据工作负载调整共享内存。使用多张卡时，指定 `ASCEND_VISIBLE_DEVICES=0,1` 等明确列表；
 卡数和拓扑属于服务器配置。非 root 用户需要按已安装的运行时和驱动配置设备访问组，或添加
 匹配的补充 GID。不要把设备节点设为所有用户可写。
+
+若需在构建期添加现有组，可在 `src/ascend/image.yml` 中设置
+`build_args.DEFAULT_GROUPS: "video,render"`，并将示例组名换成基础镜像中实际存在的组。
+指定的组不存在时构建会失败；不需要附加组时保持空值。
 
 [上游 TorchNPU 示例](https://hub.docker.com/r/ascendai/torch-npu)通过 `--device` 和 `-v`
 显式手动挂载；此 Compose 文件则选用 `runtime: ascend`。设置 `ASCEND_VISIBLE_DEVICES` 后，

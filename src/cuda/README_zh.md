@@ -144,6 +144,7 @@ Neovim 插件和 `ty` 可执行文件都在镜像构建期完成安装。
 | `DEFAULT_USER` | `luciole` | 构建期 |
 | `DEFAULT_UID` | `1000` | 构建期 |
 | `DEFAULT_GID` | `1000` | 构建期 |
+| `DEFAULT_GROUPS` | 空 | 构建期 |
 | `WORKSPACE_DIR` | `/work` | 构建期 |
 | `DEVSHELL` | `true` | 构建期 |
 | `TZ` | `Asia/Shanghai` | 构建期 |
@@ -165,6 +166,7 @@ build_args:
   DEFAULT_USER: developer
   DEFAULT_UID: 1000
   DEFAULT_GID: 1000
+  DEFAULT_GROUPS: "video"
   WORKSPACE_DIR: /workspace
   DEVSHELL: true
 mirror: upstream
@@ -175,7 +177,9 @@ runtime:
 
 `DEFAULT_USER=root` 会复用已有的 root 账号；root 清单变体应省略 `DEFAULT_UID` 和 `DEFAULT_GID`。
 其他合法 Linux 用户名会创建对应账号，使用声明的 UID 和 GID，将其设为 Docker 最终用户，
-并授予免密 sudo。工作目录必须是 `/` 以外的绝对路径，其所有者为 `DEFAULT_USER`。
+并授予免密 sudo。`DEFAULT_GROUPS` 使用逗号分隔的现有 Linux 组名，为用户添加附加组；空值
+表示不添加。组必须已存在于基础镜像中，否则构建失败。root 变体应将此值留空。工作目录必须
+是 `/` 以外的绝对路径，其所有者为 `DEFAULT_USER`。
 
 每个变体都必须把 `runtime.ssh.mode` 显式声明为 `disabled`、`key-only` 或 `password`。规划器
 会把清单策略转换为镜像的 `SSH_MODE` 构建参数：清单中的值决定镜像内置默认值，

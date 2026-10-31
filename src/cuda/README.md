@@ -153,6 +153,7 @@ installed while the image is built.
 | `DEFAULT_USER` | `luciole` | Build time |
 | `DEFAULT_UID` | `1000` | Build time |
 | `DEFAULT_GID` | `1000` | Build time |
+| `DEFAULT_GROUPS` | empty | Build time |
 | `WORKSPACE_DIR` | `/work` | Build time |
 | `DEVSHELL` | `true` | Build time |
 | `TZ` | `Asia/Shanghai` | Build time |
@@ -175,6 +176,7 @@ build_args:
   DEFAULT_USER: developer
   DEFAULT_UID: 1000
   DEFAULT_GID: 1000
+  DEFAULT_GROUPS: "video"
   WORKSPACE_DIR: /workspace
   DEVSHELL: true
 mirror: upstream
@@ -185,8 +187,10 @@ runtime:
 
 `DEFAULT_USER=root` reuses the existing root account; omit `DEFAULT_UID` and `DEFAULT_GID`
 from root manifest variants. Any other valid Linux username creates that account with the declared UID and GID, makes it
-the final Docker user, and grants passwordless sudo. The workspace must be an absolute path other
-than `/` and is owned by `DEFAULT_USER`.
+the final Docker user, and grants passwordless sudo. `DEFAULT_GROUPS` adds comma-separated,
+existing Linux group names as supplementary groups; an empty value adds none. Group names must
+already exist in the base image, or the build fails. Root variants must leave this value empty.
+The workspace must be an absolute path other than `/` and is owned by `DEFAULT_USER`.
 
 Every variant must explicitly declare `runtime.ssh.mode` as `disabled`, `key-only`, or `password`.
 The manifest value chooses the default baked into the image; `docker run -e SSH_MODE=...` changes

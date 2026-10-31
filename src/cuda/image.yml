@@ -28,6 +28,7 @@ variants:
       DEFAULT_USER: luciole
       DEFAULT_UID: 1000
       DEFAULT_GID: 1000
+      DEFAULT_GROUPS: ""
       DEVSHELL: true
       TZ: Asia/Shanghai
       CMAKE_VERSION: 4.3.2
@@ -47,6 +48,7 @@ variants:
       DEFAULT_USER: luciole
       DEFAULT_UID: 1000
       DEFAULT_GID: 1000
+      DEFAULT_GROUPS: ""
       DEVSHELL: true
       TZ: Asia/Shanghai
       CMAKE_VERSION: 4.3.2

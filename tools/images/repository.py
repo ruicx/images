@@ -339,6 +339,14 @@ class ImageRepository:
                 default_user = variant.build_args.get("DEFAULT_USER")
                 default_uid = variant.build_args.get("DEFAULT_UID")
                 default_gid = variant.build_args.get("DEFAULT_GID")
+                default_groups = variant.build_args.get("DEFAULT_GROUPS", "")
+                if default_groups and any(
+                    not USERNAME_PATTERN.fullmatch(group) for group in default_groups.split(",")
+                ):
+                    raise RepositoryError(
+                        f"{family.name}.{variant.identifier}.build_args.DEFAULT_GROUPS: "
+                        "must be comma-separated Linux group names"
+                    )
                 if default_user is not None:
                     if not USERNAME_PATTERN.fullmatch(default_user):
                         raise RepositoryError(
@@ -351,6 +359,11 @@ class ImageRepository:
                         raise RepositoryError(
                             f"{family.name}.{variant.identifier}.build_args: DEFAULT_UID and "
                             "DEFAULT_GID must be omitted when DEFAULT_USER is root"
+                        )
+                    if default_user == "root" and default_groups:
+                        raise RepositoryError(
+                            f"{family.name}.{variant.identifier}.build_args.DEFAULT_GROUPS: "
+                            "cannot be set when DEFAULT_USER is root"
                         )
                     if default_user != "root":
                         if default_uid is None or default_gid is None:
