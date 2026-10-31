@@ -56,6 +56,11 @@ the Python path. Plain `docker exec` commands inherit the base image's environme
 visibility and Ascend runtime options must be set when starting the container, rather than baked
 into the image.
 
+Shell environment integration runs after the optional developer shell installation. It appends
+the CANN startup hook to the installed `/etc/zsh/zshenv`, preserving the package's default
+configuration and avoiding a dpkg configuration-file prompt during zsh installation. When zsh
+is absent, it creates only the Bash login profile and leaves the zsh configuration file absent.
+
 ## Host requirements and interactive use
 
 Use an ARM64 Linux host with compatible Ascend 910B firmware and drivers. Check the actual host

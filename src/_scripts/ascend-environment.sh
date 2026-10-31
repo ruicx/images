@@ -1,6 +1,6 @@
 #!/bin/bash
 # Preserve the vendor CANN initialization and expose its environment to SSH and zsh sessions.
-# Run as root in the Ascend image after validating the existing Python interpreter.
+# Run as root in the Ascend image after the optional developer shell installation.
 set -euo pipefail
 
 usage() {
@@ -64,5 +64,8 @@ for name in sorted(names):
         lines.append(f"export {name}={quote(os.environ[name])}{suffix}")
 Path("/etc/profile.d/ascend-dev.sh").write_text("\n".join(lines) + "\n", encoding="utf-8")
 PYTHON
-install -d /etc/zsh
-printf '\n%s\n' '. /etc/profile.d/ascend-dev.sh' >>/etc/zsh/zshenv
+# Creating this package-owned file before zsh-common is installed triggers a dpkg
+# conffile prompt. Leave it absent when the optional shell has not been installed.
+if [ -f /etc/zsh/zshenv ]; then
+    printf '\n%s\n' '. /etc/profile.d/ascend-dev.sh' >>/etc/zsh/zshenv
+fi

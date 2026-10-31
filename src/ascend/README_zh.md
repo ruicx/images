@@ -49,6 +49,10 @@ OpenTelemetry OTLP exporter 要求 protobuf >=5，因此不安装这两个 expor
 zsh 会话恢复上游开发环境，包括 Python 路径。普通 `docker exec` 命令继承基础镜像的环境。
 设备可见性和昇腾运行时选项在启动容器时设置，不固化进镜像。
 
+Shell 环境集成在可选的开发 shell 安装完成后执行，将 CANN 启动钩子追加到已安装的
+`/etc/zsh/zshenv`，保留软件包的默认配置，并避免安装 zsh 时触发 dpkg 配置文件确认。
+未安装 zsh 时，仅创建 Bash 登录环境配置，不提前创建 zsh 配置文件。
+
 ## 宿主机要求与交互使用
 
 使用 ARM64 Linux 宿主机，并安装兼容的昇腾 910B 固件与驱动。运行工作负载前，对照

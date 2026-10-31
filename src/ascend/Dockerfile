@@ -34,9 +34,6 @@ RUN /tmp/image-scripts/dev-tools.sh
 COPY --chmod=0755 src/_scripts/cmake.sh /tmp/image-scripts/cmake.sh
 RUN /tmp/image-scripts/cmake.sh --version "${CMAKE_VERSION}" --sha256 "${CMAKE_SHA256}"
 
-COPY --chmod=0755 src/_scripts/ascend-environment.sh /tmp/image-scripts/ascend-environment.sh
-RUN /tmp/image-scripts/ascend-environment.sh
-
 COPY --chmod=0755 src/_scripts/user.sh /tmp/image-scripts/user.sh
 RUN /tmp/image-scripts/user.sh \
       --username "${DEFAULT_USER}" --uid "${DEFAULT_UID}" --gid "${DEFAULT_GID}"
@@ -51,6 +48,10 @@ COPY --chmod=0755 src/_scripts/devshell.sh /tmp/image-scripts/devshell.sh
 USER ${DEFAULT_USER}
 RUN /tmp/image-scripts/devshell.sh --enabled "${DEVSHELL}"
 USER root
+
+# Configure zsh only after its package has installed the global startup file.
+COPY --chmod=0755 src/_scripts/ascend-environment.sh /tmp/image-scripts/ascend-environment.sh
+RUN /tmp/image-scripts/ascend-environment.sh
 
 COPY --chmod=0755 src/_scripts/finalize-mirror.sh /tmp/image-scripts/finalize-mirror.sh
 RUN /tmp/image-scripts/finalize-mirror.sh --mirror "${PACKAGE_MIRROR}" \

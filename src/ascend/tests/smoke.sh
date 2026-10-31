@@ -49,6 +49,11 @@ with tempfile.TemporaryDirectory() as directory:
 PYTHON
 
 test "$(getent passwd luciole | cut -d: -f7)" = "/bin/zsh"
+test "$(dpkg-query -W -f='${Status}' zsh-common)" = "install ok installed"
+# A clean non-login shell must recover CANN and vendor Python from zshenv alone.
+# shellcheck disable=SC2016
+env -i HOME="${HOME}" PATH=/usr/bin:/bin zsh -ec \
+    'test -r "${ASCEND_HOME_PATH}/include/acl/acl.h"; test "$(python3 -c "import sys; print(sys.version_info.minor)")" = 12; command -v bisheng'
 zsh -lc 'test "$(python3 -c "import sys; print(sys.version_info.minor)")" = 12; command -v bisheng'
 bash -lc 'test "$(python3 -c "import sys; print(sys.version_info.minor)")" = 12; command -v bisheng'
 test -x "${HOME}/.fzf/bin/fzf"
