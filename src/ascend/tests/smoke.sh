@@ -25,7 +25,7 @@ rg --version | head -n 1
 fd --version
 bat --version
 python --version
-python3 -m pip check
+ascend-pip-check
 uv --version
 ty --version
 

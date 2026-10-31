@@ -65,6 +65,7 @@ jobs:
           shellcheck "${shell_files[@]}"
           shfmt -d -i 4 -ci "${shell_files[@]}"
           bash tools/shell-tests/install-arguments.sh
+          bash tools/shell-tests/ascend-pip-check.sh
 
       - name: Calculate affected images
         id: plan

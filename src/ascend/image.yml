@@ -19,6 +19,7 @@ inputs:
   - src/_scripts/ascend-environment.sh
   - src/_assets/docker-entrypoint.sh
   - src/_assets/ascend-entrypoint.sh
+  - src/_assets/ascend-pip-check.sh
   - src/ascend/tests/npu.sh
 publish: true
 variants:

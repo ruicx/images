@@ -20,6 +20,7 @@ scripts=(
     "src/_scripts/user.sh|--username"
     "src/_scripts/workspace.sh|--path"
     "src/_scripts/python-install.sh|--mode"
+    "src/_scripts/pip-packages.sh|--profile"
 )
 
 no_argument_scripts=(
@@ -27,6 +28,7 @@ no_argument_scripts=(
     "src/_scripts/pip-packages.sh"
     "src/_scripts/python-install.sh"
     "src/_scripts/ascend-environment.sh"
+    "src/_assets/ascend-pip-check.sh"
 )
 
 expect_usage_error() {
@@ -65,6 +67,9 @@ expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/cmake.sh" --sha256 ''
 expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/python-install.sh" --mode unsupported
 expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/pip-packages.sh" --requirements ''
 expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/pip-packages.sh" --preserve-existing unexpected-positional
+expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/pip-packages.sh" --profile unsupported
+expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/pip-packages.sh" --preserve-existing --profile ''
+expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/pip-packages.sh" --profile ascend
 
 # YAML booleans are stringified by the Python planner, so the script owns normalization.
 devshell_script="${REPOSITORY_ROOT}/src/_scripts/devshell.sh"

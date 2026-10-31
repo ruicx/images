@@ -16,9 +16,19 @@ The additional development tools match the CUDA family: CMake 4.3.2, Ninja, GCC,
 Git LFS, OpenCV development libraries, network tools, ripgrep, fd, bat, Python development
 packages, uv, and the zsh/Oh My Zsh/NvChad/Node.js developer shell. Both families use the same
 unversioned package list in `src/_scripts/pip-packages.sh`, including pip-installed uv. Ascend
-passes `--preserve-existing`: build-time constraints preserve every package
+passes `--preserve-existing --profile ascend`: build-time constraints preserve every package
 already supplied by the pinned base; resolution fails instead of replacing the vendor stack.
 The effective constraints are retained at `/opt/image-python/base-constraints.txt` for inspection.
+
+The Ascend profile also installs missing vendor-tool dependencies: `plotly`, the Python `ninja`
+distribution, `colorlog`, `msguard`, and the gRPC/HTTP OpenTelemetry OTLP exporters (>=1.33.1,<2.0.0).
+The apt `ninja-build` executable alone does not satisfy Python package metadata.
+Builds and smoke tests both run `ascend-pip-check`. With user approval, this checker emits a warning
+and permits exactly the pinned base's `mindstudio-kl 26.2.0` requirement `numpy<=1.26.4` with
+installed `numpy 2.5.4`. Both vendor packages are retained at their original versions. All other
+dependency failures, changed versions, and pip execution errors remain fatal. This exception does
+not validate msKL compatibility with NumPy 2.5.4; msKL kernel invocation and auto-tuning are not
+covered by this image's tests. Resolve that compatibility before using msKL.
 
 | Setting | Manifest default |
 | --- | --- |

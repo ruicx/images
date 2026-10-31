@@ -14,9 +14,18 @@ TorchNPU 2.14.0 和 Python 3.12.15。CPU 版 PyTorch 通过 TorchNPU 使用 NPU�
 新增工具与 CUDA 镜像族保持相近：CMake 4.3.2、Ninja、GCC、clangd、GDB、Git LFS、OpenCV
 开发库、网络工具、ripgrep、fd、bat、Python 开发包、uv，以及 zsh/Oh My Zsh/NvChad/Node.js
 开发 shell。两个镜像族共用 `src/_scripts/pip-packages.sh` 中不指定版本的包列表，uv 也通过
-pip 安装。昇腾传入 `--preserve-existing`，通过构建期约束保留固定
+pip 安装。昇腾传入 `--preserve-existing --profile ascend`，通过构建期约束保留固定
 基础镜像中已有包的版本；发生依赖冲突时构建失败，不替换上游软件栈。有效约束保留在
 `/opt/image-python/base-constraints.txt`，可供检查。
+
+昇腾 profile 还会补装上游工具缺失的依赖：`plotly`、Python `ninja` 发行包、`colorlog`、
+`msguard`，以及 gRPC/HTTP OpenTelemetry OTLP exporter（>=1.33.1,<2.0.0）。仅安装 apt 的
+`ninja-build` 可执行文件不能满足 Python 包元数据的依赖要求。
+构建和冒烟测试统一运行 `ascend-pip-check`。经用户批准，该检查器仅对固定基础镜像中的
+`mindstudio-kl 26.2.0` 要求 `numpy<=1.26.4`、但已安装 `numpy 2.5.4` 这一条冲突输出警告
+并放行，两个上游包均保留原版本。其他依赖错误、版本变化及 pip 执行错误仍会导致失败。
+这一例外不代表已验证 msKL 与 NumPy 2.5.4 兼容；本镜像测试不覆盖 msKL 算子调用与自动调优。
+使用 msKL 前应先解决该兼容性问题。
 
 | 配置 | 清单默认值 |
 | --- | --- |

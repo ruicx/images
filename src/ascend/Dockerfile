@@ -23,8 +23,9 @@ RUN /tmp/image-scripts/system.sh --timezone "${TZ}"
 COPY --chmod=0755 src/_scripts/python-install.sh /tmp/image-scripts/python-install.sh
 RUN /tmp/image-scripts/python-install.sh --mode existing
 
+COPY --chmod=0755 src/_assets/ascend-pip-check.sh /usr/local/bin/ascend-pip-check
 COPY --chmod=0755 src/_scripts/pip-packages.sh /tmp/image-scripts/pip-packages.sh
-RUN /tmp/image-scripts/pip-packages.sh --preserve-existing
+RUN /tmp/image-scripts/pip-packages.sh --preserve-existing --profile ascend
 
 COPY --chmod=0755 src/_scripts/dev-tools.sh /tmp/image-scripts/dev-tools.sh
 RUN /tmp/image-scripts/dev-tools.sh

@@ -5,16 +5,18 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: pip-packages.sh [--preserve-existing]
+Usage: pip-packages.sh [--preserve-existing] [--profile <default|ascend>]
 
 Options:
   --preserve-existing  Constrain every already installed distribution to its version
+  --profile <value>    Dependency additions and checks (default: default)
   -h, --help           Show this help
 EOF
 }
 
 PRESERVE_EXISTING=0
-if ! PARSED=$(getopt -o h -l help,preserve-existing -n "$(basename "$0")" -- "$@"); then
+PROFILE_VAL="default"
+if ! PARSED=$(getopt -o h -l help,preserve-existing,profile: -n "$(basename "$0")" -- "$@"); then
     usage >&2
     exit 64
 fi
@@ -24,6 +26,10 @@ while true; do
         --preserve-existing)
             PRESERVE_EXISTING=1
             shift
+            ;;
+        --profile)
+            PROFILE_VAL="$2"
+            shift 2
             ;;
         -h | --help)
             usage
@@ -40,6 +46,27 @@ if [ "$#" -ne 0 ]; then
     usage >&2
     exit 64
 fi
+
+extra_packages=()
+case "${PROFILE_VAL}" in
+    default) ;;
+    ascend)
+        if [ "${PRESERVE_EXISTING}" -ne 1 ]; then
+            echo "pip-packages.sh: the ascend profile requires --preserve-existing" >&2
+            exit 64
+        fi
+        # Complete dependencies omitted by the pinned vendor image without changing its stack.
+        extra_packages+=(
+            plotly ninja colorlog msguard
+            'opentelemetry-exporter-otlp-proto-grpc>=1.33.1,<2.0.0'
+            'opentelemetry-exporter-otlp-proto-http>=1.33.1,<2.0.0'
+        )
+        ;;
+    *)
+        echo "pip-packages.sh: unsupported profile '${PROFILE_VAL}'" >&2
+        exit 64
+        ;;
+esac
 
 pip_options=()
 if [ "${PRESERVE_EXISTING}" -eq 1 ]; then
@@ -62,8 +89,12 @@ python3 -m pip install --no-cache-dir --break-system-packages \
     flake8 ruff ty mypy delegator.py build \
     psycopg2-binary peewee python-calamine \
     loguru fastapi aiofiles "uvicorn[standard]" python-multipart "celery[redis]" \
-    "pybind11[global]" uv
+    "pybind11[global]" uv "${extra_packages[@]}"
 
 if [ "${PRESERVE_EXISTING}" -eq 1 ]; then
-    python3 -m pip check
+    if [ "${PROFILE_VAL}" = "ascend" ]; then
+        /usr/local/bin/ascend-pip-check
+    else
+        python3 -m pip check
+    fi
 fi
