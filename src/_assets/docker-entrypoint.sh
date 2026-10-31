@@ -44,6 +44,10 @@ case "${SSH_MODE_VAL}" in
         ;;
     password)
         # A mounted password file avoids exposing credentials in image layers or arguments.
+        if [ "${RESOLVED_LOGIN_USER}" = "root" ] && [ -z "${SSH_PASSWORD_FILE:-}" ]; then
+            echo "[entrypoint] root password SSH requires SSH_PASSWORD_FILE" >&2
+            exit 64
+        fi
         if [ -n "${SSH_PASSWORD_FILE:-}" ]; then
             if ! run_as_root test -s "${SSH_PASSWORD_FILE}"; then
                 echo "[entrypoint] SSH_PASSWORD_FILE must reference a non-empty file" >&2

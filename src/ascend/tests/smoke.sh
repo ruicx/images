@@ -3,13 +3,13 @@
 set -euo pipefail
 
 test "$(uname -m)" = "aarch64"
-test "$(id -un)" = "luciole"
-test "${DEFAULT_USER}" = "luciole"
+test "$(id -un)" = "root"
+test "$(id -u)" -eq 0
+test "${DEFAULT_USER}" = "root"
 test "${PWD}" = "${WORKSPACE_DIR}"
 test "${WORKSPACE_DIR}" = "/work"
-test "${SSH_MODE}" = "password"
+test "${SSH_MODE}" = "key-only"
 test "${PACKAGE_MIRROR}" = "upstream"
-sudo -n true
 test -w "${WORKSPACE_DIR}"
 test -x /usr/local/bin/ascend-entrypoint
 test -x /usr/local/bin/docker-entrypoint
@@ -48,7 +48,7 @@ with tempfile.TemporaryDirectory() as directory:
     assert Path(directory, "bin/python").is_file()
 PYTHON
 
-test "$(getent passwd luciole | cut -d: -f7)" = "/bin/zsh"
+test "$(getent passwd root | cut -d: -f7)" = "/bin/zsh"
 test "$(dpkg-query -W -f='${Status}' zsh-common)" = "install ok installed"
 # A clean non-login shell must recover CANN and vendor Python from zshenv alone.
 # shellcheck disable=SC2016
@@ -61,7 +61,7 @@ command -v nvim >/dev/null
 command -v eza >/dev/null
 command -v starship >/dev/null
 grep -Fq 'cmd = { "ty", "server" }' "${HOME}/.config/nvim/lua/configs/lspconfig.lua"
-grep -Fx 'AllowUsers luciole' /etc/ssh/sshd_config.d/99-dev-image.conf
+grep -Fx 'AllowUsers root' /etc/ssh/sshd_config.d/99-dev-image.conf
 
 # Exercise the real wrapper and SSH startup without opening an unauthenticated account.
 SSH_MODE=disabled /usr/local/bin/ascend-entrypoint python3 --version
@@ -76,8 +76,17 @@ set -e
 test "${status}" -eq 64
 SSH_MODE=key-only SSH_ALLOW_EMPTY_AUTHORIZED_KEYS=true /usr/local/bin/ascend-entrypoint true
 pgrep -x sshd >/dev/null
-sudo -n pkill -x sshd
+pkill -x sshd
+set +e
 SSH_MODE=password /usr/local/bin/ascend-entrypoint true
+status=$?
+set -e
+test "${status}" -eq 64
+password_file=$(mktemp)
+chmod 600 "${password_file}"
+openssl rand -hex 32 >"${password_file}"
+SSH_MODE=password SSH_PASSWORD_FILE="${password_file}" /usr/local/bin/ascend-entrypoint true
 pgrep -x sshd >/dev/null
-test "$(sudo -n passwd --status luciole | awk '{print $2}')" = "L"
-sudo -n pkill -x sshd
+test "$(passwd --status root | awk '{print $2}')" = "P"
+pkill -x sshd
+rm "${password_file}"

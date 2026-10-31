@@ -3,7 +3,7 @@
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
-ARG DEFAULT_USER=luciole
+ARG DEFAULT_USER=root
 ARG DEFAULT_UID=1000
 ARG DEFAULT_GID=1000
 ARG DEFAULT_GROUPS=""
@@ -12,7 +12,7 @@ ARG CMAKE_VERSION=4.3.2
 ARG CMAKE_SHA256
 ARG DEVSHELL=false
 ARG PACKAGE_MIRROR=upstream
-ARG SSH_MODE=password
+ARG SSH_MODE=key-only
 ARG WORKSPACE_DIR=/work
 
 LABEL org.opencontainers.image.description="Kunpeng ARM64 and Ascend 910B TorchNPU development environment"

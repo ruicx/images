@@ -38,13 +38,13 @@ OpenTelemetry OTLP exporter 要求 protobuf >=5，因此不安装这两个 expor
 | 配置 | 清单默认值 |
 | --- | --- |
 | 平台 | `linux/arm64` |
-| 默认用户 | `luciole`（UID/GID 为 `1000`，免密 sudo） |
-| 附加组 | 无（`DEFAULT_GROUPS` 为空） |
+| 默认用户 | `root`（UID/GID 为 `0`） |
+| 附加组 | 无 |
 | 工作目录 | `/work` |
 | 开发 shell | 启用；容器默认命令为 Bash，登录 shell 为 zsh |
 | 时区 | `Asia/Shanghai` |
 | 软件源 | `upstream`（保留基础镜像的上游配置） |
-| SSH 模式 | `password`；提供密码文件前账号保持锁定 |
+| SSH 模式 | `key-only`；提供授权公钥，或设置 `SSH_MODE=disabled` |
 
 入口包装脚本保留上游 CANN、毕昇与 NNAL 初始化，然后应用共享 SSH 策略。Bash 登录会话和
 zsh 会话恢复上游开发环境，包括 Python 路径。普通 `docker exec` 命令继承基础镜像的环境。
@@ -74,12 +74,8 @@ docker run --rm -it \
 ```
 
 根据工作负载调整共享内存。使用多张卡时，指定 `ASCEND_VISIBLE_DEVICES=0,1` 等明确列表；
-卡数和拓扑属于服务器配置。非 root 用户需要按已安装的运行时和驱动配置设备访问组，或添加
-匹配的补充 GID。不要把设备节点设为所有用户可写。
-
-若需在构建期添加现有组，可在 `src/ascend/image.yml` 中设置
-`build_args.DEFAULT_GROUPS: "video,render"`，并将示例组名换成基础镜像中实际存在的组。
-指定的组不存在时构建会失败；不需要附加组时保持空值。
+卡数和拓扑属于服务器配置。容器默认以 root 运行，可在绑定挂载目录写入 root 所有的文件。
+只挂载容器需要的宿主机路径。不要把设备节点设为所有用户可写。
 
 [上游 TorchNPU 示例](https://hub.docker.com/r/ascendai/torch-npu)通过 `--device` 和 `-v`
 显式手动挂载；此 Compose 文件则选用 `runtime: ascend`。设置 `ASCEND_VISIBLE_DEVICES` 后，
@@ -93,9 +89,9 @@ Compose 文件中。参见[运行时挂载说明](https://www.hiascend.com/docum
 
 ```bash
 docker info --format '{{json .Runtimes}}'  # Confirm that ascend is registered.
-mkdir -p secret
-sudo chown 1000:1000 secret
-sudo chmod 700 secret
+mkdir -p src/ascend/secret
+sudo chown 0:0 src/ascend/secret
+sudo chmod 700 src/ascend/secret
 export ASCEND_VISIBLE_DEVICES="$(
   find /dev -maxdepth 1 -regextype posix-extended -regex '/dev/davinci[0-9]+' \
     -printf '%f\n' | sed 's/^davinci//' | sort -n | paste -sd, -
@@ -111,13 +107,13 @@ docker compose -f src/ascend/compose.yaml exec ascend sh -lc \
   'ls /dev/davinci[0-9]* /dev/davinci_manager && npu-smi info'
 ```
 
-示例使用相同的镜像标签、8 GiB 共享内存、仅公钥认证的 SSH（宿主机端口 `2222`），并将仓库
-挂载到 `/work`。端口 `2222` 监听宿主机所有网络接口；请限制为可信网络。尚未添加公钥时 SSH
+示例使用相同的镜像标签、8 GiB 共享内存、仅公钥认证的 SSH（宿主机端口 `8101`），并将仓库
+挂载到 `/work`。端口 `8101` 监听宿主机所有网络接口；请限制为可信网络。尚未添加公钥时 SSH
 服务会启动，但密码认证保持关闭。进入容器后执行 `cat >> ~/.ssh/authorized_keys`，粘贴一行
 公钥并按 Ctrl-D，再执行 `chmod 600 ~/.ssh/authorized_keys`，然后用
-`ssh -p 2222 luciole@<host>` 登录。宿主机的 `secret/` 目录绑定
-挂载到 `/home/luciole/.ssh`，容器重建后仍保留公钥；其中的文件会被 Git 忽略。目录归
-UID/GID 1000 所有且权限为 700，使容器用户能写入公钥并满足 SSH 的文件权限检查。此行为需要
+`ssh -p 8101 root@<host>` 登录。宿主机的 `src/ascend/secret/` 目录绑定
+挂载到 `/root/.ssh`，容器重建后仍保留公钥；其中的文件会被 Git 忽略。目录归
+root 所有且权限为 700，使容器用户能写入公钥并满足 SSH 的文件权限检查。此行为需要
 使用包含更新后入口脚本的镜像。宿主机须已将 Ascend Docker Runtime
 注册为 `ascend`。支持的设备编号格式参见
 [Ascend Docker Runtime 设备选择说明](https://www.hiascend.com/document/detail/en/mindcluster/2600/clustersched/schedulingug/docs/en/scheduling/usage/containerization/04_usage_on_the_containerd_client.md)。
@@ -159,8 +155,8 @@ docker run --rm -i --runtime=ascend \
 ## 常驻容器与 SSH
 
 把交互参数换为 `-d --name ascend-dev` 并在命令末尾添加 `sleep infinity`，即可后台运行，
-随后使用 `docker exec -it ascend-dev zsh`。绑定挂载的文件以 UID/GID 1000 写入；必要时在
-自定义清单中匹配宿主机用户。只需读取的项目输入可使用 `:ro`。以 `--rm` 启动的容器停止后
+随后使用 `docker exec -it ascend-dev zsh`。绑定挂载的文件以 root（UID/GID 0）写入；必要时
+通过自定义清单改用非 root 账号。只需读取的项目输入可使用 `:ro`。以 `--rm` 启动的容器停止后
 会被删除。
 
 使用公钥认证时，在相同 NPU 参数之外添加：
@@ -168,10 +164,10 @@ docker run --rm -i --runtime=ascend \
 ```bash
 -e SSH_MODE=key-only \
 -p 127.0.0.1:2222:22 \
--v "${HOME}/.ssh/id_ed25519.pub:/home/luciole/.ssh/authorized_keys:ro"
+-v "${HOME}/.ssh/id_ed25519.pub:/root/.ssh/authorized_keys:ro"
 ```
 
-以 `sleep infinity` 启动，并使用 `ssh -p 2222 luciole@localhost` 连接。公钥缺失或为空时
+以 `sleep infinity` 启动，并使用 `ssh -p 2222 root@localhost` 连接。公钥缺失或为空时
 启动失败，除非使用 Compose 示例中明确启用的例外。密码认证先在项目外创建密码文件，再于运行时挂载：
 
 ```bash
@@ -183,9 +179,9 @@ chmod 600 "${HOME}/.ascend-dev-ssh-password"
 
 添加 `-e SSH_MODE=password -e SSH_PASSWORD_FILE=/run/secrets/ssh-password` 和
 `-v "${HOME}/.ascend-dev-ssh-password:/run/secrets/ssh-password:ro"`，把端口发布到可信接口，
-以 `luciole` 连接。不再需要时删除密码文件；密码不会构建进镜像。免密 sudo 赋予该账号完整的
-容器控制权，密码 SSH 会将此控制权开放给持有凭据的人。优先选择公钥认证或关闭 SSH。启用
-root 需要自定义清单，同样存在容器控制权与绑定挂载风险；选择 root 时省略 UID/GID。
+以 `root` 连接。不再需要时删除密码文件；密码不会构建进镜像。**root SSH 会向持有公钥或密码
+的人提供完整容器控制权，root 还可修改可写的宿主机绑定挂载目录。**仅向可信网络发布端口；
+优先使用公钥认证，或保持 SSH 关闭。清单省略 UID/GID，因为 root 复用基础镜像已有账号。
 
 ## 构建与可复现性
 

@@ -9,6 +9,7 @@
 .ruff_cache/
 .venv/
 .tool-cache/
+src/ascend/secret/
 *.egg-info/
 __pycache__/
 

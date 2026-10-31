@@ -29,10 +29,7 @@ variants:
       image: ascendai/torch-npu:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12
       digest: null
     build_args:
-      DEFAULT_USER: luciole
-      DEFAULT_UID: 1000
-      DEFAULT_GID: 1000
-      DEFAULT_GROUPS: ""
+      DEFAULT_USER: root
       DEVSHELL: true
       TZ: Asia/Shanghai
       CMAKE_VERSION: 4.3.2
@@ -41,7 +38,7 @@ variants:
     mirror: upstream
     runtime:
       ssh:
-        mode: password
+        mode: key-only
     dependencies: []
     tests:
       - src/ascend/tests/smoke.sh

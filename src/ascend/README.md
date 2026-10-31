@@ -43,13 +43,13 @@ resolve the corresponding dependencies before using those features.
 | Setting | Manifest default |
 | --- | --- |
 | Platform | `linux/arm64` |
-| Default user | `luciole` (UID/GID `1000`, passwordless sudo) |
-| Supplementary groups | None (`DEFAULT_GROUPS` is empty) |
+| Default user | `root` (UID/GID `0`) |
+| Supplementary groups | None |
 | Workspace | `/work` |
 | Developer shell | Enabled; default container command is Bash, login shell is zsh |
 | Time zone | `Asia/Shanghai` |
 | Package mirror | `upstream` (preserves upstream base configuration) |
-| SSH mode | `password`; account locked until a password file is supplied |
+| SSH mode | `key-only`; supply an authorized key or set `SSH_MODE=disabled` |
 
 The wrapper preserves the upstream CANN, Bisheng, and NNAL initialization before applying shared
 SSH policy. Bash login and zsh sessions restore the vendor development environment, including
@@ -83,12 +83,8 @@ docker run --rm -it \
 
 Adjust shared memory for the workload. For several NPUs, use an explicit list such as
 `ASCEND_VISIBLE_DEVICES=0,1`; device count and topology belong to the server configuration.
-For the non-root user, configure host device access groups or matching supplemental GIDs as
-required by the installed runtime and driver. Do not make device nodes world-writable.
-
-To add existing groups at build time, set `build_args.DEFAULT_GROUPS: "video,render"` in
-`src/ascend/image.yml`, replacing the names with groups present in the base image. The build fails
-if a named group does not exist. Leave the value empty when no supplementary groups are needed.
+The container runs as root by default and can write root-owned files into bind mounts. Limit
+mounted host paths to those the container needs. Do not make device nodes world-writable.
 
 The [upstream TorchNPU example](https://hub.docker.com/r/ascendai/torch-npu) explicitly passes
 `--device` and `-v` options for manual mounting. This Compose file selects `runtime: ascend`
@@ -104,9 +100,9 @@ Compose stop before starting the container.
 
 ```bash
 docker info --format '{{json .Runtimes}}'  # Confirm that ascend is registered.
-mkdir -p secret
-sudo chown 1000:1000 secret
-sudo chmod 700 secret
+mkdir -p src/ascend/secret
+sudo chown 0:0 src/ascend/secret
+sudo chmod 700 src/ascend/secret
 export ASCEND_VISIBLE_DEVICES="$(
   find /dev -maxdepth 1 -regextype posix-extended -regex '/dev/davinci[0-9]+' \
     -printf '%f\n' | sed 's/^davinci//' | sort -n | paste -sd, -
@@ -122,14 +118,14 @@ docker compose -f src/ascend/compose.yaml exec ascend sh -lc \
   'ls /dev/davinci[0-9]* /dev/davinci_manager && npu-smi info'
 ```
 
-The example uses the same image tag, 8 GiB shared memory, key-only SSH on host port `2222`, and a
-repository bind mount at `/work`. Port `2222` listens on all host interfaces; restrict access to
+The example uses the same image tag, 8 GiB shared memory, key-only SSH on host port `8101`, and a
+repository bind mount at `/work`. Port `8101` listens on all host interfaces; restrict access to
 trusted networks. The SSH daemon starts before a key is added, but password authentication remains
 disabled. Inside the container, run `cat >> ~/.ssh/authorized_keys`, paste your public key as one
 line, press Ctrl-D, and run `chmod 600 ~/.ssh/authorized_keys`. Then connect with
-`ssh -p 2222 luciole@<host>`. The host's `secret/`
-directory is bind-mounted to `/home/luciole/.ssh`, so authorized keys survive container recreation;
-its contents are ignored by Git. UID/GID 1000 ownership and mode 700 let the container user write
+`ssh -p 8101 root@<host>`. The host's `src/ascend/secret/`
+directory is bind-mounted to `/root/.ssh`, so authorized keys survive container recreation;
+its contents are ignored by Git. Root ownership and mode 700 let the container user write
 keys while satisfying SSH file-permission checks. This opt-in behavior requires an image built
 with the updated entrypoint. The host must have Ascend Docker Runtime registered as `ascend`. See the
 [Ascend Docker Runtime device selection guide](https://www.hiascend.com/document/detail/en/mindcluster/2600/clustersched/schedulingug/docs/en/scheduling/usage/containerization/04_usage_on_the_containerd_client.md)
@@ -174,7 +170,7 @@ HCCL communication and application performance still require workload-specific s
 
 Replace the interactive flags with `-d --name ascend-dev` and append `sleep infinity` for a
 background container, then use `docker exec -it ascend-dev zsh`. Bind-mounted files are written
-as UID/GID 1000; match the host user through a custom manifest if necessary. Mount read-only
+as root (UID/GID 0); use a custom manifest for a non-root account if necessary. Mount read-only
 project inputs with `:ro` when appropriate. Stopping a container started with `--rm` deletes it.
 
 For key authentication, use the same NPU options and add:
@@ -182,10 +178,10 @@ For key authentication, use the same NPU options and add:
 ```bash
 -e SSH_MODE=key-only \
 -p 127.0.0.1:2222:22 \
--v "${HOME}/.ssh/id_ed25519.pub:/home/luciole/.ssh/authorized_keys:ro"
+-v "${HOME}/.ssh/id_ed25519.pub:/root/.ssh/authorized_keys:ro"
 ```
 
-Start with `sleep infinity` and connect using `ssh -p 2222 luciole@localhost`. A missing or empty
+Start with `sleep infinity` and connect using `ssh -p 2222 root@localhost`. A missing or empty
 authorized key causes startup to fail unless the Compose example's explicit opt-in is used. For
 password authentication, create a password file outside
 the project and mount it at runtime:
@@ -199,11 +195,11 @@ chmod 600 "${HOME}/.ascend-dev-ssh-password"
 
 Add `-e SSH_MODE=password -e SSH_PASSWORD_FILE=/run/secrets/ssh-password` and
 `-v "${HOME}/.ascend-dev-ssh-password:/run/secrets/ssh-password:ro"`, publish the port on a trusted
-interface, and connect as `luciole`. Delete the password file when no longer needed. Passwords
-are never built into the image. Passwordless sudo gives this account full container control;
-password SSH exposes that control to anyone possessing the credential. Prefer key authentication
-or disable SSH. Enabling root requires a custom manifest and carries the same control and
-bind-mount risks; omit UID/GID when selecting root.
+interface, and connect as `root`. Delete the password file when no longer needed. Passwords
+are never built into the image. **Root SSH grants full container control to anyone with the key
+or password, and root can modify writable host bind mounts.** Restrict the published port to
+trusted networks; prefer key authentication or leave SSH disabled. The manifest omits UID/GID
+because root reuses the base image's existing account.
 
 ## Build and reproducibility
 

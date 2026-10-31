@@ -8,18 +8,27 @@ services:
       SSH_MODE: key-only
       SSH_ALLOW_EMPTY_AUTHORIZED_KEYS: "true"
     shm_size: 8g
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
     ports:
       - "8101:22"
     volumes:
       - ./mount:/work
-      - ./secret:/home/luciole/.ssh
+      - ./secret:/root/.ssh
     command: sleep infinity
 
 # Usage
 # docker info --format '{{json .Runtimes}}'  # Confirm that ascend is registered.
-# mkdir -p secret
-# sudo chown 1000:1000 secret
-# sudo chmod 700 secret
+# mkdir -p src/ascend/secret
+# sudo chown 0:0 src/ascend/secret
+# sudo chmod 700 src/ascend/secret
 # export ASCEND_VISIBLE_DEVICES="$(
 #   find /dev -maxdepth 1 -regextype posix-extended -regex '/dev/davinci[0-9]+' \
 #     -printf '%f\n' | sed 's/^davinci//' | sort -n | paste -sd, -
