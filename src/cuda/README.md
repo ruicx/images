@@ -222,11 +222,13 @@ contents or fail because an upstream artifact changed. Setting `DEVSHELL: false`
 capability.
 
 The Python packaging capability also intentionally follows rolling upstream content. It bootstraps
-pip from the current `https://bootstrap.pypa.io/get-pip.py`, installs the unpinned package set in
-`src/_scripts/pip-packages.sh`, including uv installed through pip. CUDA and Ascend share this
-package list; Ascend additionally constrains the base image's installed packages. At the user's
-request, these inputs are not version- or
-checksum-pinned. Rebuilding the same Git revision can therefore select newer Python packaging tools
+pip from the current `https://bootstrap.pypa.io/get-pip.py`, then uses `src/_scripts/pip-packages.sh`
+to install the unpinned package set in `src/_assets/python-dev-requirements.txt`, passed through
+`--requirements`, including uv installed through pip. CUDA and Ascend share only this package
+list. Ascend uses its own `ascend-pip-packages.sh` installer for vendor constraints and checks;
+changing that installer does not rebuild CUDA. Changing the common requirements rebuilds both.
+At the user's request, these inputs are not version- or checksum-pinned. Rebuilding the same Git
+revision can therefore select newer Python packaging tools
 and libraries. Immutable image tags and digests retained in the GitHub/GHCR build history are the
 rollback and audit boundary for these inputs.
 

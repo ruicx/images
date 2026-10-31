@@ -1,5 +1,5 @@
 #!/bin/bash
-# Check Ascend Python dependencies, allowing only the approved vendor NumPy conflict.
+# Check Ascend Python dependencies, allowing only the three approved vendor issues.
 set -euo pipefail
 
 usage() {
@@ -50,6 +50,10 @@ while IFS= read -r issue; do
     case "${issue}" in
         'mindstudio-kl 26.2.0 has requirement numpy<=1.26.4, but you have numpy 2.5.4.')
             printf 'WARNING: allowing known upstream dependency conflict: %s\n' "${issue}" >&2
+            ;;
+        'ms-service-profiler 26.0.0 requires opentelemetry-exporter-otlp-proto-grpc, which is not installed.' | \
+            'ms-service-profiler 26.0.0 requires opentelemetry-exporter-otlp-proto-http, which is not installed.')
+            printf 'WARNING: allowing known upstream missing dependency: %s\n' "${issue}" >&2
             ;;
         *)
             printf '%s\n' "${issue}" >&2

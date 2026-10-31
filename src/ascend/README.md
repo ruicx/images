@@ -15,20 +15,30 @@ by Ubuntu. User-facing `python` and `python3` select the vendor interpreter.
 The additional development tools match the CUDA family: CMake 4.3.2, Ninja, GCC, clangd, GDB,
 Git LFS, OpenCV development libraries, network tools, ripgrep, fd, bat, Python development
 packages, uv, and the zsh/Oh My Zsh/NvChad/Node.js developer shell. Both families use the same
-unversioned package list in `src/_scripts/pip-packages.sh`, including pip-installed uv. Ascend
-passes `--preserve-existing --profile ascend`: build-time constraints preserve every package
-already supplied by the pinned base; resolution fails instead of replacing the vendor stack.
-The effective constraints are retained at `/opt/image-python/base-constraints.txt` for inspection.
+unversioned package list in `src/_assets/python-dev-requirements.txt`, including pip-installed uv.
+Ascend uses its own `src/_scripts/ascend-pip-packages.sh` installer, passing this file through
+`--requirements`. It constrains every package already supplied by the pinned base; resolution
+fails instead of replacing the vendor stack. CUDA uses an independent `pip-packages.sh` installer.
+The effective constraints are retained at `/opt/image-python/base-constraints.txt` for inspection
+and printed in build logs so resolver failures can be reproduced with the complete baseline.
 
-The Ascend profile also installs missing vendor-tool dependencies: `plotly`, the Python `ninja`
-distribution, `colorlog`, `msguard`, and the gRPC/HTTP OpenTelemetry OTLP exporters (>=1.33.1,<2.0.0).
+The Ascend installer also installs missing vendor-tool dependencies: `plotly`, the Python `ninja`
+distribution, `colorlog`, and `msguard`.
 The apt `ninja-build` executable alone does not satisfy Python package metadata.
-Builds and smoke tests both run `ascend-pip-check`. With user approval, this checker emits a warning
-and permits exactly the pinned base's `mindstudio-kl 26.2.0` requirement `numpy<=1.26.4` with
-installed `numpy 2.5.4`. Both vendor packages are retained at their original versions. All other
-dependency failures, changed versions, and pip execution errors remain fatal. This exception does
-not validate msKL compatibility with NumPy 2.5.4; msKL kernel invocation and auto-tuning are not
-covered by this image's tests. Resolve that compatibility before using msKL.
+The base's `protobuf 3.20.0` is preserved. The gRPC/HTTP OpenTelemetry OTLP exporters required by
+`ms-service-profiler 26.0.0` need protobuf >=5, so these exporters are not installed.
+Builds and smoke tests both run `ascend-pip-check`. With user approval, it emits warnings and
+permits exactly three known upstream dependency diagnostics:
+
+- `mindstudio-kl 26.2.0` requires `numpy<=1.26.4`, but the base supplies `numpy 2.5.4`.
+- `ms-service-profiler 26.0.0` is missing `opentelemetry-exporter-otlp-proto-grpc`.
+- `ms-service-profiler 26.0.0` is missing `opentelemetry-exporter-otlp-proto-http`.
+
+All vendor packages retain their original versions. All other dependency failures, changes to the
+approved diagnostics, and pip execution errors remain fatal, including an installed OpenTelemetry
+package incompatible with protobuf. These exceptions do not validate msKL compatibility with
+NumPy 2.5.4 or the service profiler's OTLP functionality. Neither is covered by this image's tests;
+resolve the corresponding dependencies before using those features.
 
 | Setting | Manifest default |
 | --- | --- |

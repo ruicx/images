@@ -20,7 +20,8 @@ scripts=(
     "src/_scripts/user.sh|--username"
     "src/_scripts/workspace.sh|--path"
     "src/_scripts/python-install.sh|--mode"
-    "src/_scripts/pip-packages.sh|--profile"
+    "src/_scripts/pip-packages.sh|--requirements"
+    "src/_scripts/ascend-pip-packages.sh|--requirements"
 )
 
 no_argument_scripts=(
@@ -65,11 +66,15 @@ expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/cmake.sh" --sha256
 expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/cmake.sh" --sha256 invalid
 expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/cmake.sh" --sha256 ''
 expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/python-install.sh" --mode unsupported
-expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/pip-packages.sh" --requirements ''
-expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/pip-packages.sh" --preserve-existing unexpected-positional
-expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/pip-packages.sh" --profile unsupported
-expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/pip-packages.sh" --preserve-existing --profile ''
-expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/pip-packages.sh" --profile ascend
+for script_name in pip-packages.sh ascend-pip-packages.sh; do
+    script="${REPOSITORY_ROOT}/src/_scripts/${script_name}"
+    expect_usage_error "${script}"
+    expect_usage_error "${script}" --requirements ''
+    expect_usage_error "${script}" --requirements "${REPOSITORY_ROOT}/AGENTS.md/missing.txt"
+    expect_usage_error "${script}" --requirements "${REPOSITORY_ROOT}"
+    expect_usage_error "${script}" --profile ascend
+    expect_usage_error "${script}" --preserve-existing
+done
 
 # YAML booleans are stringified by the Python planner, so the script owns normalization.
 devshell_script="${REPOSITORY_ROOT}/src/_scripts/devshell.sh"

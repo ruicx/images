@@ -24,8 +24,9 @@ COPY --chmod=0755 src/_scripts/python-install.sh /tmp/image-scripts/python-insta
 RUN /tmp/image-scripts/python-install.sh --mode existing
 
 COPY --chmod=0755 src/_assets/ascend-pip-check.sh /usr/local/bin/ascend-pip-check
-COPY --chmod=0755 src/_scripts/pip-packages.sh /tmp/image-scripts/pip-packages.sh
-RUN /tmp/image-scripts/pip-packages.sh --preserve-existing --profile ascend
+COPY src/_assets/python-dev-requirements.txt /tmp/image-scripts/python-dev-requirements.txt
+COPY --chmod=0755 src/_scripts/ascend-pip-packages.sh /tmp/image-scripts/ascend-pip-packages.sh
+RUN /tmp/image-scripts/ascend-pip-packages.sh --requirements /tmp/image-scripts/python-dev-requirements.txt
 
 COPY --chmod=0755 src/_scripts/dev-tools.sh /tmp/image-scripts/dev-tools.sh
 RUN /tmp/image-scripts/dev-tools.sh

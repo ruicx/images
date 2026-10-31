@@ -27,8 +27,9 @@ RUN /tmp/image-scripts/python-install.sh
 COPY --chmod=0755 src/_scripts/cmake.sh /tmp/image-scripts/cmake.sh
 RUN /tmp/image-scripts/cmake.sh --version "${CMAKE_VERSION}"
 
+COPY src/_assets/python-dev-requirements.txt /tmp/image-scripts/python-dev-requirements.txt
 COPY --chmod=0755 src/_scripts/pip-packages.sh /tmp/image-scripts/pip-packages.sh
-RUN /tmp/image-scripts/pip-packages.sh
+RUN /tmp/image-scripts/pip-packages.sh --requirements /tmp/image-scripts/python-dev-requirements.txt
 
 COPY --chmod=0755 src/_scripts/user.sh /tmp/image-scripts/user.sh
 RUN /tmp/image-scripts/user.sh \

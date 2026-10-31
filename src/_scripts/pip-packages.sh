@@ -1,34 +1,28 @@
 #!/bin/bash
-# Install pip packages.
-# Runs on ALL base images (including those that already ship with Python).
+# Install the common development packages into the CUDA image's distribution Python.
+# Run as root after python-install.sh; Ascend uses ascend-pip-packages.sh instead.
 set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: pip-packages.sh [--preserve-existing] [--profile <default|ascend>]
+Usage: pip-packages.sh --requirements <path>
 
 Options:
-  --preserve-existing  Constrain every already installed distribution to its version
-  --profile <value>    Dependency additions and checks (default: default)
-  -h, --help           Show this help
+  --requirements <path>  Common development requirements file (required)
+  -h, --help             Show this help
 EOF
 }
 
-PRESERVE_EXISTING=0
-PROFILE_VAL="default"
-if ! PARSED=$(getopt -o h -l help,preserve-existing,profile: -n "$(basename "$0")" -- "$@"); then
+REQUIREMENTS_FILE=""
+if ! PARSED=$(getopt -o h -l help,requirements: -n "$(basename "$0")" -- "$@"); then
     usage >&2
     exit 64
 fi
 eval set -- "$PARSED"
 while true; do
     case "$1" in
-        --preserve-existing)
-            PRESERVE_EXISTING=1
-            shift
-            ;;
-        --profile)
-            PROFILE_VAL="$2"
+        --requirements)
+            REQUIREMENTS_FILE="$2"
             shift 2
             ;;
         -h | --help)
@@ -47,54 +41,12 @@ if [ "$#" -ne 0 ]; then
     exit 64
 fi
 
-extra_packages=()
-case "${PROFILE_VAL}" in
-    default) ;;
-    ascend)
-        if [ "${PRESERVE_EXISTING}" -ne 1 ]; then
-            echo "pip-packages.sh: the ascend profile requires --preserve-existing" >&2
-            exit 64
-        fi
-        # Complete dependencies omitted by the pinned vendor image without changing its stack.
-        extra_packages+=(
-            plotly ninja colorlog msguard
-            'opentelemetry-exporter-otlp-proto-grpc>=1.33.1,<2.0.0'
-            'opentelemetry-exporter-otlp-proto-http>=1.33.1,<2.0.0'
-        )
-        ;;
-    *)
-        echo "pip-packages.sh: unsupported profile '${PROFILE_VAL}'" >&2
-        exit 64
-        ;;
-esac
-
-pip_options=()
-if [ "${PRESERVE_EXISTING}" -eq 1 ]; then
-    # Preserve the vendor stack without importing torch_npu on builders without NPU drivers.
-    install -d /opt/image-python
-    python3 -m pip list --format=freeze >/opt/image-python/base-constraints.txt
-    pip_options+=(--constraint /opt/image-python/base-constraints.txt)
-else
-    # Debian's psutil has no pip RECORD metadata. A pip-owned copy avoids uninstalling apt files.
-    python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed psutil
+if [ -z "${REQUIREMENTS_FILE}" ] || [ ! -f "${REQUIREMENTS_FILE}" ] || [ ! -r "${REQUIREMENTS_FILE}" ]; then
+    echo "pip-packages.sh: --requirements must name a readable file" >&2
+    exit 64
 fi
 
+# Debian's psutil has no pip RECORD metadata. A pip-owned copy avoids uninstalling apt files.
+python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed psutil
 python3 -m pip install --no-cache-dir --break-system-packages \
-    "${pip_options[@]}" \
-    setuptools pandas numpy ipython polars seaborn \
-    pytest pytest-xdist pytest-html pytest-mock \
-    pytest-randomly pytest-timeout coverage pytest-cov filelock \
-    pre-commit rich BeautifulSoup4 allure-pytest \
-    plottable matplotlib openpyxl \
-    flake8 ruff ty mypy delegator.py build \
-    psycopg2-binary peewee python-calamine \
-    loguru fastapi aiofiles "uvicorn[standard]" python-multipart "celery[redis]" \
-    "pybind11[global]" uv "${extra_packages[@]}"
-
-if [ "${PRESERVE_EXISTING}" -eq 1 ]; then
-    if [ "${PROFILE_VAL}" = "ascend" ]; then
-        /usr/local/bin/ascend-pip-check
-    else
-        python3 -m pip check
-    fi
-fi
+    --requirement "${REQUIREMENTS_FILE}"

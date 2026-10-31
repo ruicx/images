@@ -206,9 +206,11 @@ digest 固定 NVIDIA 基础镜像；12.8.2 变体使用明确标签和空 digest
 内容，也可能因上游产物变化而失败。设置 `DEVSHELL: false` 会跳过该能力。
 
 Python 包管理能力也按用户要求持续跟随上游内容。它从当前的
-`https://bootstrap.pypa.io/get-pip.py` 引导安装 pip，安装
-`src/_scripts/pip-packages.sh` 中未固定版本的包，uv 也通过 pip 安装。CUDA 与昇腾共用该包
-列表，昇腾额外约束基础镜像已有包的版本。这些输入有意不固定版本或 checksum，因此在不同
+`https://bootstrap.pypa.io/get-pip.py` 引导安装 pip，随后
+通过 `src/_scripts/pip-packages.sh` 安装 `src/_assets/python-dev-requirements.txt` 中未固定
+版本的包，以 `--requirements` 传入该清单，uv 也通过 pip 安装。CUDA 与昇腾仅共用该包列表；
+昇腾使用专用的 `ascend-pip-packages.sh` 处理厂商约束和依赖检查，修改该脚本不会重建 CUDA，
+修改公共依赖清单则会重建两边。这些输入有意不固定版本或 checksum，因此在不同
 时间重建同一 Git 提交可能选择更新的 Python 包管理工具和库。GitHub/GHCR 构建历史中保留的
 不可变镜像标签和 digest 是这些输入的回滚与审计边界。
 
