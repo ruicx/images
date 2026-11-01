@@ -12,3 +12,5 @@ and bilingual documentation. The component does not require these policies from 
 Registry and cache defaults, extra rebuild inputs, and shell validation inputs are declared
 in `[tool.image-kit]` in the root `pyproject.toml`. GitHub Actions retains this repository's
 permissions, native worker matrix, immutable release tags, and publication sequence.
+
+The shared reference above lists the complete schema and examples; repository policy requires explicit `mirror` and `runtime.ssh.mode`.

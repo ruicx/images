@@ -81,29 +81,6 @@ def validate_documentation(repository: ImageRepository) -> None:
     """
     pairs = [
         (repository.root / "README.md", repository.root / "README_zh.md"),
-        (
-            repository.root / "docs" / "architecture.md",
-            repository.root / "docs" / "architecture_zh.md",
-        ),
-        (repository.root / "docs" / "ci-cd.md", repository.root / "docs" / "ci-cd_zh.md"),
-        (
-            repository.root / "docs" / "cli-reference.md",
-            repository.root / "docs" / "cli-reference_zh.md",
-        ),
-        (
-            repository.root / "docs" / "development.md",
-            repository.root / "docs" / "development_zh.md",
-        ),
-        (repository.root / "docs" / "lifecycle.md", repository.root / "docs" / "lifecycle_zh.md"),
-        (
-            repository.root / "docs" / "manifest-reference.md",
-            repository.root / "docs" / "manifest-reference_zh.md",
-        ),
-        (repository.root / "docs" / "release.md", repository.root / "docs" / "release_zh.md"),
-        (
-            repository.root / "docs" / "troubleshooting.md",
-            repository.root / "docs" / "troubleshooting_zh.md",
-        ),
         (repository.root / "CONTRIBUTING.md", repository.root / "CONTRIBUTING_zh.md"),
     ]
     pairs.extend(

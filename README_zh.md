@@ -3,7 +3,6 @@
 [![PR 镜像验证](https://github.com/ruicx/images/actions/workflows/pull-request.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/pull-request.yml)
 [![镜像发布](https://github.com/ruicx/images/actions/workflows/publish.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/publish.yml)
 
-> **专注核心开发，告别繁复配置。** 专为现代系统编程与深度学习设计的模块化开发容器镜像与声明式编排工具。
 
 ---
 
@@ -81,7 +80,7 @@ python3 --version
 
 > [!TIP]
 > **💡 贴士 1：文件权限与默认用户归属**
-> 清单变体默认以普通用户 `luciole`（UID/GID `1000`）运行，并具备免密 `sudo` 权限。在 Linux 宿主机中，容器向挂载目录写入的文件使用该 UID/GID。若需与宿主机当前非 root 用户的专属 UID/GID 保持一致，可通过构建期参数 `DEFAULT_USER`、`DEFAULT_UID` 和 `DEFAULT_GID` 构建专属变体（详见 [CUDA 指南：构建期自定义](src/cuda/README_zh.md#构建期自定义)）。
+> CUDA 变体默认以普通用户 `luciole`（UID/GID `1000`）运行，并具备免密 `sudo` 权限；昇腾镜像默认使用 root。在 Linux 宿主机中，容器向挂载目录写入的文件使用该 UID/GID。若需与宿主机当前非 root 用户的专属 UID/GID 保持一致，可通过构建期参数 `DEFAULT_USER`、`DEFAULT_UID` 和 `DEFAULT_GID` 构建专属变体（详见 [CUDA 指南：构建期自定义](src/cuda/README_zh.md#构建期自定义)）。
 
 > [!TIP]
 > **💡 贴士 2：宿主机驱动支持上限 vs 容器工具链版本**
@@ -153,7 +152,7 @@ variants:
 - 🔒 **透明的可复现策略**：开发镜像跟踪明确的上游基础镜像标签，每次构建检查更新；发布时先保留每个构建批次的不可变标签，再更新便捷标签。
 - 🛡️ **发布前多重校验**：Schema 与语义检查自动拦截环形依赖、未声明的构建参数或遗漏的依赖；所有镜像在推送到 Registry 前，均需通过真实构建与冒烟测试验证。
 
-详细架构设计与配置契约请参阅[架构设计](docs/architecture_zh.md)与[清单参考手册](docs/manifest-reference_zh.md)。
+详细架构设计与配置契约请参阅[架构设计](docs/architecture.md)与[清单参考手册](docs/manifest-reference.md)。
 
 ---
 
@@ -189,15 +188,15 @@ uv run images build-test --plan build-plan.json --bake docker-bake.generated.jso
 
 共享安装脚本和资源来自公开的 [image-kit](https://github.com/ruicx/image-kit) 子模块，位于
 `vendor/image-kit`，并固定到具体提交。组件还提供 Python 构建工具、包内 schema 和工具测试。
-Dockerfile、清单、镜像测试、账号/文档策略和发布流程仍由本仓库维护。升级组件引用会重建全部镜像变体，操作方式见[开发准则](docs/development_zh.md)。
+Dockerfile、清单、镜像测试、账号/文档策略和发布流程仍由本仓库维护。升级组件引用会重建全部镜像变体，操作方式见[开发准则](docs/development.md)。
 
 ## 📚 进阶文档与开发指引
 
 系统设计、开发规范与运维指南：
 
-- 📐 **架构与规范**：[架构设计](docs/architecture_zh.md) · [清单参考手册](docs/manifest-reference_zh.md) · [CLI 使用手册](docs/cli-reference_zh.md)
-- ⚙️ **工程与发布**：[CI/CD 机制](docs/ci-cd_zh.md) · [开发规范指南](docs/development_zh.md) · [发布流程说明](docs/release_zh.md)
-- 🔄 **生命周期与排错**：[版本生命周期](docs/lifecycle_zh.md) · [常见故障排查](docs/troubleshooting_zh.md)
+- 📐 **架构与规范**：[架构设计](docs/architecture.md) · [清单参考手册](docs/manifest-reference.md) · [CLI 使用手册](docs/cli-reference.md)
+- ⚙️ **工程与发布**：[CI/CD 机制](docs/ci-cd.md) · [开发规范指南](docs/development.md) · [发布流程说明](docs/release.md)
+- 🔄 **生命周期与排错**：[版本生命周期](docs/lifecycle.md) · [常见故障排查](docs/troubleshooting.md)
 
 > 🤖 **面向 AI 编程助手（AI Agents）与自动化工作流**：
 > 本仓库严谨的工程契约、Dockerfile 分层缓存规范、参数解析标准与 Git 提交要求均详见 [AGENTS.md](AGENTS.md)。所有参与仓库代码生成的 AI Agent 均须严格遵循该规范。

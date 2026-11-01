@@ -3,7 +3,6 @@
 [![Pull request images](https://github.com/ruicx/images/actions/workflows/pull-request.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/pull-request.yml)
 [![Publish images](https://github.com/ruicx/images/actions/workflows/publish.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/publish.yml)
 
-> **Focus on development, eliminate setup overhead.** Modular, production-ready development container images and declarative build tooling designed for modern systems programming.
 
 ---
 
@@ -15,7 +14,7 @@ Configuring consistent, high-performance GPU and NPU development environments ac
 - **Minimal official base images**: Upstream container images typically include only minimal runtime libraries, lacking essential development, diagnostic, and debugging tools.
 - **High maintenance cost of ad-hoc Dockerfiles**: Unstructured Dockerfiles quickly become bloated and fragile, offering little dependency convergence, poor layer caching, and no reproducibility guarantees.
 
-**This project eliminates this recurring overhead.** It provides continuously maintained, publicly accessible development container images covering both NVIDIA CUDA (12.6 and 12.8 variants on x86_64) and Huawei Ascend (Kunpeng ARM64 + 910B with CANN 9.2.0 and TorchNPU 2.14.0). Each image integrates low-level compilers, profilers, and debuggers with a modern terminal productivity suite, all managed by a declarative build system.
+**This project aims to reduce this recurring overhead.** It provides continuously maintained, publicly accessible development container images covering both NVIDIA CUDA (12.6 and 12.8 variants on x86_64) and Huawei Ascend (Kunpeng ARM64 + 910B with CANN 9.2.0 and TorchNPU 2.14.0). Each image integrates low-level compilers, profilers, and debuggers with a modern terminal productivity suite, all managed by a declarative build system.
 
 > 📖 **Family Guides**:
 > - For SSH remote development, long-running containers, non-root users, and credential mounts, see the [CUDA Image Guide](src/cuda/README.md).
@@ -81,7 +80,7 @@ python3 --version
 
 > [!TIP]
 > **💡 Tip 1: File Ownership & Permissions**
-> Pre-built variants run by default as non-root user `luciole` (UID/GID `1000`) with passwordless `sudo`. Files created inside bind mounts inherit this UID/GID on Linux hosts. To match your host user's UID/GID, build a customized variant with `DEFAULT_USER`, `DEFAULT_UID`, and `DEFAULT_GID` build arguments (see [CUDA Guide: Customization](src/cuda/README.md#build-time-customization)).
+> CUDA variants run by default as non-root user `luciole` (UID/GID `1000`) with passwordless `sudo`; Ascend defaults to root. Files created inside bind mounts inherit this UID/GID on Linux hosts. To match your host user's UID/GID, build a customized variant with `DEFAULT_USER`, `DEFAULT_UID`, and `DEFAULT_GID` build arguments (see [CUDA Guide: Customization](src/cuda/README.md#build-time-customization)).
 
 > [!TIP]
 > **💡 Tip 2: Host Driver Capability vs Container Toolkit Version**

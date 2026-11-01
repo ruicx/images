@@ -73,7 +73,7 @@ Agents must prioritize correctness, reproducibility, and cache efficiency over a
 
 ## 5. Code Style & Documentation Standards
 
-- **Bilingual Documentation Synchronization**: English (`README.md`, `docs/*.md`, `src/<family>/README.md`) and Chinese (`README_zh.md`, `docs/*_zh.md`, `src/<family>/README_zh.md`) documentation must always be updated together and maintained in lockstep with equivalent structure and technical accuracy.
+- **Documentation Language**: Keep English and Chinese README files (`README.md` and `README_zh.md`, including family READMEs) synchronized in structure and technical accuracy. Write documents under `docs/` in English.
 - **Python API Conventions**:
   - Provide English NumPy-style docstrings for all functions, methods, and classes.
   - Include strict type hints for all parameters and return values.
