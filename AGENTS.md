@@ -20,13 +20,20 @@ Agents must prioritize correctness, reproducibility, and cache efficiency over a
 
 ## 2. Capability Scripts & Dockerfile Architecture
 
-- **Capability Naming (No Sequence Numbers)**: Shared installation scripts in `src/_scripts/` must be named after their functional capability (e.g., `cmake.sh`, `dev-tools.sh`, `ssh.sh`). Never use sequence numbers (such as `01-system.sh`).
+- **Shared Component**: `vendor/image-kit` is the commit-pinned public submodule from
+  `https://github.com/ruicx/image-kit.git`. Initialize it with
+  `git submodule update --init --recursive` before validation or builds. Shared scripts, assets,
+  and shell contract tests belong there; manifests, Dockerfiles, schema, Python tooling, image
+  smoke tests, and release policies remain in this repository. Publish component commits before
+  recording their pins here. Component pin or `.gitmodules` changes rebuild every variant.
+
+- **Capability Naming (No Sequence Numbers)**: Shared installation scripts in `vendor/image-kit/scripts/` must be named after their functional capability (e.g., `cmake.sh`, `dev-tools.sh`, `ssh.sh`). Never use sequence numbers (such as `01-system.sh`).
 - **Explicit Manifest & Dockerfile Registration**: Every script consumed by an image family must be:
   1. Declared in the `inputs` list of `src/<family>/image.yml`.
   2. Explicitly copied and executed in `src/<family>/Dockerfile`.
 - **Optimal BuildKit Layer Caching**: Independently changeable capabilities must use adjacent `COPY + RUN` pairs:
   ```dockerfile
-  COPY src/_scripts/dev/cmake.sh /tmp/scripts/cmake.sh
+  COPY vendor/image-kit/scripts/dev/cmake.sh /tmp/scripts/cmake.sh
   RUN /tmp/scripts/cmake.sh --version "${CMAKE_VERSION}" --sha256 "${CMAKE_SHA256}"
   ```
   - Never bundle unrelated scripts into a single `COPY` instruction.

@@ -2,10 +2,16 @@
 
 ## Change impact and graph construction
 
-Changes to `.dockerignore`, `pyproject.toml`, `.github/workflows/**`, `schemas/**`, or
+Changes to `.dockerignore`, `.gitmodules`, the `vendor/image-kit` submodule pin,
+`pyproject.toml`, `.github/workflows/**`, `schemas/**`, or
 `tools/images/**` affect every variant. A change below `src/<family>/` or matching that family's
 `inputs` affects every variant in the family. Documentation-only changes outside those inputs do
 not build images.
+
+Workflows initialize submodules recursively using the public HTTPS component URL. A component
+pin change rebuilds every variant because the parent Git diff records the submodule commit,
+not the individual scripts changed inside it. Local edits to component files still match manifest
+`inputs` when those paths are supplied to the planner.
 
 The planner first expands transitive consumers: changing a base rebuilds every downstream target.
 It then adds transitive ancestors required to build the selected outputs. Ancestors appear in the

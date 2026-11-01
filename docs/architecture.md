@@ -31,6 +31,12 @@ Existing layer caches remain enabled, so unchanged base images do not force pack
 
 ## Image composition and cache boundaries
 
+Shared installation scripts and assets are maintained in the public `ruicx/image-kit` repository,
+consumed as a commit-pinned submodule at `vendor/image-kit/scripts/` and `vendor/image-kit/assets/`.
+Initialize it before validation or builds. Image manifests, Dockerfiles, smoke tests, schema,
+Python build tooling, and publication policy remain local. Component updates are explicit parent
+repository changes; they rebuild every variant without following the component's moving branch.
+
 Shared scripts own capability behavior and validation; Dockerfiles own only capability selection,
 argument wiring, and execution order. Build arguments are passed through named script options, so
 value branches such as user selection, workspace ownership, and package-mirror selection stay in

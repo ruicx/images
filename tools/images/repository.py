@@ -318,6 +318,14 @@ class ImageRepository:
                     ) from error
             for pattern in family.inputs:
                 if not list(self.root.glob(pattern)):
+                    if (
+                        pattern.startswith("vendor/image-kit/")
+                        and not (self.root / "vendor/image-kit/scripts").is_dir()
+                    ):
+                        raise RepositoryError(
+                            "image-kit submodule is not initialized; run "
+                            "git submodule update --init --recursive"
+                        )
                     raise RepositoryError(
                         f"{family.name}.inputs: pattern matches nothing: {pattern}"
                     )
@@ -449,6 +457,7 @@ class ImageRepository:
         """
         paths: set[Path] = set()
         paths.update(self.root.glob("tools/**/*.sh"))
+        paths.update(self.root.glob("vendor/image-kit/tests/**/*.sh"))
         for family in self.families.values():
             for pattern in family.inputs:
                 paths.update(path for path in self.root.glob(pattern) if path.suffix == ".sh")
@@ -586,7 +595,12 @@ class ImageRepository:
             "schemas/",
             "tools/images/",
         )
-        infrastructure_files = {".dockerignore", "pyproject.toml"}
+        infrastructure_files = {
+            ".dockerignore",
+            ".gitmodules",
+            "pyproject.toml",
+            "vendor/image-kit",
+        }
         direct: set[TargetKey]
         if any(
             path in infrastructure_files or path.startswith(infrastructure_prefixes)

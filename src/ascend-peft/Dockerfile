@@ -4,7 +4,7 @@ FROM ascend_base
 
 COPY src/ascend-peft/requirements.txt /tmp/image-scripts/peft-requirements.txt
 
-COPY --chmod=0755 src/_scripts/python/ascend-python-packages.sh /tmp/image-scripts/ascend-python-packages.sh
+COPY --chmod=0755 vendor/image-kit/scripts/python/ascend-python-packages.sh /tmp/image-scripts/ascend-python-packages.sh
 RUN --mount=type=cache,target=/tmp/pip-cache,mode=0777 \
     PIP_CACHE_DIR=/tmp/pip-cache \
     /tmp/image-scripts/ascend-python-packages.sh --requirements /tmp/image-scripts/peft-requirements.txt \

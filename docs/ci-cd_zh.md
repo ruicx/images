@@ -2,9 +2,14 @@
 
 ## 变更影响与图构建
 
-修改 `.dockerignore`、`pyproject.toml`、`.github/workflows/**`、`schemas/**` 或
+修改 `.dockerignore`、`.gitmodules`、`vendor/image-kit` 子模块引用、`pyproject.toml`、
+`.github/workflows/**`、`schemas/**` 或
 `tools/images/**` 会影响全部变体。修改 `src/<family>/` 下的文件或命中该镜像族 `inputs` 的
 文件，会影响该族全部变体。未包含在 inputs 中的纯文档变更不会构建镜像。
+
+工作流通过公开 HTTPS 组件地址递归初始化子模块。父仓库的 Git diff 只记录子模块提交，
+不列出其中修改的脚本，因此升级组件引用会重建全部变体。若显式向规划器传入组件内部文件
+的本地修改路径，仍按清单的 `inputs` 匹配受影响镜像。
 
 规划器先展开传递下游：基础镜像变更会重建全部消费目标；然后补齐构建选中产物所需的传递
 上游。除非上游本身也受影响，否则它在计划中的 `publish` 为 `false`。最终顺序为拓扑序。

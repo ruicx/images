@@ -9,7 +9,7 @@ python -m ruff format --check tools
 python -m mypy tools/images
 python -m pytest
 python -m tools.images validate
-bash tools/shell-tests/install-arguments.sh
+bash vendor/image-kit/tests/install-arguments.sh
 ```
 
 Use `images plan --all --output build-plan.json` and the quick-start Bake commands from the root

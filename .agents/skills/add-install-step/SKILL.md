@@ -1,6 +1,6 @@
 ---
 name: add-install-step
-description: "Add a new shared installation step to the repository. Use when: adding a new shared install script, adding a new tool to dev images, adding a build step to Dockerfiles, creating a new _scripts entry, extracting repeated inline RUN commands into a reusable script."
+description: "Add a new shared installation step to the repository. Use when: adding a new shared install script, adding a new tool to dev images, adding a build step to Dockerfiles, adding a capability to image-kit, extracting repeated inline RUN commands into a reusable script."
 argument-hint: "Describe the installation step to add, e.g. install tool X for dev images"
 ---
 
@@ -15,18 +15,24 @@ argument-hint: "Describe the installation step to add, e.g. install tool X for d
 ## Repository Layout Reference
 
 ```
-src/
-  _scripts/   # Shared install scripts grouped by capability
+vendor/image-kit/           # Commit-pinned public submodule
+  scripts/                 # Shared install scripts grouped by capability
     system/
     python/
     dev/
     libraries/
     integrations/
-  _assets/    # Build-time static assets (config files, etc.)
-  <image>/
-    image.yml
-    Dockerfile
+  assets/                  # Build-time static assets
+  tests/                   # Shared shell contract tests
+src/<image>/
+  image.yml
+  Dockerfile
 ```
+
+Initialize the component with `git submodule update --init --recursive` before editing or
+validating. Commit and push shared changes in image-kit before recording the new submodule pin
+in this repository. A component pin update rebuilds all image variants. Image definitions,
+Python tooling, schema, smoke tests, and release policies remain in the consumer repository.
 
 ## Step 1 — Choose a Capability Name and Scope
 
@@ -43,7 +49,7 @@ Determine the target scope:
 
 ## Step 2 — Write the Script
 
-Create `src/_scripts/<category>/<capability>.sh` following these conventions.
+Create `vendor/image-kit/scripts/<category>/<capability>.sh` following these conventions.
 Choose `system` for OS, account, SSH, workspace, and mirror configuration; `python`
 for Python setup and package installation; `dev` for developer tools; `libraries`
 for third-party libraries; and `integrations` for platform and application integration.
@@ -115,10 +121,10 @@ Rules:
 
 If the script depends on config files or templates:
 
-1. Place the files under `src/_assets/`
+1. Place the files under `vendor/image-kit/assets/`
 2. Copy only the declared asset into the image to keep cache invalidation scoped:
    ```dockerfile
-   COPY src/_assets/my-config.yaml /tmp/assets/my-config.yaml
+   COPY vendor/image-kit/assets/my-config.yaml /tmp/assets/my-config.yaml
    ```
 3. Pass the path to the script explicitly:
    ```bash
@@ -149,22 +155,22 @@ ARG DEFAULT_GID=1000
 ARG WORKSPACE_DIR=/work
 ARG TZ=Etc/UTC
 
-COPY --chmod=0755 src/_scripts/system/system.sh /tmp/scripts/system.sh
+COPY --chmod=0755 vendor/image-kit/scripts/system/system.sh /tmp/scripts/system.sh
 RUN /tmp/scripts/system.sh --timezone "${TZ}"
 
-COPY --chmod=0755 src/_scripts/system/user.sh /tmp/scripts/user.sh
+COPY --chmod=0755 vendor/image-kit/scripts/system/user.sh /tmp/scripts/user.sh
 RUN /tmp/scripts/user.sh \
     --username "${DEFAULT_USER}" \
     --uid "${DEFAULT_UID}" \
     --gid "${DEFAULT_GID}"
 
-COPY --chmod=0755 src/_scripts/system/workspace.sh /tmp/scripts/workspace.sh
+COPY --chmod=0755 vendor/image-kit/scripts/system/workspace.sh /tmp/scripts/workspace.sh
 RUN /tmp/scripts/workspace.sh \
     --path "${WORKSPACE_DIR}" \
     --owner "${DEFAULT_USER}"
 
-COPY src/_assets/my-config.yaml /tmp/assets/my-config.yaml
-COPY --chmod=0755 src/_scripts/dev/my-tool.sh /tmp/scripts/my-tool.sh
+COPY vendor/image-kit/assets/my-config.yaml /tmp/assets/my-config.yaml
+COPY --chmod=0755 vendor/image-kit/scripts/dev/my-tool.sh /tmp/scripts/my-tool.sh
 RUN /tmp/scripts/my-tool.sh --config /tmp/assets/my-config.yaml
 
 # --- root-level scripts ---
@@ -173,7 +179,7 @@ USER ${DEFAULT_USER}
 WORKDIR ${WORKSPACE_DIR}
 
 # --- user-level scripts (if any) ---
-COPY --chmod=0755 src/_scripts/dev/devshell.sh /tmp/scripts/devshell.sh
+COPY --chmod=0755 vendor/image-kit/scripts/dev/devshell.sh /tmp/scripts/devshell.sh
 RUN /tmp/scripts/devshell.sh --enabled true
 
 USER root
@@ -193,9 +199,9 @@ Per the documentation sync rules in `AGENTS.md`:
 
 | Changed file | Documentation to update |
 |---|---|
-| New `src/_scripts/<category>/*.sh` | Add it to every consumer's `image.yml.inputs`; update affected `README.md` / `README_zh.md` |
+| New `vendor/image-kit/scripts/<category>/*.sh` | Add it to every consumer's `image.yml.inputs`; update affected `README.md` / `README_zh.md` |
 | `Dockerfile` | Update the corresponding image's `README.md` and `README_zh.md` |
-| New file under `src/_assets/` | Update image docs that reference the asset's feature |
+| New file under `vendor/image-kit/assets/` | Update image docs that reference the asset's feature |
 
 ## Step 6 — Checklist
 

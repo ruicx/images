@@ -1,5 +1,8 @@
 # 昇腾 910B 开发镜像
 
+共享安装脚本和资源由固定提交的 `vendor/image-kit` 子模块提供。构建前在仓库根目录运行
+`git submodule update --init --recursive`。镜像配置和冒烟测试仍在本仓库维护。
+
 面向鲲鹏 CPU 与昇腾 910B NPU 的 ARM64 开发环境，基础镜像为
 `ascendai/torch-npu:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12`。清单使用 `digest: null` 跟踪
 该明确标签下的上游更新，本镜像族只构建 `linux/arm64`。英文说明见 [README.md](README.md)。
@@ -13,8 +16,8 @@ TorchNPU 2.14.0 和 Python 3.12.15。CPU 版 PyTorch 通过 TorchNPU 使用 NPU�
 
 新增工具与 CUDA 镜像族保持相近：CMake 4.3.2、Ninja、GCC、clangd、GDB、Git LFS、OpenCV
 开发库、网络工具、ripgrep、fd、bat、Python 开发包、uv，以及 zsh/Oh My Zsh/NvChad/Node.js
-开发 shell。两个镜像族共用 `src/_assets/python-dev-requirements.txt` 中不指定版本的包列表，
-uv 也通过 pip 安装。昇腾使用专用的 `src/_scripts/python/ascend-pip-packages.sh` 安装脚本，通过
+开发 shell。两个镜像族共用 `vendor/image-kit/assets/python-dev-requirements.txt` 中不指定版本的包列表，
+uv 也通过 pip 安装。昇腾使用专用的 `vendor/image-kit/scripts/python/ascend-pip-packages.sh` 安装脚本，通过
 `--requirements` 传入该清单，并用构建期约束保留所选基础镜像中已有包的版本；发生依赖冲突时
 构建失败，不替换上游软件栈。CUDA 使用独立的 `cuda-pip-packages.sh` 安装脚本。有效约束保留在
 `/opt/image-python/base-constraints.txt`，并完整打印到构建日志，便于按全部预装约束复现解析失败。

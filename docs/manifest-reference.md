@@ -5,7 +5,7 @@ patterns are relative to the repository root. Unknown fields are rejected.
 
 ## Shared installation scripts
 
-Scripts under `src/_scripts/` are grouped by capability in one directory level:
+Scripts under `vendor/image-kit/scripts/` are grouped by capability in one directory level:
 
 | Directory | Responsibility |
 | --- | --- |
@@ -100,7 +100,7 @@ context: .
 platforms: [linux/amd64]
 inputs:
   - src/example/**
-  - src/_scripts/dev/example-tool.sh
+  - vendor/image-kit/scripts/dev/example-tool.sh
 publish: true
 variants:
   - id: ubuntu-24.04

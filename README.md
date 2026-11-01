@@ -162,8 +162,11 @@ Learn more about the design and schema in [Architecture](docs/architecture.md) a
 The repository uses [uv](https://github.com/astral-sh/uv) to manage its Python tooling environment. Steps for local building, testing, or contributing:
 
 ```bash
-git clone https://github.com/ruicx/images.git
+git clone --recurse-submodules https://github.com/ruicx/images.git
 cd images
+
+# Initialize shared capabilities in an existing checkout
+git submodule update --init --recursive
 
 # Install dependencies and sync development environment
 uv sync --extra dev
@@ -182,6 +185,12 @@ uv run images build-test --plan build-plan.json --bake docker-bake.generated.jso
 ```
 
 ---
+
+Shared installation scripts and assets come from the public
+[image-kit](https://github.com/ruicx/image-kit) submodule at `vendor/image-kit`, pinned to a commit.
+Dockerfiles, manifests, image tests, Python build tooling, and publishing remain in this repository.
+Updating the component pin rebuilds all image variants. See the
+[development guide](docs/development.md) for component upgrades.
 
 ## 📚 Documentation & Guidelines
 

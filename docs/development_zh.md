@@ -1,5 +1,30 @@
 # 开发准则
 
+## 公共组件检出与升级
+
+使用 `git clone --recurse-submodules https://github.com/ruicx/images.git` 克隆，或在已有工作副本
+中运行 `git submodule update --init --recursive`，然后再校验和构建。公共脚本及资源位于
+`vendor/image-kit`，它是 [ruicx/image-kit](https://github.com/ruicx/image-kit) 的子模块，
+不要将其复制回 `src/`。
+
+公共行为的修改先在 image-kit 中提交并推送。消费经过审阅的组件提交时，显式获取并检出：
+
+```bash
+git -C vendor/image-kit fetch origin
+git -C vendor/image-kit checkout <reviewed-component-commit>
+uv run images validate
+uv run ruff check .
+uv run pytest
+bash vendor/image-kit/tests/install-arguments.sh
+bash vendor/image-kit/tests/ascend-pip-check.sh
+git add vendor/image-kit
+```
+
+发布前需完成原生镜像构建和冒烟测试。组件引用与消费端修改一起提交，且组件提交必须已在
+上游可获取。升级引用会重建全部变体；回滚时恢复旧引用，再运行 `git submodule update --init`。
+CI 禁止使用 `git submodule update --remote`。镜像定义、镜像专用依赖、冒烟测试、schema、
+Python 构建工具和发布策略仍留在本仓库。
+
 ## 新增镜像族
 
 1. 参考 `src/cuda` 的结构创建 `src/<family>`，不要复制 CUDA 专用值。

@@ -5,7 +5,7 @@
 
 ## 共享安装脚本
 
-`src/_scripts/` 下的脚本按职责划分，仅保留一层子目录：
+`vendor/image-kit/scripts/` 下的脚本按职责划分，仅保留一层子目录：
 
 | 目录 | 职责 |
 | --- | --- |
@@ -96,7 +96,7 @@ context: .
 platforms: [linux/amd64]
 inputs:
   - src/example/**
-  - src/_scripts/dev/example-tool.sh
+  - vendor/image-kit/scripts/dev/example-tool.sh
 publish: true
 variants:
   - id: ubuntu-24.04

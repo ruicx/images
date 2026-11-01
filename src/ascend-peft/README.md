@@ -1,5 +1,9 @@
 # Ascend PEFT training image
 
+Shared installation scripts and assets are supplied by the commit-pinned `vendor/image-kit`
+submodule. Run `git submodule update --init --recursive` from the repository root before
+building. Image configuration and smoke tests remain in this repository.
+
 This ARM64 image extends the [Ascend development image](../ascend/README.md) with a small PEFT
 training package set. The Buildx dependency named `ascend_base` selects the Ascend image built from
 the same repository revision. The required `base.image` manifest field records that parent's
@@ -9,7 +13,7 @@ upstream TorchNPU image; the Dockerfile uses the internal dependency as its dire
 ## Adding packages
 
 Edit `requirements.txt` to change the application package set. The manifest registers that file and
-`src/_scripts/python/ascend-python-packages.sh` as inputs, so changes rebuild this image. The Dockerfile
+`vendor/image-kit/scripts/python/ascend-python-packages.sh` as inputs, so changes rebuild this image. The Dockerfile
 copies the requirements separately from the installer and runs installation in its own cached
 layer. The installer uses the parent image's vendor constraints at
 `/opt/image-python/base-constraints.txt` and runs `ascend-pip-check` after installation. A package

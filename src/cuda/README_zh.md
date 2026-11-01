@@ -1,5 +1,8 @@
 # CUDA 开发镜像
 
+共享安装脚本和资源由固定提交的 `vendor/image-kit` 子模块提供。构建前在仓库根目录运行
+`git submodule update --init --recursive`。镜像配置和冒烟测试仍在本仓库维护。
+
 基于 NVIDIA CUDA `devel` 镜像构建的开箱即用 Linux amd64 开发环境。已发布的变体包含 CUDA
 编译器、常用 C/C++ 与 Python 工具、配置好的开发 shell，以及可选的 SSH 访问。英文版本见
 [README.md](README.md)。
@@ -212,7 +215,7 @@ images plan --family cuda --variant <variant-id> --output build-plan.json
 
 Python 包管理能力也按用户要求持续跟随上游内容。它从当前的
 `https://bootstrap.pypa.io/get-pip.py` 引导安装 pip，随后
-通过 `src/_scripts/python/cuda-pip-packages.sh` 安装 `src/_assets/python-dev-requirements.txt` 中未固定
+通过 `vendor/image-kit/scripts/python/cuda-pip-packages.sh` 安装 `vendor/image-kit/assets/python-dev-requirements.txt` 中未固定
 版本的包，以 `--requirements` 传入该清单，uv 也通过 pip 安装。CUDA 与昇腾仅共用该包列表；
 昇腾使用专用的 `ascend-pip-packages.sh` 处理厂商约束和依赖检查，修改该脚本不会重建 CUDA，
 修改公共依赖清单则会重建两边。这些输入有意不固定版本或 checksum，因此在不同

@@ -162,8 +162,11 @@ variants:
 本仓库基于 [uv](https://github.com/astral-sh/uv) 管理 Python 开发与构建工具链。在本地构建定制镜像或参与仓库开发的步骤如下：
 
 ```bash
-git clone https://github.com/ruicx/images.git
+git clone --recurse-submodules https://github.com/ruicx/images.git
 cd images
+
+# 在已有工作副本中初始化公共能力组件
+git submodule update --init --recursive
 
 # 使用 uv 安装依赖并同步开发环境
 uv sync --extra dev
@@ -182,6 +185,10 @@ uv run images build-test --plan build-plan.json --bake docker-bake.generated.jso
 ```
 
 ---
+
+共享安装脚本和资源来自公开的 [image-kit](https://github.com/ruicx/image-kit) 子模块，位于
+`vendor/image-kit`，并固定到具体提交。Dockerfile、清单、镜像测试、Python 构建工具和发布流程
+仍由本仓库维护。升级组件引用会重建全部镜像变体，操作方式见[开发准则](docs/development_zh.md)。
 
 ## 📚 进阶文档与开发指引
 

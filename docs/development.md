@@ -1,5 +1,32 @@
 # Development guide
 
+## Shared component checkout and upgrades
+
+Clone with `git clone --recurse-submodules https://github.com/ruicx/images.git`, or run
+`git submodule update --init --recursive` in an existing checkout before validation or builds.
+Public scripts and assets live in `vendor/image-kit`, a submodule of
+[ruicx/image-kit](https://github.com/ruicx/image-kit). Do not copy them back into `src/`.
+
+Change shared behavior in image-kit and commit and push that change there first. To consume a
+reviewed component commit, fetch it and check it out explicitly:
+
+```bash
+git -C vendor/image-kit fetch origin
+git -C vendor/image-kit checkout <reviewed-component-commit>
+uv run images validate
+uv run ruff check .
+uv run pytest
+bash vendor/image-kit/tests/install-arguments.sh
+bash vendor/image-kit/tests/ascend-pip-check.sh
+git add vendor/image-kit
+```
+
+Run native image builds and smoke tests before publishing. Commit the component pin with the
+consumer changes; the component commit must already be available upstream. A pin update rebuilds
+all variants. Roll back by restoring the previous pin and running `git submodule update --init`.
+Do not use `git submodule update --remote` in CI. Image definitions, requirements specific to an
+image, smoke tests, schema, Python build tooling, and release policies remain in this repository.
+
 ## Adding an image family
 
 1. Copy the `src/cuda` shape into `src/<family>` without copying its image-specific values.

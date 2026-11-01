@@ -1,5 +1,9 @@
 # Ascend 910B development image
 
+Shared installation scripts and assets are supplied by the commit-pinned `vendor/image-kit`
+submodule. Run `git submodule update --init --recursive` from the repository root before
+building. Image configuration and smoke tests remain in this repository.
+
 An ARM64 development environment for Kunpeng CPUs and Ascend 910B NPUs, based on
 `ascendai/torch-npu:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12`. The manifest tracks updates under
 that exact tag with `digest: null`; this family builds only `linux/arm64`. See [中文说明](README_zh.md).
@@ -15,8 +19,8 @@ by Ubuntu. User-facing `python` and `python3` select the vendor interpreter.
 The additional development tools match the CUDA family: CMake 4.3.2, Ninja, GCC, clangd, GDB,
 Git LFS, OpenCV development libraries, network tools, ripgrep, fd, bat, Python development
 packages, uv, and the zsh/Oh My Zsh/NvChad/Node.js developer shell. Both families use the same
-unversioned package list in `src/_assets/python-dev-requirements.txt`, including pip-installed uv.
-Ascend uses its own `src/_scripts/python/ascend-pip-packages.sh` installer, passing this file through
+unversioned package list in `vendor/image-kit/assets/python-dev-requirements.txt`, including pip-installed uv.
+Ascend uses its own `vendor/image-kit/scripts/python/ascend-pip-packages.sh` installer, passing this file through
 `--requirements`. It constrains every package already supplied by the selected base; resolution
 fails instead of replacing the vendor stack. CUDA uses an independent `cuda-pip-packages.sh` installer.
 The effective constraints are retained at `/opt/image-python/base-constraints.txt` for inspection

@@ -564,4 +564,53 @@ def test_infrastructure_changes_affect_all_but_docs_do_not(repo_root: Path) -> N
     repository = ImageRepository(repo_root).load()
     assert repository.affected(["tools/images/cli.py"]) == set(repository.variants)
     assert repository.affected([".dockerignore"]) == set(repository.variants)
+    assert repository.affected([".gitmodules"]) == set(repository.variants)
+    assert repository.affected(["vendor/image-kit"]) == set(repository.variants)
     assert repository.affected(["docs/development.md"]) == set()
+
+
+def test_uninitialized_image_kit_reports_initialization_command(repo_root: Path) -> None:
+    """Explain how to initialize missing shared inputs after a plain clone."""
+    data = manifest("demo", [variant("one")])
+    data["inputs"] = ["vendor/image-kit/scripts/dev/cmake.sh"]
+    write_family(repo_root, "demo", data)
+    with pytest.raises(RepositoryError, match="git submodule update --init --recursive"):
+        ImageRepository(repo_root).load()
+
+
+def test_gitlink_change_rebuilds_all_variants(repo_root: Path) -> None:
+    """Rebuild all images when Git reports only a changed component commit."""
+    write_family(repo_root, "one", manifest("one", [variant("base")]))
+    write_family(repo_root, "two", manifest("two", [variant("base")]))
+    commands = [
+        ["init"],
+        ["add", "."],
+        ["commit", "-m", "Initial fixture"],
+        ["update-index", "--add", "--cacheinfo", f"160000,{'1' * 40},vendor/image-kit"],
+        ["commit", "-m", "Add component pin"],
+        ["update-index", "--cacheinfo", f"160000,{'2' * 40},vendor/image-kit"],
+        ["commit", "-m", "Update component pin"],
+    ]
+    for command in commands:
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.invalid",
+                "-c",
+                "commit.gpgsign=false",
+                "-c",
+                "core.hooksPath=disabled-hooks",
+                *command,
+            ],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    repository = ImageRepository(repo_root).load()
+    changed = repository.changed_files("HEAD~1", "HEAD")
+    assert changed == ["vendor/image-kit"]
+    assert repository.affected(changed) == set(repository.variants)

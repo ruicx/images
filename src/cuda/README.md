@@ -1,5 +1,9 @@
 # CUDA development image
 
+Shared installation scripts and assets are supplied by the commit-pinned `vendor/image-kit`
+submodule. Run `git submodule update --init --recursive` from the repository root before
+building. Image configuration and smoke tests remain in this repository.
+
 Ready-to-use Linux amd64 development environments based on NVIDIA CUDA `devel` images. The
 published variants include the CUDA compiler, common C/C++ and Python tools, a configured developer
 shell, and optional SSH access. The Chinese version is in [README_zh.md](README_zh.md).
@@ -227,8 +231,8 @@ contents or fail because an upstream artifact changed. Setting `DEVSHELL: false`
 capability.
 
 The Python packaging capability also intentionally follows rolling upstream content. It bootstraps
-pip from the current `https://bootstrap.pypa.io/get-pip.py`, then uses `src/_scripts/python/cuda-pip-packages.sh`
-to install the unpinned package set in `src/_assets/python-dev-requirements.txt`, passed through
+pip from the current `https://bootstrap.pypa.io/get-pip.py`, then uses `vendor/image-kit/scripts/python/cuda-pip-packages.sh`
+to install the unpinned package set in `vendor/image-kit/assets/python-dev-requirements.txt`, passed through
 `--requirements`, including uv installed through pip. CUDA and Ascend share only this package
 list. Ascend uses its own `ascend-pip-packages.sh` installer for vendor constraints and checks;
 changing that installer does not rebuild CUDA. Changing the common requirements rebuilds both.

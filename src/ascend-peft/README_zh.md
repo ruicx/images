@@ -1,5 +1,8 @@
 # 昇腾 PEFT 训练镜像
 
+共享安装脚本和资源由固定提交的 `vendor/image-kit` 子模块提供。构建前在仓库根目录运行
+`git submodule update --init --recursive`。镜像配置和冒烟测试仍在本仓库维护。
+
 此 ARM64 镜像在[昇腾开发镜像](../ascend/README_zh.md)之上增加一组精简的 PEFT 训练包。
 名为 `ascend_base` 的 Buildx 依赖会选取同一仓库版本构建的昇腾镜像。清单中必填的
 `base.image` 字段记录父镜像所用的上游 TorchNPU 镜像；Dockerfile 的直接基础镜像是内部依赖。
@@ -8,7 +11,7 @@
 ## 增加软件包
 
 修改 `requirements.txt` 即可调整应用包集合。清单把该文件和
-`src/_scripts/python/ascend-python-packages.sh` 登记为输入，修改后会重建此镜像。Dockerfile 分别复制
+`vendor/image-kit/scripts/python/ascend-python-packages.sh` 登记为输入，修改后会重建此镜像。Dockerfile 分别复制
 依赖清单和安装脚本，并在独立的缓存层安装。安装脚本使用父镜像中的
 `/opt/image-python/base-constraints.txt` 上游包约束，安装后运行 `ascend-pip-check`。
 若新包要求替换上游包，依赖解析会失败，而不会更改 TorchNPU 或 CANN。
