@@ -7,7 +7,7 @@ usage() {
 Usage: ascend-python-packages.sh --requirements <path>
 
 Options:
-  --requirements <path>  Pinned application requirements file (required)
+  --requirements <path>  Application requirements file (required)
   -h, --help             Show this help
 EOF
 }

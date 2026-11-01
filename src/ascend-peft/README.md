@@ -15,17 +15,21 @@ layer. The installer uses the parent image's vendor constraints at
 `/opt/image-python/base-constraints.txt` and runs `ascend-pip-check` after installation. A package
 that requires replacing a vendor package fails resolution instead of changing TorchNPU or CANN.
 
-The initial direct package versions come from `minifly`'s training dependencies, except for
-TorchVision 0.29.2, which matches the parent's PyTorch 2.14 series. Torch and TorchNPU remain in
-the parent image. This image does not install `minifly` itself, its CUDA-specific uv package source,
-model weights, or training data. Install the project from its own source only after adapting its
-PyTorch package source for Ascend. Transitive Python dependencies are currently resolved at build
-time and should be locked before treating a build as a reproducible training release.
+Application packages are intentionally unpinned. At build time, pip resolves compatible versions
+within the parent's vendor constraints, including a TorchVision version compatible with the
+inherited PyTorch. The parent's PyTorch and TorchNPU versions stay fixed; an unsatisfiable dependency
+set fails the build. The package set comes from `minifly`'s training dependencies. This image does
+not install `minifly` itself, its CUDA-specific uv package source, model weights, or training data.
+Install the project from its own source only after adapting its PyTorch package source for Ascend.
+Application and transitive Python dependencies are resolved at build time, so rebuilding can select
+different versions. Use an immutable published image tag to reuse a specific training environment.
 
 ## Verification and use
 
 The ARM64 CI smoke test checks package metadata and the existing Ascend dependency diagnostics
-without NPU devices. On the target server, first run the parent's NPU test, then run a real PEFT
+without NPU devices. It compares the full installed PyTorch and TorchNPU versions with the parent's
+`base-constraints.txt`, so parent upgrades are accepted while changes made by this image fail the test.
+On the target server, first run the parent's NPU test, then run a real PEFT
 forward/backward training step and the selected VLA training script. Package installation alone
 does not establish that the VLA model's operators work on Ascend.
 

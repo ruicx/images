@@ -1,6 +1,6 @@
-# Versions selected from minifly's training extra; keep vendor torch and torch-npu.
-accelerate==1.15.0
-huggingface-hub==1.30.0
-peft==0.20.0
-transformers==5.5.0
-torchvision==0.29.2
+# Resolve application packages within the parent image's vendor constraints.
+accelerate
+huggingface-hub
+peft
+transformers
+torchvision
