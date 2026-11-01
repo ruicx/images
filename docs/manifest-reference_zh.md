@@ -3,6 +3,24 @@
 `src/<family>/image.yml` 是镜像族的版本化发行契约。路径和 glob 模式均相对于仓库根目录，
 未定义字段会被拒绝。
 
+## 共享安装脚本
+
+`src/_scripts/` 下的脚本按职责划分，仅保留一层子目录：
+
+| 目录 | 职责 |
+| --- | --- |
+| `system/` | 系统配置、用户、SSH、工作目录和软件包镜像源。 |
+| `python/` | Python 环境配置和软件包安装。 |
+| `dev/` | 开发工具、编译器、构建工具和 Shell 配置。 |
+| `libraries/` | 第三方 C++ 库。 |
+| `integrations/` | 平台和应用集成，包括 Ascend、ROS 2、llama.cpp 和 WSLg。 |
+
+平台专用脚本保留名称前缀，例如 `python/cuda-pip-packages.sh` 和
+`python/ascend-pip-packages.sh`，不再增加平台目录层级。
+目录名称不决定执行顺序：各 Dockerfile 继续显式安排独立的 `COPY + RUN` 步骤，
+消费这些脚本的清单在 `inputs` 中逐一登记完整路径。
+目前没有镜像使用的脚本仍予以保留，供后续使用。
+
 ## 镜像族字段
 
 | 字段 | 类型 | 契约 |
@@ -78,7 +96,7 @@ context: .
 platforms: [linux/amd64]
 inputs:
   - src/example/**
-  - src/_scripts/example-tool.sh
+  - src/_scripts/dev/example-tool.sh
 publish: true
 variants:
   - id: ubuntu-24.04

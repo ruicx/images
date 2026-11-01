@@ -1,14 +1,13 @@
 #!/bin/bash
-# Install the common development packages into the CUDA image's distribution Python.
-# Run as root after python-install.sh; Ascend uses ascend-pip-packages.sh instead.
+# Install application packages without replacing the Ascend vendor Python stack.
 set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: pip-packages.sh --requirements <path>
+Usage: ascend-python-packages.sh --requirements <path>
 
 Options:
-  --requirements <path>  Common development requirements file (required)
+  --requirements <path>  Pinned application requirements file (required)
   -h, --help             Show this help
 EOF
 }
@@ -36,17 +35,16 @@ while true; do
     esac
 done
 if [ "$#" -ne 0 ]; then
-    echo "pip-packages.sh: unexpected positional arguments: $*" >&2
+    echo "ascend-python-packages.sh: unexpected positional arguments: $*" >&2
     usage >&2
     exit 64
 fi
-
 if [ -z "${REQUIREMENTS_FILE}" ] || [ ! -f "${REQUIREMENTS_FILE}" ] || [ ! -r "${REQUIREMENTS_FILE}" ]; then
-    echo "pip-packages.sh: --requirements must name a readable file" >&2
+    echo "ascend-python-packages.sh: --requirements must name a readable file" >&2
     exit 64
 fi
 
-# Debian's psutil has no pip RECORD metadata. A pip-owned copy avoids uninstalling apt files.
-python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed psutil
-python3 -m pip install --no-cache-dir --break-system-packages \
+python3 -m pip install --break-system-packages \
+    --constraint /opt/image-python/base-constraints.txt \
     --requirement "${REQUIREMENTS_FILE}"
+/usr/local/bin/ascend-pip-check

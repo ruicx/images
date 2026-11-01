@@ -26,7 +26,7 @@ Agents must prioritize correctness, reproducibility, and cache efficiency over a
   2. Explicitly copied and executed in `src/<family>/Dockerfile`.
 - **Optimal BuildKit Layer Caching**: Independently changeable capabilities must use adjacent `COPY + RUN` pairs:
   ```dockerfile
-  COPY src/_scripts/cmake.sh /tmp/scripts/cmake.sh
+  COPY src/_scripts/dev/cmake.sh /tmp/scripts/cmake.sh
   RUN /tmp/scripts/cmake.sh --version "${CMAKE_VERSION}" --sha256 "${CMAKE_SHA256}"
   ```
   - Never bundle unrelated scripts into a single `COPY` instruction.

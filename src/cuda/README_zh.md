@@ -212,7 +212,7 @@ images plan --family cuda --variant <variant-id> --output build-plan.json
 
 Python 包管理能力也按用户要求持续跟随上游内容。它从当前的
 `https://bootstrap.pypa.io/get-pip.py` 引导安装 pip，随后
-通过 `src/_scripts/pip-packages.sh` 安装 `src/_assets/python-dev-requirements.txt` 中未固定
+通过 `src/_scripts/python/cuda-pip-packages.sh` 安装 `src/_assets/python-dev-requirements.txt` 中未固定
 版本的包，以 `--requirements` 传入该清单，uv 也通过 pip 安装。CUDA 与昇腾仅共用该包列表；
 昇腾使用专用的 `ascend-pip-packages.sh` 处理厂商约束和依赖检查，修改该脚本不会重建 CUDA，
 修改公共依赖清单则会重建两边。这些输入有意不固定版本或 checksum，因此在不同

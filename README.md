@@ -20,6 +20,7 @@ Configuring consistent, high-performance GPU and NPU development environments ac
 > 📖 **Family Guides**:
 > - For SSH remote development, long-running containers, non-root users, and credential mounts, see the [CUDA Image Guide](src/cuda/README.md).
 > - For Kunpeng + Ascend 910B setup, device mounting, and NPU verification, see the [Ascend Image Guide](src/ascend/README.md).
+> - For the Ascend PEFT package layer, see the [Ascend PEFT Guide](src/ascend-peft/README.md).
 > - 中文文档请参阅 [README_zh.md](README_zh.md)。
 
 ---
@@ -95,6 +96,7 @@ python3 --version
 | **CUDA 12.8.2**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` | Tracks upstream exact tag | **Recommended starting point for NVIDIA GPUs.** Balances version stability with official updates. |
 | **CUDA 12.6.3**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` | Tracks the exact NVIDIA base tag | Projects using CUDA 12.6.3 with upstream fixes published under the same base tag. |
 | **Ascend 910B**<br>`linux/arm64` (Ubuntu 22.04) | `ghcr.io/ruicx/ascend:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12` | Tracks the exact upstream base tag | Kunpeng ARM64 + Ascend 910B environments (CANN 9.2.0, PyTorch 2.14.0, TorchNPU 2.14.0). |
+| **Ascend PEFT**<br>`linux/arm64` (Ubuntu 22.04) | `ghcr.io/ruicx/ascend-peft:2.14.0-cann9.2.0-peft-910b-ubuntu22.04-py3.12` | Built from the Ascend image in the same build graph | PEFT training packages layered over the Ascend 910B development image. |
 
 ### Selection Notes & Tagging Policy
 

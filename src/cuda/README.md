@@ -227,7 +227,7 @@ contents or fail because an upstream artifact changed. Setting `DEVSHELL: false`
 capability.
 
 The Python packaging capability also intentionally follows rolling upstream content. It bootstraps
-pip from the current `https://bootstrap.pypa.io/get-pip.py`, then uses `src/_scripts/pip-packages.sh`
+pip from the current `https://bootstrap.pypa.io/get-pip.py`, then uses `src/_scripts/python/cuda-pip-packages.sh`
 to install the unpinned package set in `src/_assets/python-dev-requirements.txt`, passed through
 `--requirements`, including uv installed through pip. CUDA and Ascend share only this package
 list. Ascend uses its own `ascend-pip-packages.sh` installer for vendor constraints and checks;

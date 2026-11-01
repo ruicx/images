@@ -5,30 +5,30 @@ set -euo pipefail
 REPOSITORY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 scripts=(
-    "src/_scripts/cmake.sh|--version"
-    "src/_scripts/cpptrace.sh|--version"
-    "src/_scripts/devshell.sh|--enabled"
-    "src/_scripts/finalize-mirror.sh|--mirror"
-    "src/_scripts/iceoryx.sh|--version"
-    "src/_scripts/libdatachannel.sh|--version"
-    "src/_scripts/llama-cpp.sh|--version"
-    "src/_scripts/precommit.sh|--config"
-    "src/_scripts/ros2.sh|--distro"
-    "src/_scripts/rpclib.sh|--version"
-    "src/_scripts/ssh.sh|--default-user"
-    "src/_scripts/system.sh|--timezone"
-    "src/_scripts/user.sh|--username"
-    "src/_scripts/workspace.sh|--path"
-    "src/_scripts/python-install.sh|--mode"
-    "src/_scripts/pip-packages.sh|--requirements"
-    "src/_scripts/ascend-pip-packages.sh|--requirements"
+    "src/_scripts/dev/cmake.sh|--version"
+    "src/_scripts/libraries/cpptrace.sh|--version"
+    "src/_scripts/dev/devshell.sh|--enabled"
+    "src/_scripts/system/finalize-mirror.sh|--mirror"
+    "src/_scripts/libraries/iceoryx.sh|--version"
+    "src/_scripts/libraries/libdatachannel.sh|--version"
+    "src/_scripts/integrations/llama-cpp.sh|--version"
+    "src/_scripts/dev/precommit.sh|--config"
+    "src/_scripts/integrations/ros2.sh|--distro"
+    "src/_scripts/libraries/rpclib.sh|--version"
+    "src/_scripts/system/ssh.sh|--default-user"
+    "src/_scripts/system/system.sh|--timezone"
+    "src/_scripts/system/user.sh|--username"
+    "src/_scripts/system/workspace.sh|--path"
+    "src/_scripts/python/python-install.sh|--mode"
+    "src/_scripts/python/cuda-pip-packages.sh|--requirements"
+    "src/_scripts/python/ascend-pip-packages.sh|--requirements"
 )
 
 no_argument_scripts=(
-    "src/_scripts/dev-tools.sh"
-    "src/_scripts/pip-packages.sh"
-    "src/_scripts/python-install.sh"
-    "src/_scripts/ascend-environment.sh"
+    "src/_scripts/dev/dev-tools.sh"
+    "src/_scripts/python/cuda-pip-packages.sh"
+    "src/_scripts/python/python-install.sh"
+    "src/_scripts/integrations/ascend-environment.sh"
     "src/_assets/ascend-pip-check.sh"
 )
 
@@ -57,17 +57,17 @@ for specification in "${scripts[@]}"; do
 done
 
 # Reject the removed account selector and exercise the remaining mode option.
-ssh_script="${REPOSITORY_ROOT}/src/_scripts/ssh.sh"
+ssh_script="${REPOSITORY_ROOT}/src/_scripts/system/ssh.sh"
 expect_usage_error "${ssh_script}" --login-user default
 expect_usage_error "${ssh_script}" --mode
 
 # New architecture support must not relax configuration validation before installation begins.
-expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/cmake.sh" --sha256
-expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/cmake.sh" --sha256 invalid
-expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/cmake.sh" --sha256 ''
-expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/python-install.sh" --mode unsupported
-for script_name in pip-packages.sh ascend-pip-packages.sh; do
-    script="${REPOSITORY_ROOT}/src/_scripts/${script_name}"
+expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/dev/cmake.sh" --sha256
+expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/dev/cmake.sh" --sha256 invalid
+expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/dev/cmake.sh" --sha256 ''
+expect_usage_error "${REPOSITORY_ROOT}/src/_scripts/python/python-install.sh" --mode unsupported
+for script_name in cuda-pip-packages.sh ascend-pip-packages.sh; do
+    script="${REPOSITORY_ROOT}/src/_scripts/python/${script_name}"
     expect_usage_error "${script}"
     expect_usage_error "${script}" --requirements ''
     expect_usage_error "${script}" --requirements "${REPOSITORY_ROOT}/AGENTS.md/missing.txt"
@@ -77,25 +77,25 @@ for script_name in pip-packages.sh ascend-pip-packages.sh; do
 done
 
 # YAML booleans are stringified by the Python planner, so the script owns normalization.
-devshell_script="${REPOSITORY_ROOT}/src/_scripts/devshell.sh"
+devshell_script="${REPOSITORY_ROOT}/src/_scripts/dev/devshell.sh"
 for disabled_value in false False FALSE 0 no NO off disabled; do
     bash "${devshell_script}" --enabled "${disabled_value}"
 done
 expect_usage_error "${devshell_script}" --enabled sometimes
 
 # Upstream is a non-mutating success path; mirror selection owns value validation.
-mirror_script="${REPOSITORY_ROOT}/src/_scripts/finalize-mirror.sh"
+mirror_script="${REPOSITORY_ROOT}/src/_scripts/system/finalize-mirror.sh"
 bash "${mirror_script}" --mirror upstream >/dev/null
 expect_usage_error "${mirror_script}" --mirror unsupported
 
 # Exercise every value-taking option and format guard added to the llama.cpp capability.
-llama_cpp_script="${REPOSITORY_ROOT}/src/_scripts/llama-cpp.sh"
+llama_cpp_script="${REPOSITORY_ROOT}/src/_scripts/integrations/llama-cpp.sh"
 expect_usage_error "${llama_cpp_script}" --cuda-version
 expect_usage_error "${llama_cpp_script}" --version latest
 expect_usage_error "${llama_cpp_script}" --cuda-version 12
 
 # Selecting root must be a non-mutating success path owned by the user capability.
-user_script="${REPOSITORY_ROOT}/src/_scripts/user.sh"
+user_script="${REPOSITORY_ROOT}/src/_scripts/system/user.sh"
 bash "${user_script}" --username root --uid 1000 --gid 1000
 bash "${user_script}" --username root --groups ""
 expect_usage_error "${user_script}" --groups
@@ -103,7 +103,7 @@ expect_usage_error "${user_script}" --username root --groups video
 expect_usage_error "${user_script}" --username root --groups video,,render
 
 # Reject paths that could assign ownership to the filesystem root or escape lexically.
-workspace_script="${REPOSITORY_ROOT}/src/_scripts/workspace.sh"
+workspace_script="${REPOSITORY_ROOT}/src/_scripts/system/workspace.sh"
 expect_usage_error "${workspace_script}" --path / --owner root
 expect_usage_error "${workspace_script}" --path /work/../other --owner root
 expect_usage_error "${workspace_script}" --path relative --owner root

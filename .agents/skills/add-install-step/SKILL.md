@@ -16,7 +16,12 @@ argument-hint: "Describe the installation step to add, e.g. install tool X for d
 
 ```
 src/
-  _scripts/   # Shared install scripts named by capability
+  _scripts/   # Shared install scripts grouped by capability
+    system/
+    python/
+    dev/
+    libraries/
+    integrations/
   _assets/    # Build-time static assets (config files, etc.)
   <image>/
     image.yml
@@ -38,7 +43,12 @@ Determine the target scope:
 
 ## Step 2 — Write the Script
 
-Create `src/_scripts/<capability>.sh` following these conventions:
+Create `src/_scripts/<category>/<capability>.sh` following these conventions.
+Choose `system` for OS, account, SSH, workspace, and mirror configuration; `python`
+for Python setup and package installation; `dev` for developer tools; `libraries`
+for third-party libraries; and `integrations` for platform and application integration.
+Keep one directory level and use a platform prefix for platform-specific scripts,
+such as `python/cuda-pip-packages.sh` and `python/ascend-pip-packages.sh`.
 
 ```bash
 #!/bin/bash
@@ -139,22 +149,22 @@ ARG DEFAULT_GID=1000
 ARG WORKSPACE_DIR=/work
 ARG TZ=Etc/UTC
 
-COPY --chmod=0755 src/_scripts/system.sh /tmp/scripts/system.sh
+COPY --chmod=0755 src/_scripts/system/system.sh /tmp/scripts/system.sh
 RUN /tmp/scripts/system.sh --timezone "${TZ}"
 
-COPY --chmod=0755 src/_scripts/user.sh /tmp/scripts/user.sh
+COPY --chmod=0755 src/_scripts/system/user.sh /tmp/scripts/user.sh
 RUN /tmp/scripts/user.sh \
     --username "${DEFAULT_USER}" \
     --uid "${DEFAULT_UID}" \
     --gid "${DEFAULT_GID}"
 
-COPY --chmod=0755 src/_scripts/workspace.sh /tmp/scripts/workspace.sh
+COPY --chmod=0755 src/_scripts/system/workspace.sh /tmp/scripts/workspace.sh
 RUN /tmp/scripts/workspace.sh \
     --path "${WORKSPACE_DIR}" \
     --owner "${DEFAULT_USER}"
 
 COPY src/_assets/my-config.yaml /tmp/assets/my-config.yaml
-COPY --chmod=0755 src/_scripts/my-tool.sh /tmp/scripts/my-tool.sh
+COPY --chmod=0755 src/_scripts/dev/my-tool.sh /tmp/scripts/my-tool.sh
 RUN /tmp/scripts/my-tool.sh --config /tmp/assets/my-config.yaml
 
 # --- root-level scripts ---
@@ -163,7 +173,7 @@ USER ${DEFAULT_USER}
 WORKDIR ${WORKSPACE_DIR}
 
 # --- user-level scripts (if any) ---
-COPY --chmod=0755 src/_scripts/devshell.sh /tmp/scripts/devshell.sh
+COPY --chmod=0755 src/_scripts/dev/devshell.sh /tmp/scripts/devshell.sh
 RUN /tmp/scripts/devshell.sh --enabled true
 
 USER root
@@ -183,7 +193,7 @@ Per the documentation sync rules in `AGENTS.md`:
 
 | Changed file | Documentation to update |
 |---|---|
-| New `src/_scripts/*.sh` | Add it to every consumer's `image.yml.inputs`; update affected `README.md` / `README_zh.md` |
+| New `src/_scripts/<category>/*.sh` | Add it to every consumer's `image.yml.inputs`; update affected `README.md` / `README_zh.md` |
 | `Dockerfile` | Update the corresponding image's `README.md` and `README_zh.md` |
 | New file under `src/_assets/` | Update image docs that reference the asset's feature |
 

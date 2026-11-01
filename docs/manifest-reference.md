@@ -3,6 +3,24 @@
 `src/<family>/image.yml` is the versioned release contract for an image family. Paths and glob
 patterns are relative to the repository root. Unknown fields are rejected.
 
+## Shared installation scripts
+
+Scripts under `src/_scripts/` are grouped by capability in one directory level:
+
+| Directory | Responsibility |
+| --- | --- |
+| `system/` | OS configuration, accounts, SSH, workspace, and package mirrors. |
+| `python/` | Python setup and package installation. |
+| `dev/` | Developer tools, compilers, build tools, and shell setup. |
+| `libraries/` | Third-party C++ libraries. |
+| `integrations/` | Platform and application integration, including Ascend, ROS 2, llama.cpp, and WSLg. |
+
+Platform-specific scripts keep a prefix, such as `python/cuda-pip-packages.sh` and
+`python/ascend-pip-packages.sh`; there is no additional platform directory level.
+Directory names do not determine execution order: each Dockerfile keeps explicit, independent
+`COPY + RUN` steps and each consuming manifest lists the exact script paths in `inputs`.
+Scripts without a current image consumer remain available for future use.
+
 ## Family fields
 
 | Field | Type | Contract |
@@ -82,7 +100,7 @@ context: .
 platforms: [linux/amd64]
 inputs:
   - src/example/**
-  - src/_scripts/example-tool.sh
+  - src/_scripts/dev/example-tool.sh
 publish: true
 variants:
   - id: ubuntu-24.04

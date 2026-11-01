@@ -16,9 +16,9 @@ The additional development tools match the CUDA family: CMake 4.3.2, Ninja, GCC,
 Git LFS, OpenCV development libraries, network tools, ripgrep, fd, bat, Python development
 packages, uv, and the zsh/Oh My Zsh/NvChad/Node.js developer shell. Both families use the same
 unversioned package list in `src/_assets/python-dev-requirements.txt`, including pip-installed uv.
-Ascend uses its own `src/_scripts/ascend-pip-packages.sh` installer, passing this file through
+Ascend uses its own `src/_scripts/python/ascend-pip-packages.sh` installer, passing this file through
 `--requirements`. It constrains every package already supplied by the selected base; resolution
-fails instead of replacing the vendor stack. CUDA uses an independent `pip-packages.sh` installer.
+fails instead of replacing the vendor stack. CUDA uses an independent `cuda-pip-packages.sh` installer.
 The effective constraints are retained at `/opt/image-python/base-constraints.txt` for inspection
 and printed in build logs so resolver failures can be reproduced with the complete baseline.
 

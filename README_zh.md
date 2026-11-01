@@ -20,6 +20,7 @@
 > 📖 **各镜像族详细指南**：
 > - 关于 SSH 远程开发、后台常驻服务、非 root 用户及运行时密钥挂载，详见 [CUDA 镜像指南](src/cuda/README_zh.md)。
 > - 关于鲲鹏 + 昇腾 910B 设备挂载、驱动映射与 NPU 验证，详见 [昇腾镜像指南](src/ascend/README_zh.md)。
+> - 关于昇腾 PEFT 软件包层，详见 [昇腾 PEFT 指南](src/ascend-peft/README_zh.md)。
 > - English documentation is available at [README.md](README.md)。
 
 ---
@@ -95,6 +96,7 @@ python3 --version
 | **CUDA 12.8.2**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` | 跟踪官方明确版本标签 | **NVIDIA GPU 推荐默认起点**。兼顾版本稳定性与官方安全更新。 |
 | **CUDA 12.6.3**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` | 跟踪明确的 NVIDIA 基础镜像标签 | 使用 CUDA 12.6.3，并接收上游在同一基础镜像标签下发布的修复。 |
 | **Ascend 910B**<br>`linux/arm64` (Ubuntu 22.04) | `ghcr.io/ruicx/ascend:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12` | 跟踪明确的上游基础镜像标签 | 鲲鹏 ARM64 + 昇腾 910B 环境（集成 CANN 9.2.0、PyTorch 2.14.0 与 TorchNPU 2.14.0）。 |
+| **Ascend PEFT**<br>`linux/arm64` (Ubuntu 22.04) | `ghcr.io/ruicx/ascend-peft:2.14.0-cann9.2.0-peft-910b-ubuntu22.04-py3.12` | 从同一构建图中的昇腾镜像构建 | 在昇腾 910B 开发镜像上叠加 PEFT 训练软件包。 |
 
 ### 选型说明与标签策略
 

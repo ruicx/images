@@ -14,9 +14,9 @@ TorchNPU 2.14.0 和 Python 3.12.15。CPU 版 PyTorch 通过 TorchNPU 使用 NPU�
 新增工具与 CUDA 镜像族保持相近：CMake 4.3.2、Ninja、GCC、clangd、GDB、Git LFS、OpenCV
 开发库、网络工具、ripgrep、fd、bat、Python 开发包、uv，以及 zsh/Oh My Zsh/NvChad/Node.js
 开发 shell。两个镜像族共用 `src/_assets/python-dev-requirements.txt` 中不指定版本的包列表，
-uv 也通过 pip 安装。昇腾使用专用的 `src/_scripts/ascend-pip-packages.sh` 安装脚本，通过
+uv 也通过 pip 安装。昇腾使用专用的 `src/_scripts/python/ascend-pip-packages.sh` 安装脚本，通过
 `--requirements` 传入该清单，并用构建期约束保留所选基础镜像中已有包的版本；发生依赖冲突时
-构建失败，不替换上游软件栈。CUDA 使用独立的 `pip-packages.sh` 安装脚本。有效约束保留在
+构建失败，不替换上游软件栈。CUDA 使用独立的 `cuda-pip-packages.sh` 安装脚本。有效约束保留在
 `/opt/image-python/base-constraints.txt`，并完整打印到构建日志，便于按全部预装约束复现解析失败。
 
 昇腾安装脚本还会补装上游工具缺失的依赖：`plotly`、Python `ninja` 发行包、`colorlog`、
