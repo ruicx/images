@@ -173,6 +173,7 @@ uv sync --extra dev
 
 # 1. 校验清单合法性与格式规范
 uv run images validate
+uv run python -m tools.check_repository
 
 # 2. 查看受支持变体并生成构建计划
 uv run images list
@@ -187,8 +188,8 @@ uv run images build-test --plan build-plan.json --bake docker-bake.generated.jso
 ---
 
 共享安装脚本和资源来自公开的 [image-kit](https://github.com/ruicx/image-kit) 子模块，位于
-`vendor/image-kit`，并固定到具体提交。Dockerfile、清单、镜像测试、Python 构建工具和发布流程
-仍由本仓库维护。升级组件引用会重建全部镜像变体，操作方式见[开发准则](docs/development_zh.md)。
+`vendor/image-kit`，并固定到具体提交。组件还提供 Python 构建工具、包内 schema 和工具测试。
+Dockerfile、清单、镜像测试、账号/文档策略和发布流程仍由本仓库维护。升级组件引用会重建全部镜像变体，操作方式见[开发准则](docs/development_zh.md)。
 
 ## 📚 进阶文档与开发指引
 

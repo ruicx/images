@@ -192,7 +192,7 @@ chmod 600 "${HOME}/.ascend-dev-ssh-password"
 [仓库开发指南](../../docs/development_zh.md)操作，并选择：
 
 ```bash
-python -m tools.images plan --family ascend --platform linux/arm64 --output build-plan.json
+python -m image_kit plan --family ascend --platform linux/arm64 --output build-plan.json
 ```
 
 普通 CI 在原生 ARM64 runner 上构建并运行 `tests/smoke.sh`，不要求 NPU 硬件。测试覆盖工具、

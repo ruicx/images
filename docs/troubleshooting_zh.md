@@ -3,12 +3,14 @@
 ## 本地复现校验
 
 ```bash
-python -m pip install -e ".[dev]"
-python -m ruff check tools
-python -m ruff format --check tools
-python -m mypy tools/images
-python -m pytest
-python -m tools.images validate
+git submodule update --init --recursive
+uv sync --locked --extra dev
+uv run --no-sync ruff check tools
+uv run --no-sync ruff format --check tools
+uv run --no-sync ty check
+uv run --no-sync pytest
+uv run --no-sync images validate
+uv run --no-sync python -m tools.check_repository
 bash vendor/image-kit/tests/install-arguments.sh
 ```
 

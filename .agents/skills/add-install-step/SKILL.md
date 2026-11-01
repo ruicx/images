@@ -32,7 +32,10 @@ src/<image>/
 Initialize the component with `git submodule update --init --recursive` before editing or
 validating. Commit and push shared changes in image-kit before recording the new submodule pin
 in this repository. A component pin update rebuilds all image variants. Image definitions,
-Python tooling, schema, smoke tests, and release policies remain in the consumer repository.
+Python tooling, its packaged schema, and tool tests are maintained in image-kit. Image smoke
+tests, account/documentation policy checks, and release policies remain in the consumer repository.
+Run `uv sync --extra dev` after a component update, then `uv run images validate` and
+`uv run python -m tools.check_repository`.
 
 ## Step 1 — Choose a Capability Name and Scope
 
@@ -213,6 +216,6 @@ Per the documentation sync rules in `AGENTS.md`:
 - [ ] Every script and asset copied by a Dockerfile is declared in `image.yml.inputs`
 - [ ] Cleanup line `rm -rf /tmp/scripts /tmp/assets` covers all temp directories
 - [ ] Documentation synced (`README.md`, `README_zh.md`, `AGENTS.md`)
-- [ ] `python -m tools.images validate` passes
+- [ ] `python -m image_kit validate` and `python -m tools.check_repository` pass
 - [ ] New external downloads use exact versions and verified checksums, or document an approved
   exception in the consuming family's bilingual README

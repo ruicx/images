@@ -33,8 +33,10 @@ Existing layer caches remain enabled, so unchanged base images do not force pack
 
 Shared installation scripts and assets are maintained in the public `ruicx/image-kit` repository,
 consumed as a commit-pinned submodule at `vendor/image-kit/scripts/` and `vendor/image-kit/assets/`.
-Initialize it before validation or builds. Image manifests, Dockerfiles, smoke tests, schema,
-Python build tooling, and publication policy remain local. Component updates are explicit parent
+Initialize it before validation or builds, then install it with `uv sync --extra dev`. The
+`image_kit` Python package owns validation, planning, Bake generation, and the bundled schema.
+Image manifests, Dockerfiles, smoke tests, and publication policy remain local. Account/runtime
+and bilingual-documentation checks run separately through `python -m tools.check_repository`. Component updates are explicit parent
 repository changes; they rebuild every variant without following the component's moving branch.
 
 Shared scripts own capability behavior and validation; Dockerfiles own only capability selection,

@@ -34,21 +34,26 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.0"
+
       - name: Install validation dependencies
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e ".[dev]"
+          uv sync --locked --extra dev --python 3.12
           sudo apt-get update
           sudo apt-get install -y shellcheck shfmt
 
       - name: Validate code and manifests
         run: |
-          python -m ruff check tools
-          python -m ruff format --check tools
-          python -m mypy tools/images
-          python -m pytest
-          python -m tools.images validate
-          mapfile -t shell_files < <(python -m tools.images files --kind shell)
+          uv run --no-sync ruff check .
+          uv run --no-sync ruff format --check .
+          uv run --no-sync ty check
+          uv run --no-sync pytest
+          uv run --no-sync images validate
+          uv run --no-sync python -m tools.check_repository
+          mapfile -t shell_files < <(uv run --no-sync images files --kind shell)
           shellcheck "${shell_files[@]}"
           shfmt -d -i 4 -ci "${shell_files[@]}"
           bash vendor/image-kit/tests/install-arguments.sh
@@ -61,9 +66,9 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            python -m tools.images plan --base "$BASE_SHA" --head "$HEAD_SHA" --platform "$IMAGE_PLATFORM" --output build-plan.json
+            uv run --no-sync images plan --base "$BASE_SHA" --head "$HEAD_SHA" --platform "$IMAGE_PLATFORM" --output build-plan.json
           else
-            python -m tools.images plan --all --platform "$IMAGE_PLATFORM" --output build-plan.json
+            uv run --no-sync images plan --all --platform "$IMAGE_PLATFORM" --output build-plan.json
           fi
           count="$(python -c 'import json; print(len(json.load(open("build-plan.json"))["targets"]))')"
           echo "count=$count" >> "$GITHUB_OUTPUT"
@@ -78,7 +83,7 @@ jobs:
         env:
           IMAGE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          python -m tools.images bake \
+          uv run --no-sync images bake \
             --plan build-plan.json \
             --owner "${{ github.repository_owner }}" \
             --repository "${{ github.repository }}" \
@@ -86,7 +91,7 @@ jobs:
             --build-id "$IMAGE_BUILD_ID" \
             --mode load \
             --output docker-bake.generated.json
-          python -m tools.images build-test \
+          uv run --no-sync images build-test \
             --plan build-plan.json \
             --bake docker-bake.generated.json \
             --owner "${{ github.repository_owner }}" \

@@ -1,1 +1,1 @@
-"""Repository tooling package."""
+"""Repository-specific checks layered on the shared image-kit build tool."""

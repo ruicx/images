@@ -27,7 +27,9 @@ Git 提交重建可能产生不同镜像，每个 CI 构建批次都有独立的
 
 共享安装脚本和资源在公开的 `ruicx/image-kit` 仓库维护，通过固定提交的子模块消费，路径分别为
 `vendor/image-kit/scripts/` 和 `vendor/image-kit/assets/`。校验或构建前需先初始化子模块。
-镜像清单、Dockerfile、冒烟测试、schema、Python 构建工具和发布策略仍留在本仓库。组件升级
+初始化后运行 `uv sync --extra dev` 安装组件。`image_kit` Python 包负责校验、规划、Bake
+生成和包内 schema。镜像清单、Dockerfile、冒烟测试和发布策略仍留在本仓库；账号/运行配置
+与双语文档检查单独由 `python -m tools.check_repository` 执行。组件升级
 必须显式修改父仓库引用，并重建全部变体，不自动跟随组件分支。
 
 共享脚本负责能力行为及参数校验；Dockerfile 只负责选择能力、传递参数和声明执行顺序。构建

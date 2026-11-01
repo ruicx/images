@@ -3,8 +3,8 @@
 ## Change impact and graph construction
 
 Changes to `.dockerignore`, `.gitmodules`, the `vendor/image-kit` submodule pin,
-`pyproject.toml`, `.github/workflows/**`, `schemas/**`, or
-`tools/images/**` affect every variant. A change below `src/<family>/` or matching that family's
+`pyproject.toml`, `uv.lock`, `.github/workflows/**`, or `tools/**` affect every variant. These consumer
+rebuild rules are declared in `[tool.image-kit]`; the component owns its schema and Python tests. A change below `src/<family>/` or matching that family's
 `inputs` affects every variant in the family. Documentation-only changes outside those inputs do
 not build images.
 

@@ -2,9 +2,9 @@
 
 ## 变更影响与图构建
 
-修改 `.dockerignore`、`.gitmodules`、`vendor/image-kit` 子模块引用、`pyproject.toml`、
-`.github/workflows/**`、`schemas/**` 或
-`tools/images/**` 会影响全部变体。修改 `src/<family>/` 下的文件或命中该镜像族 `inputs` 的
+修改 `.dockerignore`、`.gitmodules`、`vendor/image-kit` 子模块引用、`pyproject.toml`、`uv.lock`、
+`.github/workflows/**` 或 `tools/**` 会影响全部变体。这些消费端重建规则在
+`[tool.image-kit]` 中声明，schema 和 Python 工具测试由组件维护。修改 `src/<family>/` 下的文件或命中该镜像族 `inputs` 的
 文件，会影响该族全部变体。未包含在 inputs 中的纯文档变更不会构建镜像。
 
 工作流通过公开 HTTPS 组件地址递归初始化子模块。父仓库的 Git diff 只记录子模块提交，

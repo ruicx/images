@@ -211,7 +211,7 @@ because root reuses the base image's existing account.
 on a native ARM64 Docker builder and select:
 
 ```bash
-python -m tools.images plan --family ascend --platform linux/arm64 --output build-plan.json
+python -m image_kit plan --family ascend --platform linux/arm64 --output build-plan.json
 ```
 
 Standard CI builds and runs `tests/smoke.sh` on a native ARM64 runner without NPU hardware. This

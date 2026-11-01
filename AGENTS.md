@@ -12,7 +12,8 @@ Agents must prioritize correctness, reproducibility, and cache efficiency over a
 - **Mandatory Pre-flight Validation**: Always run manifest validation after modifying any manifest, shared input, or schema:
   ```bash
   uv run images validate
-  # or: python -m tools.images validate
+  uv run python -m tools.check_repository
+  # or: python -m image_kit validate
   ```
 - **Graph Integrity**: Build dependency graphs must remain strictly acyclic. Cross-platform internal dependencies and undeclared dependencies are strictly forbidden.
 
@@ -23,8 +24,9 @@ Agents must prioritize correctness, reproducibility, and cache efficiency over a
 - **Shared Component**: `vendor/image-kit` is the commit-pinned public submodule from
   `https://github.com/ruicx/image-kit.git`. Initialize it with
   `git submodule update --init --recursive` before validation or builds. Shared scripts, assets,
-  and shell contract tests belong there; manifests, Dockerfiles, schema, Python tooling, image
-  smoke tests, and release policies remain in this repository. Publish component commits before
+  shell contract tests, the installable Python tooling, its bundled schema, and tool tests belong
+  there; manifests, Dockerfiles, image smoke tests, account/documentation checks, and release policies
+  remain in this repository. Run `uv sync --extra dev` after component upgrades. Publish component commits before
   recording their pins here. Component pin or `.gitmodules` changes rebuild every variant.
 
 - **Capability Naming (No Sequence Numbers)**: Shared installation scripts in `vendor/image-kit/scripts/` must be named after their functional capability (e.g., `cmake.sh`, `dev-tools.sh`, `ssh.sh`). Never use sequence numbers (such as `01-system.sh`).
@@ -94,5 +96,6 @@ Agents must prioritize correctness, reproducibility, and cache efficiency over a
 - **Pre-commit Verification**: Before concluding any task, verify that manifests pass schema validation and all relevant tests pass:
   ```bash
   uv run images validate
+  uv run python -m tools.check_repository
   uv run ruff check .
   ```

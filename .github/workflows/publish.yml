@@ -49,21 +49,26 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.0"
+
       - name: Install repository tooling
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e ".[dev]"
+          uv sync --locked --extra dev --python 3.12
           sudo apt-get update
           sudo apt-get install -y shellcheck shfmt
 
       - name: Validate repository
         run: |
-          python -m ruff check tools
-          python -m ruff format --check tools
-          python -m mypy tools/images
-          python -m pytest
-          python -m tools.images validate
-          mapfile -t shell_files < <(python -m tools.images files --kind shell)
+          uv run --no-sync ruff check .
+          uv run --no-sync ruff format --check .
+          uv run --no-sync ty check
+          uv run --no-sync pytest
+          uv run --no-sync images validate
+          uv run --no-sync python -m tools.check_repository
+          mapfile -t shell_files < <(uv run --no-sync images files --kind shell)
           shellcheck "${shell_files[@]}"
           shfmt -d -i 4 -ci "${shell_files[@]}"
           bash vendor/image-kit/tests/install-arguments.sh
@@ -85,11 +90,11 @@ jobs:
                 arguments+=(--variant "$INPUT_VARIANT")
               fi
             fi
-            python -m tools.images plan "${arguments[@]}" --platform "$IMAGE_PLATFORM" --output build-plan.json
+            uv run --no-sync images plan "${arguments[@]}" --platform "$IMAGE_PLATFORM" --output build-plan.json
           elif [[ "$BASE_SHA" =~ ^0+$ ]]; then
-            python -m tools.images plan --all --platform "$IMAGE_PLATFORM" --output build-plan.json
+            uv run --no-sync images plan --all --platform "$IMAGE_PLATFORM" --output build-plan.json
           else
-            python -m tools.images plan --base "$BASE_SHA" --head "$HEAD_SHA" --platform "$IMAGE_PLATFORM" --output build-plan.json
+            uv run --no-sync images plan --base "$BASE_SHA" --head "$HEAD_SHA" --platform "$IMAGE_PLATFORM" --output build-plan.json
           fi
           count="$(python -c 'import json; print(len(json.load(open("build-plan.json"))["targets"]))')"
           echo "count=$count" >> "$GITHUB_OUTPUT"
@@ -102,7 +107,7 @@ jobs:
       - name: Build images for tests
         if: steps.plan.outputs.count != '0'
         run: |
-          python -m tools.images bake \
+          uv run --no-sync images bake \
             --plan build-plan.json \
             --owner "${{ github.repository_owner }}" \
             --repository "${{ github.repository }}" \
@@ -110,7 +115,7 @@ jobs:
             --build-id "$IMAGE_BUILD_ID" \
             --mode load \
             --output docker-bake.generated.json
-          python -m tools.images build-test \
+          uv run --no-sync images build-test \
             --plan build-plan.json \
             --bake docker-bake.generated.json \
             --owner "${{ github.repository_owner }}" \
@@ -129,7 +134,7 @@ jobs:
         if: steps.plan.outputs.count != '0'
         id: guard
         run: |
-          python -m tools.images bake \
+          uv run --no-sync images bake \
             --plan build-plan.json \
             --owner "${{ github.repository_owner }}" \
             --repository "${{ github.repository }}" \
@@ -138,7 +143,7 @@ jobs:
             --mode preflight \
             --output docker-bake.preflight.json
           docker buildx bake --file docker-bake.preflight.json --metadata-file build-metadata.json
-          python -m tools.images guard-tags \
+          uv run --no-sync images guard-tags \
             --plan build-plan.json \
             --metadata build-metadata.json \
             --owner "${{ github.repository_owner }}" \
@@ -151,7 +156,7 @@ jobs:
       - name: Publish missing immutable tags
         if: steps.guard.outputs.count != '0'
         run: |
-          python -m tools.images bake \
+          uv run --no-sync images bake \
             --plan publish-plan.json \
             --owner "${{ github.repository_owner }}" \
             --repository "${{ github.repository }}" \
@@ -164,7 +169,7 @@ jobs:
       - name: Promote floating variant tags
         if: steps.plan.outputs.count != '0'
         run: |
-          python -m tools.images promote \
+          uv run --no-sync images promote \
             --plan build-plan.json \
             --owner "${{ github.repository_owner }}" \
             --revision "${{ github.sha }}" \

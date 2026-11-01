@@ -12,7 +12,9 @@
 ```bash
 git -C vendor/image-kit fetch origin
 git -C vendor/image-kit checkout <reviewed-component-commit>
+uv sync --extra dev
 uv run images validate
+uv run python -m tools.check_repository
 uv run ruff check .
 uv run pytest
 bash vendor/image-kit/tests/install-arguments.sh
@@ -22,8 +24,9 @@ git add vendor/image-kit
 
 发布前需完成原生镜像构建和冒烟测试。组件引用与消费端修改一起提交，且组件提交必须已在
 上游可获取。升级引用会重建全部变体；回滚时恢复旧引用，再运行 `git submodule update --init`。
-CI 禁止使用 `git submodule update --remote`。镜像定义、镜像专用依赖、冒烟测试、schema、
-Python 构建工具和发布策略仍留在本仓库。
+CI 禁止使用 `git submodule update --remote`。镜像定义、镜像专用依赖、冒烟测试、账号/文档
+检查和发布策略仍留在本仓库。组件负责 Python 工具、包内 schema 和工具测试，不再保留第二份
+本地构建工具。
 
 ## 新增镜像族
 
@@ -33,7 +36,8 @@ Python 构建工具和发布策略仍留在本仓库。
    该标签下的更新；需要固定基础镜像时使用 `sha256`。
 4. 在 `inputs` 声明每个共享脚本或资产，在 `dependencies` 声明每个内部基础镜像。
 5. 添加镜像族双语文档，并为每个变体提供至少一个冒烟测试脚本。
-6. 运行 `images validate`、Ruff、mypy、pytest、ShellCheck、shfmt 和本地 Bake 构建。
+6. 运行 `images validate`、`python -m tools.check_repository`、Ruff、ty、pytest、
+   ShellCheck、shfmt 和本地 Bake 构建。
 
 ## 代码规则
 
@@ -43,7 +47,7 @@ Python 构建工具和发布策略仍留在本仓库。
   `-h`/`--help`；环境变量只用于容器运行期配置。
 - Python 函数和方法必须声明入参与返回值 type hint。公共模块、类、函数、方法和非平凡测试
   helper 使用英文 NumPy 风格 docstring；注释解释意图或约束，不复述代码。Python 必须通过
-  Ruff、mypy、pytest；面向用户的错误需指出镜像族、变体和字段。
+  Ruff、ty、pytest；面向用户的错误需指出镜像族、变体和字段。
 - Dockerfile 使用固定的 BuildKit syntax 和显式非交互安装。每个可以独立变化的能力采用相邻
   的 `COPY + RUN`；不要一次复制无关脚本，以免合并它们的缓存边界。先满足依赖顺序，再优先
   放置稳定或昂贵的能力，把便宜或经常变化的能力放在后面。每次软件安装及其 apt lists 清理

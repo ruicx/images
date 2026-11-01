@@ -173,6 +173,7 @@ uv sync --extra dev
 
 # 1. Validate manifest schemas and repository consistency
 uv run images validate
+uv run python -m tools.check_repository
 
 # 2. Inspect supported variants and generate build plan
 uv run images list
@@ -188,7 +189,8 @@ uv run images build-test --plan build-plan.json --bake docker-bake.generated.jso
 
 Shared installation scripts and assets come from the public
 [image-kit](https://github.com/ruicx/image-kit) submodule at `vendor/image-kit`, pinned to a commit.
-Dockerfiles, manifests, image tests, Python build tooling, and publishing remain in this repository.
+The component also supplies the Python build tooling, packaged schema, and tool tests.
+Dockerfiles, manifests, image tests, account/documentation policy, and publishing remain here.
 Updating the component pin rebuilds all image variants. See the
 [development guide](docs/development.md) for component upgrades.
 

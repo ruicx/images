@@ -13,7 +13,9 @@ reviewed component commit, fetch it and check it out explicitly:
 ```bash
 git -C vendor/image-kit fetch origin
 git -C vendor/image-kit checkout <reviewed-component-commit>
+uv sync --extra dev
 uv run images validate
+uv run python -m tools.check_repository
 uv run ruff check .
 uv run pytest
 bash vendor/image-kit/tests/install-arguments.sh
@@ -25,7 +27,8 @@ Run native image builds and smoke tests before publishing. Commit the component 
 consumer changes; the component commit must already be available upstream. A pin update rebuilds
 all variants. Roll back by restoring the previous pin and running `git submodule update --init`.
 Do not use `git submodule update --remote` in CI. Image definitions, requirements specific to an
-image, smoke tests, schema, Python build tooling, and release policies remain in this repository.
+image, smoke tests, account/documentation checks, and release policies remain here. The component
+owns the Python tooling, packaged schema, and tool tests. Do not create a second local tool copy.
 
 ## Adding an image family
 
@@ -35,7 +38,8 @@ image, smoke tests, schema, Python build tooling, and release policies remain in
    explicit `null` to track updates to that tag; use a `sha256` pin when a fixed base is needed.
 4. Declare every shared script or asset in `inputs` and every internal base in `dependencies`.
 5. Add bilingual family documentation and at least one smoke-test script per variant.
-6. Run `images validate`, Ruff, mypy, pytest, ShellCheck, shfmt, and a local Bake build.
+6. Run `images validate`, `python -m tools.check_repository`, Ruff, ty, pytest,
+   ShellCheck, shfmt, and a local Bake build.
 
 ## Code rules
 
@@ -46,7 +50,7 @@ image, smoke tests, schema, Python build tooling, and release policies remain in
   reserved for runtime container configuration.
 - Python functions and methods declare parameter and return type hints. Public modules, classes,
   functions, methods, and non-trivial test helpers use English NumPy-style docstrings. Comments
-  explain intent or constraints rather than restating code. Python must pass Ruff, mypy, and
+  explain intent or constraints rather than restating code. Python must pass Ruff, ty, and
   pytest. User-facing errors identify the family, variant, and field.
 - Dockerfiles use pinned BuildKit syntax and explicit non-interactive installation. Give each
   independently changeable capability an adjacent `COPY + RUN`; do not copy unrelated scripts
