@@ -1,4 +1,4 @@
-# 🛠️ Images: Modular GPU & NPU Development Environments
+# Images: GPU and NPU development containers
 
 [![Pull request images](https://github.com/ruicx/images/actions/workflows/pull-request.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/pull-request.yml)
 [![Publish images](https://github.com/ruicx/images/actions/workflows/publish.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/publish.yml)
@@ -6,17 +6,13 @@
 
 ---
 
-## Background & Motivation
+## Purpose and background
 
-Configuring consistent, high-performance GPU and NPU development environments across bare-metal workstations and cloud instances often incurs substantial repetitive overhead:
+This repository provides development container images for NVIDIA CUDA on `linux/amd64` and Huawei Ascend on `linux/arm64`. They are intended for building, debugging, and running GPU or NPU software in a container, either interactively or as a remote development environment. The Ascend PEFT image adds packages for parameter-efficient fine-tuning.
 
-- **Tedious toolchain setup**: Initializing an environment requires repeatedly verifying GPU/NPU driver compatibility, installing toolchains (CMake, Ninja, GCC, Clang), configuring Python environments, and fine-tuning shells, editors, and CLI utilities.
-- **Minimal official base images**: Upstream container images typically include only minimal runtime libraries, lacking essential development, diagnostic, and debugging tools.
-- **High maintenance cost of ad-hoc Dockerfiles**: Unstructured Dockerfiles quickly become bloated and fragile, offering little dependency convergence, poor layer caching, and no reproducibility guarantees.
+Setting up these environments involves selecting compatible host drivers and installing development tools and dependencies. The images bring common tools together so that projects can start from a shared environment; the host still needs compatible hardware, drivers, and container runtime configuration. Image manifests and shared installation scripts also support building and maintaining variants in this repository.
 
-**This project aims to reduce this recurring overhead.** It provides continuously maintained, publicly accessible development container images covering both NVIDIA CUDA (12.6 and 12.8 variants on x86_64) and Huawei Ascend (Kunpeng ARM64 + 910B with CANN 9.2.0 and TorchNPU 2.14.0). Each image integrates low-level compilers, profilers, and debuggers with a modern terminal productivity suite, all managed by a declarative build system.
-
-> 📖 **Family Guides**:
+> **Family guides**:
 > - For SSH remote development, long-running containers, non-root users, and credential mounts, see the [CUDA Image Guide](src/cuda/README.md).
 > - For Kunpeng + Ascend 910B setup, device mounting, and NPU verification, see the [Ascend Image Guide](src/ascend/README.md).
 > - For the Ascend PEFT package layer, see the [Ascend PEFT Guide](src/ascend-peft/README.md).
@@ -24,7 +20,7 @@ Configuring consistent, high-performance GPU and NPU development environments ac
 
 ---
 
-## 🚀 Quick Start
+## Quick start
 
 ### Prerequisites
 
@@ -79,20 +75,20 @@ python3 --version
 ```
 
 > [!TIP]
-> **💡 Tip 1: File Ownership & Permissions**
-> CUDA variants run by default as non-root user `luciole` (UID/GID `1000`) with passwordless `sudo`; Ascend defaults to root. Files created inside bind mounts inherit this UID/GID on Linux hosts. To match your host user's UID/GID, build a customized variant with `DEFAULT_USER`, `DEFAULT_UID`, and `DEFAULT_GID` build arguments (see [CUDA Guide: Customization](src/cuda/README.md#build-time-customization)).
+> **File ownership and permissions**
+> CUDA variants run by default as non-root user `luciole` (UID/GID `1000`) with passwordless `sudo`; Ascend defaults to root. Files created in bind mounts are owned by the container process UID/GID on Linux hosts. To match your host user's UID/GID, build a customized variant with `DEFAULT_USER`, `DEFAULT_UID`, and `DEFAULT_GID` build arguments (see [CUDA Guide: Customization](src/cuda/README.md#build-time-customization)).
 
 > [!TIP]
-> **💡 Tip 2: Host Driver Capability vs Container Toolkit Version**
+> **Host driver capability and container toolkit version**
 > The `CUDA Version` displayed at the top of `nvidia-smi` indicates the **maximum CUDA version supported by the host driver**, rather than the toolkit version inside the container. The active compiler version is determined by `nvcc --version`.
 
 ---
 
-## 📦 Variant Selection & Image Policies
+## Variants and image policies
 
 | Platform & Hardware | Image Tag | Base Image Policy | Recommended For |
 | :--- | :--- | :--- | :--- |
-| **CUDA 12.8.2**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` | Tracks upstream exact tag | **Recommended starting point for NVIDIA GPUs.** Balances version stability with official updates. |
+| **CUDA 12.8.2**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` | Tracks upstream exact tag | Projects using CUDA 12.8.2 on NVIDIA GPUs. |
 | **CUDA 12.6.3**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` | Tracks the exact NVIDIA base tag | Projects using CUDA 12.6.3 with upstream fixes published under the same base tag. |
 | **Ascend 910B**<br>`linux/arm64` (Ubuntu 22.04) | `ghcr.io/ruicx/ascend:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12` | Tracks the exact upstream base tag | Kunpeng ARM64 + Ascend 910B environments (CANN 9.2.0, PyTorch 2.14.0, TorchNPU 2.14.0). |
 | **Ascend PEFT**<br>`linux/arm64` (Ubuntu 22.04) | `ghcr.io/ruicx/ascend-peft:2.14.0-cann9.2.0-peft-910b-ubuntu22.04-py3.12` | Built from the Ascend image in the same build graph | PEFT training packages layered over the Ascend 910B development image. |
@@ -103,25 +99,25 @@ python3 --version
 2. **Convenience Tags vs Immutable Pins**:
    - The short tags shown above (e.g., `12.8.2-devel-ubuntu24.04`) serve as **convenience channels** that automatically track newly published builds.
    - To reuse a published environment, lock to its immutable `<variant>-<12-character-git-sha>-<run-id>-<attempt>` release tag, or pull directly by manifest digest (`ghcr.io/ruicx/cuda@sha256:<digest>`), inspectable via `docker buildx imagetools inspect <image>`. Rebuilding the same source may produce a newer environment; historical images remain available for rollback.
-   - 📌 *Note: This repository follows strict versioning discipline and deliberately does not publish a global `latest` tag.*
+   - This repository does not publish a global `latest` tag.
 
 ---
 
-## 🧰 Pre-installed Toolchain Matrix
+## Installed tools
 
-Images come pre-equipped with a comprehensive toolchain tailored for modern systems programming and development workflows:
+The images include the following tools; availability and versions can vary by image family:
 
-- ⚡ **Core Compilers & Debugging**: CUDA Compiler (`nvcc`) or Ascend CANN development suite, GCC, CMake 4.3.2, Ninja, `clangd` language server, GDB debugger, Git LFS.
-- 🐍 **Modern Python Stack**: Python 3, pip, and built-in virtual environment (`venv`) support with scientific and deep learning dependencies.
-- 🖼️ **Development Libraries & Networking**: OpenCV development headers and libraries, curl, wget, and standard network diagnostic utilities.
-- 🔍 **Modern CLI Productivity**: `ripgrep` (blazing-fast search), `fd` (ergonomic file finder), and `bat` (syntax-highlighted file viewer).
-- ✨ **Developer Shell Environment (Optional)**: Pre-configured zsh, Oh My Zsh, Starship prompt, NvChad (modern Neovim distribution), fzf, eza, zoxide, sheldon, witr, and NVM with Node.js LTS.
+- **Core Compilers & Debugging**: CUDA Compiler (`nvcc`) or Ascend CANN development suite, GCC, CMake 4.3.2, Ninja, `clangd` language server, GDB debugger, Git LFS.
+- **Modern Python Stack**: Python 3, pip, and built-in virtual environment (`venv`) support with scientific and deep learning dependencies.
+- **Development Libraries & Networking**: OpenCV development headers and libraries, curl, wget, and standard network diagnostic utilities.
+- **Modern CLI Productivity**: `ripgrep` (text search), `fd` (file finder), and `bat` (syntax-highlighted file viewer).
+- **Developer Shell Environment (Optional)**: Pre-configured zsh, Oh My Zsh, Starship prompt, NvChad (Neovim configuration), fzf, eza, zoxide, sheldon, witr, and NVM with Node.js LTS.
 
 For background service mode, SSH public key authentication, and runtime password secret mounts, see the [CUDA Image Guide](src/cuda/README.md) and [Ascend Image Guide](src/ascend/README.md).
 
 ---
 
-## 🏗️ Build Design & Architecture
+## Build design
 
 In addition to providing pre-built images, this repository organizes build and test workflows using declarative manifests:
 
@@ -146,17 +142,17 @@ variants:
       - src/cuda/tests/smoke.sh
 ```
 
-- 📄 **Manifest-driven Variants**: A single parameterized Dockerfile powers an entire image family. Adding a new combination requires only a declaration in `image.yml`, without modifying CI workflow code.
-- 🧩 **Reusable Capabilities**: Tool installations are decoupled into modular capability scripts (e.g., `cmake.sh`, `python-install.sh`, `devshell.sh`) with strict argument validation; adjacent `COPY` and `RUN` steps preserve optimal BuildKit caching boundaries.
-- 🧭 **Dependency-aware Incremental Builds**: `images plan` analyzes changed inputs to rebuild only affected image families and their transitive dependents; internal dependencies are always built from the same commit.
-- 🔒 **Transparent Reproducibility**: Development images track exact upstream base tags and check for updates on each build; publications retain immutable tags for each build batch before updating convenience tags.
-- 🛡️ **Pre-flight Validation**: Schema and semantic linters guard against circular dependencies, undeclared build arguments, or leaked secrets; all images must pass full builds and smoke tests before deployment.
+- **Manifest-driven Variants**: A single parameterized Dockerfile powers an entire image family. A variant can be declared in `image.yml` when the existing Dockerfile supports its configuration.
+- **Reusable Capabilities**: Tool installations are decoupled into modular capability scripts (e.g., `cmake.sh`, `python-install.sh`, `devshell.sh`) with strict argument validation; adjacent `COPY` and `RUN` steps provide separate BuildKit cache boundaries.
+- **Dependency-aware Incremental Builds**: `images plan` analyzes changed inputs to rebuild only affected image families and their transitive dependents; internal dependencies are always built from the same commit.
+- **Transparent Reproducibility**: Development images track exact upstream base tags and check for updates on each build; publications retain immutable tags for each build batch before updating convenience tags.
+- **Pre-flight Validation**: Schema and repository checks validate manifest structure and dependencies; CI also runs image builds and smoke tests.
 
 Learn more about the design and schema in [Architecture](docs/architecture.md) and the [Manifest Reference](docs/manifest-reference.md).
 
 ---
 
-## 💻 Local Development & Orchestration
+## Local development and builds
 
 The repository uses [uv](https://github.com/astral-sh/uv) to manage its Python tooling environment. Steps for local building, testing, or contributing:
 
@@ -193,13 +189,13 @@ Dockerfiles, manifests, image tests, account/documentation policy, and publishin
 Updating the component pin rebuilds all image variants. See the
 [development guide](docs/development.md) for component upgrades.
 
-## 📚 Documentation & Guidelines
+## Documentation
 
-Comprehensive architectural and operational documentation:
+Further documentation:
 
-- 📐 **Architecture & Schemas**: [Architecture](docs/architecture.md) · [Manifest Reference](docs/manifest-reference.md) · [CLI Reference](docs/cli-reference.md)
-- ⚙️ **Engineering Guides**: [CI/CD Behavior](docs/ci-cd.md) · [Development Guide](docs/development.md) · [Release Guide](docs/release.md)
-- 🔄 **Policies & Troubleshooting**: [Lifecycle Policy](docs/lifecycle.md) · [Troubleshooting](docs/troubleshooting.md)
+- **Architecture & Schemas**: [Architecture](docs/architecture.md) · [Manifest Reference](docs/manifest-reference.md) · [CLI Reference](docs/cli-reference.md)
+- **Engineering Guides**: [CI/CD Behavior](docs/ci-cd.md) · [Development Guide](docs/development.md) · [Release Guide](docs/release.md)
+- **Policies & Troubleshooting**: [Lifecycle Policy](docs/lifecycle.md) · [Troubleshooting](docs/troubleshooting.md)
 
-> 🤖 **For AI Coding Assistants & Automated Workflows**:
+> **For AI Coding Assistants & Automated Workflows**:
 > Detailed operational instructions, architectural invariants, Dockerfile caching rules, argument conventions, and commit formatting standards are specified in [AGENTS.md](AGENTS.md). All AI coding agents operating in this repository must strictly adhere to `AGENTS.md`.

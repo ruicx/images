@@ -1,4 +1,4 @@
-# 🛠️ Images: 现代 GPU 与 NPU 模块化开发镜像
+# Images：GPU 与 NPU 开发容器
 
 [![PR 镜像验证](https://github.com/ruicx/images/actions/workflows/pull-request.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/pull-request.yml)
 [![镜像发布](https://github.com/ruicx/images/actions/workflows/publish.yml/badge.svg)](https://github.com/ruicx/images/actions/workflows/publish.yml)
@@ -6,17 +6,13 @@
 
 ---
 
-## 背景与设计初衷
+## 用途与背景
 
-在多台物理工作站或云端实例上搭建稳定、高效的 GPU 与 NPU 开发环境，往往伴随着琐碎的重复劳动：
+本仓库提供 NVIDIA CUDA（`linux/amd64`）和华为昇腾（`linux/arm64`）开发容器镜像，可用于在容器中编译、调试和运行 GPU 或 NPU 软件，也可作为交互式或远程开发环境。昇腾 PEFT 镜像在基础开发环境上增加了参数高效微调所需的软件包。
 
-- **环境配置繁琐耗时**：每次初始化开发环境都需要反复核验显卡驱动与运行时兼容性，逐一安装 CMake、Ninja、GCC 等基础编译套件，配置 Python 虚拟环境，并耗费大量时间重新调优 Shell、编辑器及现代命令行工具。
-- **官方基础镜像过于精简**：上游官方镜像通常仅包含最低运行依赖，缺乏日常开发、性能剖析与故障排查所需的调试工具。
-- **散装 Dockerfile 维护成本高**：零散维护的 Dockerfile 极易随着时间推移变得臃肿杂乱，不仅难以收敛依赖，且缺乏有效的构建缓存优化与可复现性保证。
+搭建这类环境需要选择兼容的宿主机驱动，并安装开发工具和依赖。镜像将常用工具集中在一起，为项目提供共同的环境起点；使用时仍需在宿主机上配置兼容的硬件、驱动和容器运行时。仓库还通过镜像清单和共享安装脚本构建和维护各个变体。
 
-**本项目旨在消除这些重复配置开销。** 仓库提供了一组经过系统验证、持续维护且公开可用的现代开发容器镜像：涵盖 NVIDIA CUDA（基于 Ubuntu 24.04 的 12.6 与 12.8 变体）以及华为昇腾（面向鲲鹏 ARM64 + 910B，集成 CANN 9.2.0 与 TorchNPU 2.14.0）。镜像深度整合了底层编译调试工具与现代终端生产力套件，并依托基于声明式清单的容器构建与管理工具进行全生命周期维护。
-
-> 📖 **各镜像族详细指南**：
+> **镜像族指南**：
 > - 关于 SSH 远程开发、后台常驻服务、非 root 用户及运行时密钥挂载，详见 [CUDA 镜像指南](src/cuda/README_zh.md)。
 > - 关于鲲鹏 + 昇腾 910B 设备挂载、驱动映射与 NPU 验证，详见 [昇腾镜像指南](src/ascend/README_zh.md)。
 > - 关于昇腾 PEFT 软件包层，详见 [昇腾 PEFT 指南](src/ascend-peft/README_zh.md)。
@@ -24,7 +20,7 @@
 
 ---
 
-## 🚀 快速上手
+## 快速开始
 
 ### 前置要求
 
@@ -79,20 +75,20 @@ python3 --version
 ```
 
 > [!TIP]
-> **💡 贴士 1：文件权限与默认用户归属**
-> CUDA 变体默认以普通用户 `luciole`（UID/GID `1000`）运行，并具备免密 `sudo` 权限；昇腾镜像默认使用 root。在 Linux 宿主机中，容器向挂载目录写入的文件使用该 UID/GID。若需与宿主机当前非 root 用户的专属 UID/GID 保持一致，可通过构建期参数 `DEFAULT_USER`、`DEFAULT_UID` 和 `DEFAULT_GID` 构建专属变体（详见 [CUDA 指南：构建期自定义](src/cuda/README_zh.md#构建期自定义)）。
+> **文件权限与默认用户**
+> CUDA 变体默认以普通用户 `luciole`（UID/GID `1000`）运行，并具备免密 `sudo` 权限；昇腾镜像默认使用 root。在 Linux 宿主机中，容器向挂载目录写入的文件归属于容器进程使用的 UID/GID。若需与宿主机当前非 root 用户的专属 UID/GID 保持一致，可通过构建期参数 `DEFAULT_USER`、`DEFAULT_UID` 和 `DEFAULT_GID` 构建专属变体（详见 [CUDA 指南：构建期自定义](src/cuda/README_zh.md#构建期自定义)）。
 
 > [!TIP]
-> **💡 贴士 2：宿主机驱动支持上限 vs 容器工具链版本**
+> **宿主机驱动支持范围与容器工具链版本**
 > `nvidia-smi` 顶部显示的 `CUDA Version` 代表宿主机当前驱动所能支持的**最高 CUDA 版本上限**，而非容器内部已安装的具体编译器版本。容器内实际生效的编译器版本请以 `nvcc --version` 输出为准。
 
 ---
 
-## 📦 变体选型与镜像策略
+## 变体与镜像策略
 
 | 平台与硬件环境 | 镜像标签 | 基础镜像策略 | 推荐适用场景 |
 | :--- | :--- | :--- | :--- |
-| **CUDA 12.8.2**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` | 跟踪官方明确版本标签 | **NVIDIA GPU 推荐默认起点**。兼顾版本稳定性与官方安全更新。 |
+| **CUDA 12.8.2**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04` | 跟踪官方明确版本标签 | 适用于使用 CUDA 12.8.2 的 NVIDIA GPU 项目。 |
 | **CUDA 12.6.3**<br>`linux/amd64` (Ubuntu 24.04) | `ghcr.io/ruicx/cuda:12.6.3-devel-ubuntu24.04` | 跟踪明确的 NVIDIA 基础镜像标签 | 使用 CUDA 12.6.3，并接收上游在同一基础镜像标签下发布的修复。 |
 | **Ascend 910B**<br>`linux/arm64` (Ubuntu 22.04) | `ghcr.io/ruicx/ascend:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12` | 跟踪明确的上游基础镜像标签 | 鲲鹏 ARM64 + 昇腾 910B 环境（集成 CANN 9.2.0、PyTorch 2.14.0 与 TorchNPU 2.14.0）。 |
 | **Ascend PEFT**<br>`linux/arm64` (Ubuntu 22.04) | `ghcr.io/ruicx/ascend-peft:2.14.0-cann9.2.0-peft-910b-ubuntu22.04-py3.12` | 从同一构建图中的昇腾镜像构建 | 在昇腾 910B 开发镜像上叠加 PEFT 训练软件包。 |
@@ -103,30 +99,30 @@ python3 --version
 2. **便捷标签与不可变锁定**：
    - 上述表格中的短标签（如 `12.8.2-devel-ubuntu24.04`）为**便捷通道**，成功发布新构建后会自动向前滚动更新。
    - 需要复用已发布环境时，锁定不可变的 `<variant>-<12位-git-sha>-<run-id>-<attempt>` 发布标签，或通过 `docker buildx imagetools inspect <image>` 查询 manifest digest 并采用 `ghcr.io/ruicx/cuda@sha256:<digest>` 引用。相同源码重建可能生成更新的环境，历史镜像保留供回滚。
-   - 📌 *注：本仓库遵循明确的版本追踪规范，不发布语义模糊的全局 `latest` 标签。*
+   - 本仓库不发布全局 `latest` 标签。
 
 ---
 
-## 🧰 预置工具链矩阵
+## 已安装工具
 
-镜像预置了现代系统开发与高频调试所需的完整工具链，避免手动安装的等待与版本冲突：
+镜像包含以下工具，具体内容和版本可能因镜像族而异：
 
-- ⚡ **核心编译与调试**：CUDA 编译器 (`nvcc`) 或昇腾 CANN 开发套件、GCC、CMake 4.3.2、Ninja、`clangd` 语言服务器、GDB 调试器、Git LFS。
-- 🐍 **现代 Python 环境**：Python 3、pip 及内置虚拟环境（venv）支持，包含常用科学计算与深度学习基础依赖。
-- 🖼️ **开发库与网络工具**：OpenCV 开发依赖、curl、wget 及基础网络诊断工具。
-- 🔍 **高效现代 CLI 实用工具**：`ripgrep`（极速全文检索）、`fd`（人性化文件查找）、`bat`（语法高亮查看器）。
-- ✨ **现代终端开发环境（可选）**：配置完备的 zsh、Oh My Zsh、Starship 跨平台提示符、NvChad（Neovim 预配置发行版），以及 fzf、eza、zoxide、sheldon、witr 与基于 NVM 的 Node.js LTS。
+- **核心编译与调试**：CUDA 编译器 (`nvcc`) 或昇腾 CANN 开发套件、GCC、CMake 4.3.2、Ninja、`clangd` 语言服务器、GDB 调试器、Git LFS。
+- **Python 环境**：Python 3、pip 及内置虚拟环境（venv）支持，包含常用科学计算与深度学习基础依赖。
+- **开发库与网络工具**：OpenCV 开发依赖、curl、wget 及基础网络诊断工具。
+- **命令行工具**：`ripgrep`（文本搜索）、`fd`（文件查找）、`bat`（语法高亮查看器）。
+- **开发终端环境（可选）**：zsh、Oh My Zsh、Starship 跨平台提示符、NvChad（Neovim 预配置发行版），以及 fzf、eza、zoxide、sheldon、witr 与基于 NVM 的 Node.js LTS。
 
 关于后台常驻服务、SSH 公钥登录及运行时机密密码挂载等高级配置，请参阅 [CUDA 镜像指南](src/cuda/README_zh.md) 与 [昇腾镜像指南](src/ascend/README_zh.md)。
 
 ---
 
-## 🏗️ 构建机制与架构设计
+## 构建方式
 
 除了开箱即用的预构建镜像，本项目还采用声明式清单与模块化工具链组织各个镜像族的构建与测试流程：
 
 ```yaml
-# src/cuda/image.yml 变体定义示例
+# Example variant definition from src/cuda/image.yml
 variants:
   - id: 12.8.2-devel-ubuntu24.04
     base:
@@ -146,17 +142,17 @@ variants:
       - src/cuda/tests/smoke.sh
 ```
 
-- 📄 **清单驱动变体（Manifest-driven）**：单个参数化 Dockerfile 支撑整个镜像族。新增环境变体或组合只需在 `image.yml` 中声明，无需改写 CI 工作流代码。
-- 🧩 **积木式能力复用（Reusable Capabilities）**：将工具安装解耦为独立的职责脚本（如 `cmake.sh`、`python-install.sh`、`devshell.sh`），各脚本内建严格的参数校验；相邻的 `COPY` 与 `RUN` 保证最佳的 BuildKit 缓存边界。
-- 🧭 **依赖感知与增量构建（Dependency-aware）**：`images plan` 根据变更输入自动分析受影响的镜像族与传递依赖，避免不必要的全量重构；内部镜像依赖始终基于同一次提交构建。
-- 🔒 **透明的可复现策略**：开发镜像跟踪明确的上游基础镜像标签，每次构建检查更新；发布时先保留每个构建批次的不可变标签，再更新便捷标签。
-- 🛡️ **发布前多重校验**：Schema 与语义检查自动拦截环形依赖、未声明的构建参数或遗漏的依赖；所有镜像在推送到 Registry 前，均需通过真实构建与冒烟测试验证。
+- **清单驱动变体（Manifest-driven）**：单个参数化 Dockerfile 支撑整个镜像族。当现有 Dockerfile 支持所需配置时，可以在 `image.yml` 中声明新变体。
+- **共享安装脚本**：将工具安装解耦为独立的职责脚本（如 `cmake.sh`、`python-install.sh`、`devshell.sh`），各脚本内建严格的参数校验；相邻的 `COPY` 与 `RUN` 提供独立的 BuildKit 缓存边界。
+- **依赖感知与增量构建（Dependency-aware）**：`images plan` 根据变更输入自动分析受影响的镜像族与传递依赖，减少不必要的全量构建；内部镜像依赖始终基于同一次提交构建。
+- **透明的可复现策略**：开发镜像跟踪明确的上游基础镜像标签，每次构建检查更新；发布时先保留每个构建批次的不可变标签，再更新便捷标签。
+- **发布前多重校验**：Schema 和仓库检查校验清单结构与依赖关系；CI 还会执行镜像构建和冒烟测试。
 
 详细架构设计与配置契约请参阅[架构设计](docs/architecture.md)与[清单参考手册](docs/manifest-reference.md)。
 
 ---
 
-## 💻 本地开发与编排构建
+## 本地开发与构建
 
 本仓库基于 [uv](https://github.com/astral-sh/uv) 管理 Python 开发与构建工具链。在本地构建定制镜像或参与仓库开发的步骤如下：
 
@@ -190,13 +186,13 @@ uv run images build-test --plan build-plan.json --bake docker-bake.generated.jso
 `vendor/image-kit`，并固定到具体提交。组件还提供 Python 构建工具、包内 schema 和工具测试。
 Dockerfile、清单、镜像测试、账号/文档策略和发布流程仍由本仓库维护。升级组件引用会重建全部镜像变体，操作方式见[开发准则](docs/development.md)。
 
-## 📚 进阶文档与开发指引
+## 文档
 
-系统设计、开发规范与运维指南：
+其他文档：
 
-- 📐 **架构与规范**：[架构设计](docs/architecture.md) · [清单参考手册](docs/manifest-reference.md) · [CLI 使用手册](docs/cli-reference.md)
-- ⚙️ **工程与发布**：[CI/CD 机制](docs/ci-cd.md) · [开发规范指南](docs/development.md) · [发布流程说明](docs/release.md)
-- 🔄 **生命周期与排错**：[版本生命周期](docs/lifecycle.md) · [常见故障排查](docs/troubleshooting.md)
+- **架构与规范**：[架构设计](docs/architecture.md) · [清单参考手册](docs/manifest-reference.md) · [CLI 使用手册](docs/cli-reference.md)
+- **工程与发布**：[CI/CD 机制](docs/ci-cd.md) · [开发规范指南](docs/development.md) · [发布流程说明](docs/release.md)
+- **生命周期与排错**：[版本生命周期](docs/lifecycle.md) · [常见故障排查](docs/troubleshooting.md)
 
-> 🤖 **面向 AI 编程助手（AI Agents）与自动化工作流**：
-> 本仓库严谨的工程契约、Dockerfile 分层缓存规范、参数解析标准与 Git 提交要求均详见 [AGENTS.md](AGENTS.md)。所有参与仓库代码生成的 AI Agent 均须严格遵循该规范。
+> **面向 AI 编程助手（AI Agents）与自动化工作流**：
+> 本仓库的工程约定、Dockerfile 分层缓存规范、参数解析标准与 Git 提交要求均详见 [AGENTS.md](AGENTS.md)。所有参与仓库代码生成的 AI Agent 均须严格遵循该规范。
