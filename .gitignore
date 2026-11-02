@@ -14,12 +14,9 @@ src/ascend/secret/
 __pycache__/
 
 # generated image plans and Bake files
-build-plan.json
-publish-plan.json
-docker-bake.generated.json
-docker-bake.preflight.json
-docker-bake.publish.json
-build-metadata.json
+build-plan*.json
+docker-bake*.json
+build-metadata*.json
 
 # test outputs
 .pytest-tmp*/
