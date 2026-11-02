@@ -7,34 +7,38 @@ name = "dev-image-repository"
 version = "0.1.0"
 description = "Manifest-driven tooling for development container images"
 requires-python = ">=3.11"
+
 dependencies = [
-  "image-kit==0.2.0",
+    "image-kit==0.2.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "image-kit[dev]==0.2.0",
+    "image-kit[dev]==0.2.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["tools*"]
 
 [tool.uv.sources]
 image-kit = { path = "vendor/image-kit", editable = true }
 
 [tool.image-kit]
-source-repository = "ruicx/images"
 registry = "ghcr.io"
+source-repository = "ruicx/images"
 rebuild-inputs = [".gitmodules", "vendor/image-kit", "tools/**"]
 shell-inputs = ["vendor/image-kit/tests/*.sh"]
 
-[tool.setuptools.packages.find]
-include = ["tools*"]
-
 [tool.pytest.ini_options]
-testpaths = ["tests", "vendor/image-kit/tests"]
 addopts = "-p no:cacheprovider --basetemp=.pytest-tmp-default"
+testpaths = ["tests", "vendor/image-kit/tests"]
 
 [tool.ruff]
-line-length = 100
 target-version = "py311"
+line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.format]
+quote-style = "double"

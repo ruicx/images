@@ -8,7 +8,11 @@ from pathlib import Path
 import pytest
 from image_kit.repository import ImageRepository, RepositoryError
 
-from tools.check_repository import validate_documentation, validate_repository, validate_user
+from tools.check_repository import (
+    validate_documentation,
+    validate_repository,
+    validate_user,
+)
 
 
 @pytest.mark.parametrize(
@@ -16,7 +20,11 @@ from tools.check_repository import validate_documentation, validate_repository, 
     [
         ({"DEFAULT_USER": "root", "DEFAULT_UID": "1000"}, "must be omitted"),
         (
-            {"DEFAULT_USER": "Build User", "DEFAULT_UID": "1000", "DEFAULT_GID": "1000"},
+            {
+                "DEFAULT_USER": "Build User",
+                "DEFAULT_UID": "1000",
+                "DEFAULT_GID": "1000",
+            },
             "invalid Linux username",
         ),
         ({"DEFAULT_USER": "builder"}, "are required"),

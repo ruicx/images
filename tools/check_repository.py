@@ -43,7 +43,9 @@ def validate_user(family_name: str, variant: Variant) -> None:
                 f"{family_name}.{variant.identifier}.build_args.DEFAULT_USER: "
                 f"invalid Linux username '{default_user}'"
             )
-        if default_user == "root" and (default_uid is not None or default_gid is not None):
+        if default_user == "root" and (
+            default_uid is not None or default_gid is not None
+        ):
             raise RepositoryError(
                 f"{family_name}.{variant.identifier}.build_args: DEFAULT_UID and "
                 "DEFAULT_GID must be omitted when DEFAULT_USER is root"
@@ -114,7 +116,9 @@ def validate_repository(repository: ImageRepository) -> None:
     for family in repository.families.values():
         for variant in family.variants:
             if variant.mirror is None:
-                raise RepositoryError(f"{family.name}.{variant.identifier}: mirror is required")
+                raise RepositoryError(
+                    f"{family.name}.{variant.identifier}: mirror is required"
+                )
             if variant.ssh_mode is None:
                 raise RepositoryError(
                     f"{family.name}.{variant.identifier}: runtime.ssh.mode is required"

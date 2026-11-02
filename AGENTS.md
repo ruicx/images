@@ -73,6 +73,8 @@ Agents must prioritize correctness, reproducibility, and cache efficiency over a
 
 ## 5. Code Style & Documentation Standards
 
+- Use Ruff with an 88-character line length and double quotes. Preserve the Python 3.11 target and the existing lint rules; use ty with its default configuration.
+- Use `uv run --no-sync pre-commit install` to enable repository hooks and `uv run --no-sync pre-commit run --all-files` to check all tracked files. Ruff and ty hooks use the locked dev environment. Consumer hooks skip `vendor/`; run the component hooks separately.
 - **Documentation Language**: Keep English and Chinese README files (`README.md` and `README_zh.md`, including family READMEs) synchronized in structure and technical accuracy. Write documents under `docs/` in English.
 - **Python API Conventions**:
   - Provide English NumPy-style docstrings for all functions, methods, and classes.

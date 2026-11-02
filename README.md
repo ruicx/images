@@ -154,6 +154,16 @@ Learn more about the design and schema in [Architecture](docs/architecture.md) a
 
 ## Local development and builds
 
+After syncing development dependencies, install the Git hook in this repository and optionally check every file:
+
+```bash
+uv sync --locked --extra dev
+uv run --no-sync pre-commit install
+uv run --no-sync pre-commit run --all-files
+```
+
+The hooks run basic file checks, Ruff fixes and formatting, and a full-project ty check. Ruff and ty use the locked project development environment; the first run of the basic hooks requires network access. Consumer hooks skip `vendor/`; install and run image-kit's hooks separately in the component repository.
+
 The repository uses [uv](https://github.com/astral-sh/uv) to manage its Python tooling environment. Steps for local building, testing, or contributing:
 
 ```bash
