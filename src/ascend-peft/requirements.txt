@@ -4,3 +4,7 @@ huggingface-hub
 peft
 transformers
 torchvision
+torchmetrics
+pillow
+opencv-python
+einops
