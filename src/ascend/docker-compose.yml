@@ -6,7 +6,6 @@ services:
     environment:
       ASCEND_VISIBLE_DEVICES: ${ASCEND_VISIBLE_DEVICES:?Set ASCEND_VISIBLE_DEVICES to the host NPU IDs}
       SSH_MODE: key-only
-      SSH_ALLOW_EMPTY_AUTHORIZED_KEYS: "true"
     shm_size: 8g
     stdin_open: true
     tty: true
@@ -33,5 +32,5 @@ services:
 #   find /dev -maxdepth 1 -regextype posix-extended -regex '/dev/davinci[0-9]+' \
 #     -printf '%f\n' | sed 's/^davinci//' | sort -n | paste -sd, -
 # )"
-# docker compose -f src/ascend/compose.yaml up -d
-# docker compose -f src/ascend/compose.yaml exec ascend zsh
+# docker compose up -d
+# docker compose exec ascend zsh
