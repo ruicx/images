@@ -105,3 +105,5 @@ Agents must prioritize correctness, reproducibility, and cache efficiency over a
 ## Unified v2 publication
 
 Use the shared v2 plan and derived native worker matrix. Validate/build/test before digest publication; merge checks all required workers and the full identity before updating tags. Formal versions promote a verified main receipt without rebuilding or creating Git tags. Keep component publication before consumer pin commits. Docs are English-only; README pairs remain bilingual.
+
+Use one worker per dependency component and native platform. Pass `--component` to native commands, qualify artifacts with `worker_id` and run attempt, and retain the full validated plan for merge. Resolve published config digests from immutable registry manifests; do not require optional Buildx config-digest metadata.

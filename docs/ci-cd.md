@@ -8,8 +8,10 @@ pin changes rebuild all targets. Explicit Git diffs retain deleted and renamed i
 Ancestors are added without expanding publication selection and build only on required native
 platforms. A parent may cover more platforms than its child. Internal `base.target` and
 `base.context` connect to the same checkout via Bake named contexts. The plan derives workers
-for amd64 and arm64; no QEMU is configured. `build-test` validates the generated Bake graph,
-builds and tests independent components, then reports aggregate failures.
+per independent dependency component and native platform; no QEMU is configured.
+Each worker passes the generated `--component` and uses `worker_id` in artifact names.
+Internal parents stay with their children; separate CUDA variants run on separate amd64
+workers, and Ascend/Ascend PEFT share one ARM64 worker. The complete plan remains the merge gate.
 
 Hosted workers remove unused SDKs and preloaded Docker images before creating Buildx, retain
 Python/Node/Docker, limit BuildKit solver parallelism to one, and report disk usage on failure.
@@ -17,7 +19,8 @@ Capacity must cover both build cache and locally loaded smoke images. Load graph
 architecture-scoped Actions caches only; trusted publication can export them. Direct shell
 builds expose the Actions cache runtime through the pinned helper action.
 
-Luciole tests explicitly retain the image entrypoint/user and source their declared helper.
+Luciole CUDA tests retain the image entrypoint/user; root Ascend tests start through Bash
+and explicitly exercise the real vendor entrypoint and root SSH credential policy.
 utils tests explicitly override the entrypoint with Bash. Both use read-only test mounts,
 disable image pulls, and receive `SMOKE_HARD_GATE`. Advisory suppression belongs to the helper;
 container startup, missing scripts and Docker errors remain fatal. Hardware checks are separate.
@@ -43,3 +46,5 @@ receipt and creates `<variant>-vMAJOR.MINOR.PATCH` from existing digests without
 Artifacts are attempt-qualified and receipts retained for 90 days. Registry writes across tags
 are sequential, not transactional; failures stop later promotion. Keep a digest for fixed use.
 Native image builds and NPU tests remain distinct from static tooling checks.
+
+CI assigns one worker to each independent dependency component and native platform. Each worker retains internal parents, passes the generated `--component`, and uses `worker_id` in artifact names. Final merge checks the complete original plan across all workers. Collection resolves the published native manifest by immutable registry digest and compares its config digest with the loaded smoke-test image; it does not require optional Buildx config-digest metadata or download image layers.

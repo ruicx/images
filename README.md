@@ -211,3 +211,5 @@ Further documentation:
 > Detailed operational instructions, architectural invariants, Dockerfile caching rules, argument conventions, and commit formatting standards are specified in [AGENTS.md](AGENTS.md). All AI coding agents operating in this repository must strictly adhere to `AGENTS.md`.
 
 Publication uses YAML `name` independently of the directory and explicit variant channels. Verified build tags are `<variant>-<sha12>-<run-id>-<attempt>`; formal `<variant>-vMAJOR.MINOR.PATCH` tags promote an existing successful main publication receipt. All required native workers must pass before public tags advance. Historical tags remain available.
+
+CI assigns one worker to each independent dependency component and native platform. Each worker retains internal parents, passes the generated `--component`, and uses `worker_id` in artifact names. Final merge checks the complete original plan across all workers. Collection resolves the published native manifest by immutable registry digest and compares its config digest with the loaded smoke-test image; it does not require optional Buildx config-digest metadata or download image layers.
