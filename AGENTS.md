@@ -29,6 +29,10 @@ Agents must prioritize correctness, reproducibility, and cache efficiency over a
   remain in this repository. Run `uv sync --extra dev` after component upgrades. Publish component commits before
   recording their pins here. Component pin or `.gitmodules` changes rebuild every variant.
 
+- **Dependency Ownership**: Cross-repository reusable installers and resources belong to image-kit. Repository-shared extensions belong to `src/_scripts/<category>/` and `src/_assets/` when needed; single-image requirements, scripts and configuration belong to `src/<image>/`.
+- **Mechanisms and Package Selection**: Reuse existing installers with consumer-owned requirements. Publicly available software does not automatically belong in the shared default toolset. Add a script only for substantial installation logic or conditional behavior, and promote it only for actual reuse. Preserve separate CUDA/Ascend installation behavior and vendor constraints.
+- **Installation Guidance**: Follow `.agents/skills/add-install-step/SKILL.md` for dependency additions, build input registration, smoke verification and documentation updates.
+
 - **Capability Naming (No Sequence Numbers)**: Shared installation scripts in `vendor/image-kit/scripts/` must be named after their functional capability (e.g., `cmake.sh`, `dev-tools.sh`, `ssh.sh`). Never use sequence numbers (such as `01-system.sh`).
 - **Explicit Manifest & Dockerfile Registration**: Every script consumed by an image family must be:
   1. Declared in the `inputs` list of `src/<family>/image.yml`.

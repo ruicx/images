@@ -1,221 +1,98 @@
 ---
 name: add-install-step
-description: "Add a new shared installation step to the repository. Use when: adding a new shared install script, adding a new tool to dev images, adding a build step to Dockerfiles, adding a capability to image-kit, extracting repeated inline RUN commands into a reusable script."
-argument-hint: "Describe the installation step to add, e.g. install tool X for dev images"
+description: Add dependencies, installation steps, or build-time assets to container images in this repository. Use when choosing between image-local files, repository-shared extensions, and reusable image-kit capabilities, or wiring them into Dockerfiles and manifests.
 ---
 
-# Add a New Installation Step
+# Add an Image Dependency or Installation Step
 
-## When to Use
+Read the root `AGENTS.md` and inspect the affected image's Dockerfile, `image.yml`,
+existing inputs, and smoke tests before choosing a location. Preserve existing work.
 
-- Installing a new tool or configuring a new environment in one or more Docker images
-- Extracting repeated inline `RUN` commands into a reusable script
-- Introducing new build-time assets (config files, templates, etc.)
+## Choose Ownership First
 
-## Repository Layout Reference
+Separate the installation mechanism from the packages and configuration an image selects.
 
-```
-vendor/image-kit/           # Commit-pinned public submodule
-  scripts/                 # Shared install scripts grouped by capability
-    system/
-    python/
-    dev/
-    libraries/
-    integrations/
-  assets/                  # Build-time static assets
-  tests/                   # Shared shell contract tests
-src/<image>/
-  image.yml
-  Dockerfile
-```
+| Scope | Location | Contents |
+|---|---|---|
+| Reusable across repositories | `vendor/image-kit/scripts/<category>/`, `vendor/image-kit/assets/` | Consumer-independent installers and container resources; deliberately shared default toolsets |
+| Shared by this repository's images | `src/_scripts/<category>/`, `src/_assets/` | Repository-specific installation logic and shared dependency lists or configuration; create shared directories only when needed |
+| Specific to one image | `src/<image>/` | Image requirements, installation scripts, and configuration |
 
-Initialize the component with `git submodule update --init --recursive` before editing or
-validating. Commit and push shared changes in image-kit before recording the new submodule pin
-in this repository. A component pin update rebuilds all image variants. Image definitions,
-Python tooling, its packaged schema, and tool tests are maintained in image-kit. Image smoke
-tests, account/documentation policy checks, and release policies remain in the consumer repository.
-Run `uv sync --extra dev` after a component update, then `uv run images validate` and
-`uv run python -m tools.check_repository`.
+- Keep a single image's Python dependencies in `src/<image>/requirements.txt`.
+  If multiple images actually need the same set, consider a descriptive requirements
+  file under `src/_assets/` instead. Publicly available software does not automatically
+  belong in image-kit's default package set.
+- Reuse installation mechanisms independently of dependency lists. For example,
+  `ascend-python-packages.sh` belongs to image-kit, while the requirements it installs
+  belong to the consumer. The local `src/ascend-peft/requirements.txt` and Dockerfile
+  demonstrate this pattern.
+- Promote logic to a shared location only when its consumers need the same semantics.
+  Do not introduce a new abstraction for hypothetical reuse or move existing files
+  merely to make layouts look alike.
+- Use capability names without sequence numbers. Shared script categories are
+  `system`, `dev`, `python`, `libraries`, and `integrations`; retain `cuda-` or
+  `ascend-` prefixes where installation behavior differs by platform.
 
-## Step 1 — Choose a Capability Name and Scope
+## Choose the Smallest Implementation
 
-Use a stable, descriptive capability name such as `cmake.sh`, `ros2.sh`, or
-`dev-tools.sh`. Do not add sequence numbers: execution order belongs in each
-Dockerfile, while consumption belongs in each image family's `image.yml`.
+- For additional Python packages, edit the appropriate requirements file and reuse
+  an existing installer. Do not add a wrapper solely to forward the same arguments.
+- Keep a short, direct installation command in the Dockerfile when sufficient.
+  Use a script for substantial installation logic, conditional behavior, compilation,
+  or configuration. Keep that script image-local unless its scope warrants sharing.
+- Determine which image layers need the dependency, including inherited packages.
+  For example, Ascend PEFT inherits the local Ascend image through `base.target`
+  and `base.context`; CUDA has a separate base environment.
+  Do not add business dependencies to a common base just to reach one final image.
+- Preserve vendor-specific behavior. Ascend application packages must use the existing
+  constrained installer and package check; do not bypass its recorded base constraints.
+  CUDA and Ascend may share a dependency list while retaining different installers.
+- When a new script is needed, use `#!/bin/bash`, `set -euo pipefail`, and English
+  comments describing its role and execution user. Follow existing GNU `getopt`
+  conventions for named options, `--help`, and exit status 64 for invalid usage.
+  Pass build arguments as command options rather than persisting them as `ENV`
+  unless the value is also needed at runtime. Clean apt lists after installation
+  and follow the applicable checksum policy for downloaded binaries.
 
-Determine the target scope:
-- **Shared capability** → add one script and explicitly update every consuming
-  Dockerfile and manifest
-- **Specific image only** → update only that image family's Dockerfile and manifest
-- **Internal base capability** → declare the consuming variant's explicit DAG edge
-  in `dependencies`
+## Wire the Build and Change Detection
 
-## Step 2 — Write the Script
+Dockerfiles declare installation order; `image.yml` declares build configuration,
+dependencies, copied inputs, and test policy. There is no central dependency map.
 
-Create `vendor/image-kit/scripts/<category>/<capability>.sh` following these conventions.
-Choose `system` for OS, account, SSH, workspace, and mirror configuration; `python`
-for Python setup and package installation; `dev` for developer tools; `libraries`
-for third-party libraries; and `integrations` for platform and application integration.
-Keep one directory level and use a platform prefix for platform-specific scripts,
-such as `python/cuda-pip-packages.sh` and `python/ascend-pip-packages.sh`.
+- Use the repository root as build context. Copy each independently changeable script
+  or asset explicitly and list it in manifest `inputs`; do not copy whole directories.
+  Include nested requirements or other files read by the installer as well.
+- Keep each capability's `COPY + RUN` instructions adjacent. Put prerequisites first
+  and frequently changed business dependencies after stable layers where possible,
+  before final mirror configuration and cleanup.
+- Run system installation as root. Run user tools as the intended image user and
+  return to root for finalization; retain the image's existing final user and entrypoint.
+- For component changes, read `vendor/image-kit/AGENTS.md`, validate the component and
+  affected consumers, and follow the component-first publication and pinning rules
+  in the root `AGENTS.md`. A component pin change rebuilds all consumer images.
 
-```bash
-#!/bin/bash
-# One-line description: what this script does and which images use it.
-# If the script must run as the target non-root user, state that here.
-# List all GNU getopt options and their defaults.
-set -euo pipefail
+For any business image, keep its Python requirements in `src/<image>/requirements.txt`
+and choose an installation mechanism compatible with its actual base environment.
+The business image's name does not determine which installer it needs.
 
-usage() {
-    cat <<'EOF'
-Usage: capability.sh [--my-option <value>]
+For example, an Ascend-based business image can reuse `ascend-python-packages.sh`
+after its base has provided the Python setup, recorded constraints, and
+`ascend-pip-check`. CUDA-based or CPU-only business images should use an installer
+or direct command appropriate to their own base. Inspect the installer's contract
+before reusing it. Explicitly copy the selected requirements and installer, declare
+their source paths in `image.yml`, and preserve cleanup of temporary build inputs.
 
-Options:
-  --my-option <value>  Description (default: default_value)
-  -h, --help           Show this help
-EOF
-}
+## Verify and Document
 
-MY_VAR="default_value"
-if ! PARSED=$(getopt -o h -l help,my-option: -n "$(basename "$0")" -- "$@"); then
-    usage >&2
-    exit 64
-fi
-eval set -- "$PARSED"
-while true; do
-    case "$1" in
-        --my-option)
-            MY_VAR="$2"
-            shift 2
-            ;;
-        -h | --help)
-            usage
-            exit 0
-            ;;
-        --)
-            shift
-            break
-            ;;
-    esac
-done
-if [ "$#" -ne 0 ]; then
-    echo "capability.sh: unexpected positional arguments: $*" >&2
-    usage >&2
-    exit 64
-fi
-```
-
-Rules:
-- `set -euo pipefail` is mandatory
-- After `apt-get install`, always clean up: `rm -rf /var/lib/apt/lists/*`
-- Pass build-time values explicitly from Docker `ARG` to named script options; do
-  not persist them through `ENV` unless the running container also needs them
-- Keep supported-value validation and value-specific branches in the capability script; the
-  Dockerfile should pass the option rather than repeat the same condition for every consumer
-- Reject unknown options, missing values, and positional arguments with exit 64
-- Provide `-h` / `--help` without performing installation work
-- Verify checksums for downloaded external binaries unless the consuming family's bilingual README
-  records a user-approved exception with an exact version and HTTPS URL
-- A rolling interactive developer-shell step may use current upstream releases, branches, and
-  installers only when the consuming family's bilingual README records the user-approved
-  reproducibility and supply-chain exception
-
-## Step 3 — Handle Static Assets (if any)
-
-If the script depends on config files or templates:
-
-1. Place the files under `vendor/image-kit/assets/`
-2. Copy only the declared asset into the image to keep cache invalidation scoped:
-   ```dockerfile
-   COPY vendor/image-kit/assets/my-config.yaml /tmp/assets/my-config.yaml
-   ```
-3. Pass the path to the script explicitly:
-   ```bash
-   /tmp/scripts/capability.sh --config /tmp/assets/my-config.yaml
-   ```
-
-## Step 4 — Update the Dockerfile(s)
-
-### Where to call the script
-
-- **Root-level scripts**: insert `RUN /tmp/scripts/<capability>.sh` before `USER ${DEFAULT_USER}`
-- **Scripts that must run as the target user** (e.g. devshell, pre-commit): call after `USER ${DEFAULT_USER}`
-
-### Preserve useful cache boundaries
-
-Give each independently changeable capability an adjacent `COPY + RUN`. A combined `COPY` makes a
-change to any included script invalidate every later capability, even when their `RUN` instructions
-are separate. After satisfying dependencies, put stable or expensive work before cheap or
-frequently changed work. This is a capability boundary, not a rule to split installation from its
-cleanup; an `apt-get install` and removal of `/var/lib/apt/lists/*` stay in the same `RUN`.
-
-### Standard Dockerfile structure
-
-```dockerfile
-ARG DEFAULT_USER=root
-ARG DEFAULT_UID=1000
-ARG DEFAULT_GID=1000
-ARG WORKSPACE_DIR=/work
-ARG TZ=Etc/UTC
-
-COPY --chmod=0755 vendor/image-kit/scripts/system/system.sh /tmp/scripts/system.sh
-RUN /tmp/scripts/system.sh --timezone "${TZ}"
-
-COPY --chmod=0755 vendor/image-kit/scripts/system/user.sh /tmp/scripts/user.sh
-RUN /tmp/scripts/user.sh \
-    --username "${DEFAULT_USER}" \
-    --uid "${DEFAULT_UID}" \
-    --gid "${DEFAULT_GID}"
-
-COPY --chmod=0755 vendor/image-kit/scripts/system/workspace.sh /tmp/scripts/workspace.sh
-RUN /tmp/scripts/workspace.sh \
-    --path "${WORKSPACE_DIR}" \
-    --owner "${DEFAULT_USER}"
-
-COPY vendor/image-kit/assets/my-config.yaml /tmp/assets/my-config.yaml
-COPY --chmod=0755 vendor/image-kit/scripts/dev/my-tool.sh /tmp/scripts/my-tool.sh
-RUN /tmp/scripts/my-tool.sh --config /tmp/assets/my-config.yaml
-
-# --- root-level scripts ---
-
-USER ${DEFAULT_USER}
-WORKDIR ${WORKSPACE_DIR}
-
-# --- user-level scripts (if any) ---
-COPY --chmod=0755 vendor/image-kit/scripts/dev/devshell.sh /tmp/scripts/devshell.sh
-RUN /tmp/scripts/devshell.sh --enabled true
-
-USER root
-RUN rm -rf /tmp/scripts /tmp/assets   # clean up both in one RUN
-
-USER ${DEFAULT_USER}
-WORKDIR ${WORKSPACE_DIR}
-```
-
-> **Common mistake**: adding a shared input to the Dockerfile without declaring the
-> exact path in `image.yml.inputs`. This prevents change impact analysis from
-> rebuilding the correct family and downstream dependency closure.
-
-## Step 5 — Update Documentation
-
-Per the documentation sync rules in `AGENTS.md`:
-
-| Changed file | Documentation to update |
-|---|---|
-| New `vendor/image-kit/scripts/<category>/*.sh` | Add it to every consumer's `image.yml.inputs`; update affected `README.md` / `README_zh.md` |
-| `Dockerfile` | Update the corresponding image's `README.md` and `README_zh.md` |
-| New file under `vendor/image-kit/assets/` | Update image docs that reference the asset's feature |
-
-## Step 6 — Checklist
-
-- [ ] Script has `#!/bin/bash` and `set -euo pipefail`
-- [ ] Script has a stable capability name without a sequence number
-- [ ] Parameterized scripts use GNU `getopt`, expose `--help`, and reject positional arguments
-- [ ] All target Dockerfiles updated (base / dev / runtime as appropriate)
-- [ ] Independently changeable capabilities use adjacent `COPY + RUN` pairs in dependency order
-- [ ] Every script and asset copied by a Dockerfile is declared in `image.yml.inputs`
-- [ ] Cleanup line `rm -rf /tmp/scripts /tmp/assets` covers all temp directories
-- [ ] Documentation synced (`README.md`, `README_zh.md`, `AGENTS.md`)
-- [ ] `python -m image_kit validate` and `python -m tools.check_repository` pass
-- [ ] New external downloads use exact versions and verified checksums, or document an approved
-  exception in the consuming family's bilingual README
+- Add a smoke assertion for the capability the image is intended to provide.
+  Importing a Python binding alone does not prove its system executable or library
+  works; exercise that integration when it is part of the feature.
+- Keep image smoke scripts under `src/<image>/tests/` and register their scripts, helpers,
+  and additional inputs in the manifest. Preserve existing assertions and policy.
+- Run manifest validation and repository policy checks. Run relevant shell checks
+  for script changes and component/tooling checks when those surfaces change, using
+  the commands in `AGENTS.md`. Report static checks, native container smoke tests,
+  and hardware-dependent checks separately.
+- Update affected `README.md` / `README_zh.md` pairs together; update all affected
+  image guides for a shared feature. Documents under `docs/` remain English-only.
+  Update `AGENTS.md` and this skill when maintenance conventions change.
