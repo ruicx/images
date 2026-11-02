@@ -35,3 +35,5 @@ PyTorch 和 TorchNPU 完整版本与父镜像的 `base-constraints.txt` 比较�
 已发布镜像的不可变标签。Ascend Docker Runtime、设备选择、共享内存和 SSH 等容器启动参数
 与[父镜像指南](../ascend/README_zh.md)一致。继承的默认用户为 root；按该指南限制可写的宿主机
 挂载目录和 SSH 访问。
+
+发布名称由 YAML `name` 决定，不要求与目录名相同，并使用显式 variant 通道。已验证构建标签为 `<variant>-<sha12>-<run-id>-<attempt>`；正式 `<variant>-vMAJOR.MINOR.PATCH` 标签从成功的 main 发布收据提升。所有必需原生任务通过后才更新公开标签，历史制品保留。

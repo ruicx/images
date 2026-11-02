@@ -42,3 +42,5 @@ Build with the repository's manifest and Bake workflow; the `ascend-peft` target
 including Ascend Docker Runtime, device selection, shared memory, and SSH, are the same as in the
 [parent guide](../ascend/README.md). The inherited default user is root; restrict writable host
 mounts and SSH access as described there.
+
+Publication uses YAML `name` independently of the directory and explicit variant channels. Verified build tags are `<variant>-<sha12>-<run-id>-<attempt>`; formal `<variant>-vMAJOR.MINOR.PATCH` tags promote an existing successful main publication receipt. All required native workers must pass before public tags advance. Historical tags remain available.

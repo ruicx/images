@@ -192,11 +192,10 @@ runtime:
 [仓库构建流程](../../README_zh.md#开发本仓库)操作，并把 `plan --all` 替换为：
 
 ```bash
-images plan --family cuda --variant <variant-id> --output build-plan.json
+images plan --target cuda/<variant-id> --output build-plan.json
 ```
 
-使用 `load` 模式时，生成的本地镜像除不可变 revision 标签外，还会获得浮动标签
-`ghcr.io/ruicx/cuda:<variant-id>`。
+使用 `load` 模式时，未指定 build ID 的本地镜像使用 `<variant-id>-<sha12>-local` 标签。浮动 variant 通道只在 main 发布验证通过后更新。
 
 ## 可复现性与能力边界
 
@@ -229,3 +228,5 @@ checksum 的来源；仅重新构建本仓库并不能消除该风险。
 CUDA 镜像有意不内置 llama.cpp。需要它的应用应运行官方 llama.cpp 镜像作为独立服务，并在
 下游项目中定义编排。共享的 `llama-cpp.sh` 脚本是未被引用的待迁移能力，不属于本镜像族承诺
 支持的内容。
+
+发布名称由 YAML `name` 决定，不要求与目录名相同，并使用显式 variant 通道。已验证构建标签为 `<variant>-<sha12>-<run-id>-<attempt>`；正式 `<variant>-vMAJOR.MINOR.PATCH` 标签从成功的 main 发布收据提升。所有必需原生任务通过后才更新公开标签，历史制品保留。

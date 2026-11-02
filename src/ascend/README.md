@@ -231,3 +231,5 @@ the same commit is therefore not guaranteed to reproduce identical bytes. Set `D
 to omit the interactive shell installation. CI retains each build, including reruns of the same
 commit, as `<variant>-<short-sha>-<run-id>-<attempt>`. These immutable tags and image digests identify
 the actual built artifacts for rollback; no global `latest` tag is published.
+
+Publication uses YAML `name` independently of the directory and explicit variant channels. Verified build tags are `<variant>-<sha12>-<run-id>-<attempt>`; formal `<variant>-vMAJOR.MINOR.PATCH` tags promote an existing successful main publication receipt. All required native workers must pass before public tags advance. Historical tags remain available.

@@ -1,39 +1,29 @@
 # Release guide
 
-Pull requests validate and build the affected dependency closure without registry credentials.
-Merges to `main` repeat validation, build and test locally, compare immutable tags, push missing
-artifacts, and finally promote floating tags. A manual run can select all images, one family, or one
-variant.
+Main and manual builds use the common native digest workflow. PRs validate/build/test without
+GHCR credentials or pushes. Selected targets and required ancestors build on native amd64 and
+arm64 workers derived from the plan; no QEMU is used. Every worker must pass before public tags
+advance. Ancestors remain unpublished unless explicitly selected.
 
-CI identifies each release as `<variant>-<short-sha>-<run-id>-<attempt>`. To refresh an existing
-commit from updated upstream base tags, start a manual publish or rerun the workflow: the new run
-or attempt gets a separate immutable tag. No scheduled rebuild is configured. Historical images
-and legacy `<variant>-<short-sha>` tags are retained; pin one of those artifacts or its digest to
-restore an old environment. Actions logs alone do not preserve an image.
+Build tags use `<variant>-<sha12>-<run-id>-<attempt>`. Rebuilding a source revision uses a new
+run or attempt. Only main advances floating `<variant>` channels. Existing build tags cannot
+be overwritten with different index contents; conflicts and registry lookup errors fail.
+No global latest/main/bare-SHA or unprefixed version tags are generated. Historical artifacts
+are never deleted by automation. Pin the final index digest for a fixed environment.
 
-The precise change-selection, cache, permission, idempotency, concurrency, and failure-isolation
-rules are defined in [CI/CD behavior](ci-cd.md). Operational recovery is covered by
-[Troubleshooting](troubleshooting.md).
+Merge validates all native artifacts and saves `publication.json` as `publication-<attempt>`
+for 90 days. Use the separate Release verified images workflow with the successful main run ID,
+attempt and version such as `v1.2.0`. It checks the source run/workflow and receipt and creates
+`<variant>-v1.2.0` from existing registry digests without rebuilding or creating Git tags.
+Keep a downloaded receipt for promotions after Actions artifact retention expires. The same
+operation is available through `images release`; see the shared
+[CLI contract](../vendor/image-kit/docs/cli-reference.md).
 
-Required repository settings:
+Default workflow permissions are read-only. Publishing jobs explicitly receive packages:write;
+release additionally receives actions:read. Native workers clean unused hosted SDKs/images,
+limit BuildKit parallelism to one, and report disk usage even after failure. Tag updates across
+multiple images are sequential, not transactional.
 
-- Allow GitHub Actions to publish packages with `GITHUB_TOKEN`.
-- Protect `main` and require the pull-request workflow.
-- Keep workflow permissions read-only by default; the publish job declares `packages: write`.
-- After first publication, set every intended package to Public and test anonymous pulls.
-
-GitHub manages source-repository and container-package visibility separately, so a package created
-from a public repository may still be private. After the first successful publication of each
-package, an owner must open its package settings, change the visibility to **Public**, and verify
-that the image can be pulled without registry credentials. For example:
-
-```bash
-docker logout ghcr.io
-docker pull ghcr.io/ruicx/cuda:12.8.2-devel-ubuntu24.04
-```
-
-Automation never deletes immutable tags. Removing a variant from `image.yml` stops future builds
-but does not delete tags that have already been published.
-
-The first phase intentionally does not generate SBOMs, provenance attestations, or vulnerability
-gates. These can be added without changing `image.yml` or the tag contract.
+After first publication, verify intended package visibility and anonymous pulls. Registry
+package visibility and source repository visibility are managed separately. Do not delete
+historical immutable tags when removing a variant from a manifest.

@@ -67,7 +67,7 @@ def validate_user(family_name: str, variant: Variant) -> None:
 
 
 def validate_documentation(repository: ImageRepository) -> None:
-    """Require every normative guide to have a non-empty Chinese counterpart.
+    """Require bilingual READMEs and CONTRIBUTING while keeping docs English-only.
 
     Parameters
     ----------
@@ -79,6 +79,8 @@ def validate_documentation(repository: ImageRepository) -> None:
     RepositoryError
         If a required documentation file is missing or empty.
     """
+    if translations := sorted((repository.root / "docs").glob("*_zh.md")):
+        raise RepositoryError(f"docs must be English-only: {translations}")
     pairs = [
         (repository.root / "README.md", repository.root / "README_zh.md"),
         (repository.root / "CONTRIBUTING.md", repository.root / "CONTRIBUTING_zh.md"),

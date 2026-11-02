@@ -2,8 +2,8 @@
 
 Use trunk-based development through short-lived pull requests. Commit messages follow Conventional
 Commits. Before opening a pull request, follow [the development guide](docs/development.md), run the
-repository validation suite, and update both English and Chinese documentation for user-visible
-changes.
+repository validation suite, and keep README and CONTRIBUTING English/Chinese pairs synchronized for user-visible
+changes. Documents under `docs/` are maintained in English only.
 
 Maintainers with release permissions must also follow the [release guide](docs/release.md).
 

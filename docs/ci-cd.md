@@ -1,61 +1,45 @@
-# CI/CD behavior
+## Selection and native execution
 
-## Change impact and graph construction
+`plan --all`, `--family <YAML-name>` or `--target <name/variant>` select outputs. Git-based planning
+uses actual manifest, Dockerfile, installation and smoke inputs and propagates to downstream
+consumers. README and Compose changes alone do not rebuild images. Infrastructure and component
+pin changes rebuild all targets. Explicit Git diffs retain deleted and renamed input paths.
 
-Changes to `.dockerignore`, `.gitmodules`, the `vendor/image-kit` submodule pin,
-`pyproject.toml`, `uv.lock`, `.github/workflows/**`, or `tools/**` affect every variant. These consumer
-rebuild rules are declared in `[tool.image-kit]`; the component owns its schema and Python tests. A change below `src/<family>/` or matching that family's
-`inputs` affects every variant in the family. Documentation-only changes outside those inputs do
-not build images.
+Ancestors are added without expanding publication selection and build only on required native
+platforms. A parent may cover more platforms than its child. Internal `base.target` and
+`base.context` connect to the same checkout via Bake named contexts. The plan derives workers
+for amd64 and arm64; no QEMU is configured. `build-test` validates the generated Bake graph,
+builds and tests independent components, then reports aggregate failures.
 
-Workflows initialize submodules recursively using the public HTTPS component URL. A component
-pin change rebuilds every variant because the parent Git diff records the submodule commit,
-not the individual scripts changed inside it. Local edits to component files still match manifest
-`inputs` when those paths are supplied to the planner.
+Hosted workers remove unused SDKs and preloaded Docker images before creating Buildx, retain
+Python/Node/Docker, limit BuildKit solver parallelism to one, and report disk usage on failure.
+Capacity must cover both build cache and locally loaded smoke images. Load graphs import
+architecture-scoped Actions caches only; trusted publication can export them. Direct shell
+builds expose the Actions cache runtime through the pinned helper action.
 
-The planner first expands transitive consumers: changing a base rebuilds every downstream target.
-It then adds transitive ancestors required to build the selected outputs. Ancestors appear in the
-plan with `publish: false` unless independently affected. The final order is topological.
+Luciole tests explicitly retain the image entrypoint/user and source their declared helper.
+utils tests explicitly override the entrypoint with Bash. Both use read-only test mounts,
+disable image pulls, and receive `SMOKE_HARD_GATE`. Advisory suppression belongs to the helper;
+container startup, missing scripts and Docker errors remain fatal. Hardware checks are separate.
 
-Targets are partitioned into disconnected graph components. CI builds and tests all components,
-records failures, and continues with unrelated components so one broken image graph does not hide
-results from another.
+## Publication and formal releases
 
-CI uses native platform jobs: `ubuntu-24.04` for `linux/amd64` and `ubuntu-24.04-arm` for
-`linux/arm64`. Each job passes `--platform` to the planner; families have exactly one platform
-and internal dependency edges cannot cross platforms. Matrix jobs do not cancel one another on
-failure. Ascend CPU-only smoke checks run without NPU devices; hardware tests run separately on
-the target server.
+PRs have read-only contents access and never log in, push images or export caches. Main and
+manual publications first complete validation and native smoke tests, push selected targets
+by digest, and collect file-loaded Bake metadata. Full provenance is transferred through
+`toJSON` inside a quoted Node heredoc, never an environment variable or command argument.
+Build ID is `<run-id>-<attempt>` and is passed unchanged through every pipeline stage.
 
-## Workflow matrix
+The merge job waits for every native worker. It verifies the exact expected platform set and
+shared build identity, composes indexes with provenance, and checks all existing build tags
+before writing public tags. Build tags are `<variant>-<sha12>-<run-id>-<attempt>` and are never
+overwritten with different content. Only after all build tags succeed does main advance the
+floating `<variant>` channels. Other refs receive build tags only. No global `latest`, `main`,
+bare SHA or unprefixed version tag is generated; historical artifacts remain available.
 
-| Behavior | Pull request | Push to `main` | Manual publish |
-| --- | --- | --- | --- |
-| Selection | Changed closure | Changed closure; all on initial push | All, one family, or one variant |
-| Permissions | `contents: read` | `contents: read`, `packages: write` | Same as main publish |
-| Registry login | No | After local tests | After local tests |
-| Image push | Never | Missing immutable tags only | Missing immutable tags only |
-| Cache | Read family/variant scope | Read and write family/variant scope | Read and write family/variant scope |
-| Floating tags | Never | Promoted after immutable tags succeed | Same as main publish |
-
-Fork pull requests therefore remain read-only and receive no package credentials. An empty plan
-skips Buildx setup and all image work while repository validation still runs.
-
-## Publication transaction
-
-Every stage receives the same `--build-id <run-id>-<attempt>` from GitHub Actions. Immutable tags
-are `<variant>-<short-sha>-<run-id>-<attempt>`, so a new run or rerun of the same commit can publish
-updated upstream content under a new tag. Historical tags are retained. Generated Bake targets
-check for base updates with `pull: true`; unchanged layers can still reuse the scoped cache.
-
-The main workflow validates the repository, builds and smoke-tests locally, logs in with
-`GITHUB_TOKEN`, performs an unpushed preflight build, and compares each local digest with GHCR.
-A missing immutable tag remains in the publication plan, a matching digest is removed as an
-idempotent retry, and a different digest fails. Within each platform job, missing immutable tags are pushed before that job's floating tags are
-promoted. Publication across the two platforms is independent rather than an atomic transaction.
-
-The concurrency group `publish-images-main` serializes publishers and does not cancel an in-flight
-release. Cache scope is `<family>-<variant>` to prevent unrelated variants from overwriting one
-another. Third-party Actions are pinned to commit SHAs.
-
-Generated plan, metadata, and Bake files are workflow-local artifacts. They contain no secrets.
+Merge emits `publication.json` with source identity, platforms and final index digests. The
+separate release workflow selects a successful main publication run and attempt, validates its
+receipt and creates `<variant>-vMAJOR.MINOR.PATCH` from existing digests without rebuilding.
+Artifacts are attempt-qualified and receipts retained for 90 days. Registry writes across tags
+are sequential, not transactional; failures stop later promotion. Keep a digest for fixed use.
+Native image builds and NPU tests remain distinct from static tooling checks.

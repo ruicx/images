@@ -164,7 +164,7 @@ cd images
 git submodule update --init --recursive
 
 # Install dependencies and sync development environment
-uv sync --extra dev
+uv sync --locked --extra dev
 
 # 1. Validate manifest schemas and repository consistency
 uv run images validate
@@ -172,12 +172,12 @@ uv run python -m tools.check_repository
 
 # 2. Inspect supported variants and generate build plan
 uv run images list
-uv run images plan --all --output build-plan.json
+uv run images plan --all --platform linux/amd64 --output build-plan.json
 
 # 3. Generate Bake definitions and run local build & smoke tests
 revision="$(git rev-parse HEAD)"
-uv run images bake --plan build-plan.json --owner ruicx --repository ruicx/images --revision "$revision" --mode load --output docker-bake.generated.json
-uv run images build-test --plan build-plan.json --bake docker-bake.generated.json --owner ruicx --revision "$revision"
+uv run images bake --plan build-plan.json --owner ruicx --repository ruicx/images --revision "$revision" --platform linux/amd64 --mode load --output docker-bake.generated.json
+uv run images build-test --plan build-plan.json --bake docker-bake.generated.json --owner ruicx --revision "$revision" --platform linux/amd64
 ```
 
 ---
@@ -199,3 +199,5 @@ Further documentation:
 
 > **For AI Coding Assistants & Automated Workflows**:
 > Detailed operational instructions, architectural invariants, Dockerfile caching rules, argument conventions, and commit formatting standards are specified in [AGENTS.md](AGENTS.md). All AI coding agents operating in this repository must strictly adhere to `AGENTS.md`.
+
+Publication uses YAML `name` independently of the directory and explicit variant channels. Verified build tags are `<variant>-<sha12>-<run-id>-<attempt>`; formal `<variant>-vMAJOR.MINOR.PATCH` tags promote an existing successful main publication receipt. All required native workers must pass before public tags advance. Historical tags remain available.

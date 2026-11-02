@@ -1,27 +1,25 @@
-schema_version: 1
+schema_version: 2
 name: ascend-peft
 description: ARM64 Ascend PEFT training environment derived from the Ascend development image.
 dockerfile: src/ascend-peft/Dockerfile
 context: .
 platforms:
-  - linux/arm64
+- linux/arm64
 inputs:
-  - vendor/image-kit/scripts/python/ascend-python-packages.sh
-  - src/ascend-peft/requirements.txt
+- vendor/image-kit/scripts/python/ascend-python-packages.sh
+- src/ascend-peft/requirements.txt
 publish: true
 variants:
-  - id: 2.14.0-cann9.2.0-peft-910b-ubuntu22.04-py3.12
-    base:
-      image: ascendai/torch-npu:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12
-      digest: null
-    build_args: {}
-    mirror: upstream
-    runtime:
-      ssh:
-        mode: key-only
-    dependencies:
-      - context: ascend_base
-        family: ascend
-        variant: 2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12
-    tests:
-      - src/ascend-peft/tests/smoke.sh
+- id: 2.14.0-cann9.2.0-peft-910b-ubuntu22.04-py3.12
+  base:
+    target: ascend/2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12
+    context: ascend_base
+  build_args: {}
+  mirror: upstream
+  runtime:
+    ssh:
+      mode: key-only
+  tests:
+  - script: src/ascend-peft/tests/smoke.sh
+    policy: required
+    entrypoint: bash

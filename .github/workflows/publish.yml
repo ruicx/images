@@ -1,176 +1,191 @@
-name: Publish images
+name: Build and publish images
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
     inputs:
       family:
-        description: "Image family; leave empty for all"
+        description: YAML image name; leave empty to select all or use target
         required: false
         type: string
-      variant:
-        description: "Variant; requires family"
+      target:
+        description: Exact name/variant; mutually exclusive with family
         required: false
         type: string
 
 permissions:
   contents: read
-  packages: write
 
+# Serialize active publishers while keeping PR validation independent.
 concurrency:
-  group: publish-images-main
+  group: images-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'publisher' }}
   cancel-in-progress: false
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
-  publish:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: linux/amd64
-            runner: ubuntu-24.04
-          - platform: linux/arm64
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
-    env:
-      IMAGE_PLATFORM: ${{ matrix.platform }}
-      IMAGE_BUILD_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+  plan:
+    name: Validate and plan
+    runs-on: ubuntu-24.04
+    outputs:
+      has_build: ${{ steps.plan.outputs.has_build }}
+      build_matrix: ${{ steps.plan.outputs.build_matrix }}
+      revision: ${{ steps.plan.outputs.revision }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           submodules: recursive
-
-      - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
-          version: "0.12.0"
-
-      - name: Install repository tooling
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install tooling
         run: |
           uv sync --locked --extra dev --python 3.12
-          sudo apt-get update
-          sudo apt-get install -y shellcheck shfmt
-
-      - name: Validate repository
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Check tooling and contracts
         run: |
-          uv run --no-sync ruff check .
-          uv run --no-sync ruff format --check .
-          uv run --no-sync ty check
-          uv run --no-sync pytest
-          uv run --no-sync images validate
-          uv run --no-sync python -m tools.check_repository
-          mapfile -t shell_files < <(uv run --no-sync images files --kind shell)
-          shellcheck "${shell_files[@]}"
-          shfmt -d -i 4 -ci "${shell_files[@]}"
+          python -m ruff check tools
+          python -m ruff format --check tools
+          python -m ty check
+          python -m pytest
+          python -m image_kit validate
+          python -m tools.check_repository
+          python -m pytest vendor/image-kit/tests
           bash vendor/image-kit/tests/install-arguments.sh
           bash vendor/image-kit/tests/ascend-pip-check.sh
-
       - name: Calculate affected images
         id: plan
         env:
-          BASE_SHA: ${{ github.event.before }}
-          HEAD_SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           INPUT_FAMILY: ${{ inputs.family }}
-          INPUT_VARIANT: ${{ inputs.variant }}
+          INPUT_TARGET: ${{ inputs.target }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            arguments=(--all)
-            if [[ -n "$INPUT_FAMILY" ]]; then
-              arguments=(--family "$INPUT_FAMILY")
-              if [[ -n "$INPUT_VARIANT" ]]; then
-                arguments+=(--variant "$INPUT_VARIANT")
-              fi
+          arguments=(--all)
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            base="$(git merge-base "$PR_BASE" "$HEAD_SHA")"
+            arguments=(--base "$base" --head "$HEAD_SHA")
+          elif [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            if [[ -n "$INPUT_FAMILY" && -n "$INPUT_TARGET" ]]; then
+              echo "Choose family or target, not both" >&2
+              exit 2
             fi
-            uv run --no-sync images plan "${arguments[@]}" --platform "$IMAGE_PLATFORM" --output build-plan.json
-          elif [[ "$BASE_SHA" =~ ^0+$ ]]; then
-            uv run --no-sync images plan --all --platform "$IMAGE_PLATFORM" --output build-plan.json
-          else
-            uv run --no-sync images plan --base "$BASE_SHA" --head "$HEAD_SHA" --platform "$IMAGE_PLATFORM" --output build-plan.json
+            if [[ -n "$INPUT_TARGET" ]]; then
+              arguments=(--target "$INPUT_TARGET")
+            elif [[ -n "$INPUT_FAMILY" ]]; then
+              arguments=(--family "$INPUT_FAMILY")
+            fi
+          elif [[ "$EVENT_NAME" == push && -n "$BEFORE_SHA" && ! "$BEFORE_SHA" =~ ^0+$ ]]; then
+            arguments=(--base "$BEFORE_SHA" --head "$HEAD_SHA")
           fi
-          count="$(python -c 'import json; print(len(json.load(open("build-plan.json"))["targets"]))')"
-          echo "count=$count" >> "$GITHUB_OUTPUT"
+          python -m image_kit plan "${arguments[@]}" \
+            --output build-plan.json --github-output "$GITHUB_OUTPUT"
+          echo "revision=$HEAD_SHA" >> "$GITHUB_OUTPUT"
           cat build-plan.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-plan-${{ github.run_attempt }}
+          path: build-plan.json
+          if-no-files-found: error
 
-      - name: Set up Docker Buildx
-        if: steps.plan.outputs.count != '0'
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+  verify-pr:
+    name: PR (${{ matrix.platform }})
+    needs: plan
+    if: github.event_name == 'pull_request' && needs.plan.outputs.has_build == 'true'
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.build_matrix) }}
+    uses: ./.github/workflows/build-native.yml
+    with:
+      runner: ${{ matrix.runner }}
+      platform: ${{ matrix.platform }}
+      platform_id: ${{ matrix.platform_id }}
+      revision: ${{ needs.plan.outputs.revision }}
+      publish: false
 
-      - name: Build images for tests
-        if: steps.plan.outputs.count != '0'
-        run: |
-          uv run --no-sync images bake \
-            --plan build-plan.json \
-            --owner "${{ github.repository_owner }}" \
-            --repository "${{ github.repository }}" \
-            --revision "${{ github.sha }}" \
-            --build-id "$IMAGE_BUILD_ID" \
-            --mode load \
-            --output docker-bake.generated.json
-          uv run --no-sync images build-test \
-            --plan build-plan.json \
-            --bake docker-bake.generated.json \
-            --owner "${{ github.repository_owner }}" \
-            --revision "${{ github.sha }}" \
-            --build-id "$IMAGE_BUILD_ID"
+  build-publish:
+    name: Publish (${{ matrix.platform }})
+    needs: plan
+    if: github.event_name != 'pull_request' && needs.plan.outputs.has_build == 'true'
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.build_matrix) }}
+    uses: ./.github/workflows/build-native.yml
+    with:
+      runner: ${{ matrix.runner }}
+      platform: ${{ matrix.platform }}
+      platform_id: ${{ matrix.platform_id }}
+      revision: ${{ needs.plan.outputs.revision }}
+      publish: true
 
-      - name: Log in to GHCR
-        if: steps.plan.outputs.count != '0'
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+  merge:
+    name: Merge manifests and advance tags
+    needs: [plan, build-publish]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ref: ${{ needs.plan.outputs.revision }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: |
+          uv sync --locked --python 3.12
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-plan-${{ github.run_attempt }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: digests-*-${{ github.run_attempt }}
+          path: digests
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Preflight immutable tags
-        if: steps.plan.outputs.count != '0'
-        id: guard
+      - name: Check complete architecture set and merge
+        env:
+          IMAGE_OWNER: ${{ github.repository_owner }}
+          IMAGE_REVISION: ${{ needs.plan.outputs.revision }}
+          IMAGE_REF: ${{ github.ref }}
+          IMAGE_BUILD_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          IMAGE_REPOSITORY: ${{ github.repository }}
         run: |
-          uv run --no-sync images bake \
-            --plan build-plan.json \
-            --owner "${{ github.repository_owner }}" \
-            --repository "${{ github.repository }}" \
-            --revision "${{ github.sha }}" \
-            --build-id "$IMAGE_BUILD_ID" \
-            --mode preflight \
-            --output docker-bake.preflight.json
-          docker buildx bake --file docker-bake.preflight.json --metadata-file build-metadata.json
-          uv run --no-sync images guard-tags \
-            --plan build-plan.json \
-            --metadata build-metadata.json \
-            --owner "${{ github.repository_owner }}" \
-            --revision "${{ github.sha }}" \
-            --build-id "$IMAGE_BUILD_ID" \
-            --output publish-plan.json
-          count="$(python -c 'import json; print(sum(x["publish"] for x in json.load(open("publish-plan.json"))["targets"]))')"
-          echo "count=$count" >> "$GITHUB_OUTPUT"
-
-      - name: Publish missing immutable tags
-        if: steps.guard.outputs.count != '0'
-        run: |
-          uv run --no-sync images bake \
-            --plan publish-plan.json \
-            --owner "${{ github.repository_owner }}" \
-            --repository "${{ github.repository }}" \
-            --revision "${{ github.sha }}" \
-            --build-id "$IMAGE_BUILD_ID" \
-            --mode publish \
-            --output docker-bake.publish.json
-          docker buildx bake --file docker-bake.publish.json
-
-      - name: Promote floating variant tags
-        if: steps.plan.outputs.count != '0'
-        run: |
-          uv run --no-sync images promote \
-            --plan build-plan.json \
-            --owner "${{ github.repository_owner }}" \
-            --revision "${{ github.sha }}" \
-            --build-id "$IMAGE_BUILD_ID"
+          python -m image_kit merge --plan build-plan.json \
+            --owner "$IMAGE_OWNER" --revision "$IMAGE_REVISION" \
+            --build-id "$IMAGE_BUILD_ID" --repository "$IMAGE_REPOSITORY" \
+            --digests digests --ref "$IMAGE_REF" --output publication.json
+      - name: Save verified publication receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: publication-${{ github.run_attempt }}
+          path: publication.json
+          if-no-files-found: error
+          retention-days: 90

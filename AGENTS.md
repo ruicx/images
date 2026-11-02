@@ -15,7 +15,7 @@ Agents must prioritize correctness, reproducibility, and cache efficiency over a
   uv run python -m tools.check_repository
   # or: python -m image_kit validate
   ```
-- **Graph Integrity**: Build dependency graphs must remain strictly acyclic. Cross-platform internal dependencies and undeclared dependencies are strictly forbidden.
+- **Graph Integrity**: Build dependency graphs must remain strictly acyclic. Internal parents must cover every child platform; workers build only their own native architecture. Undeclared dependencies are forbidden.
 
 ---
 
@@ -50,7 +50,7 @@ Agents must prioritize correctness, reproducibility, and cache efficiency over a
 ## 3. Base Images & Supply Chain Integrity
 
 - **Exact Base Image Tags**: External base images must specify an explicit, exact tag (e.g., `nvidia/cuda:12.8.2-devel-ubuntu24.04`). Dynamic or moving tags are prohibited.
-- **Digest Key Requirement**: The `digest` field in `image.yml` is required for every variant:
+- **Digest Key Requirement**: The `digest` field in `image.yml` is required for every external base; internal bases declare `base.target` and `base.context`:
   - Specify a full `sha256:<hex>` digest to lock an immutable, byte-for-byte reproducible base.
   - Specify explicit `null` only when intentionally tracking upstream updates for that exact tag.
 - **Cryptographic Checksums**: All downloaded third-party binaries, archives, and installers must verify cryptographic checksums (SHA256) prior to extraction or installation, unless an explicit exception is documented in the consuming family's bilingual README with user approval.
@@ -60,7 +60,7 @@ Agents must prioritize correctness, reproducibility, and cache efficiency over a
 
 ## 4. Security & Safety Invariants
 
-- **No Global `latest` Tag**: Never define, publish, or generate a global `latest` tag under any circumstances.
+- **No Global `latest` Tag**: Publish only variant channels, batch-qualified build tags and receipt-promoted variant version tags. Do not generate global latest/main/bare-SHA aliases or delete historical artifacts.
 - **Zero Embedded Secrets**: Never hardcode or embed passwords, private keys, API tokens, or secrets in Dockerfiles, scripts, or assets.
 - **SSH Security Constraints**: Root or password-based SSH access requires:
   1. An explicit runtime manifest mode (`runtime.ssh.mode`).
@@ -99,3 +99,7 @@ Agents must prioritize correctness, reproducibility, and cache efficiency over a
   uv run python -m tools.check_repository
   uv run ruff check .
   ```
+
+## Unified v2 publication
+
+Use the shared v2 plan and derived native worker matrix. Validate/build/test before digest publication; merge checks all required workers and the full identity before updating tags. Formal versions promote a verified main receipt without rebuilding or creating Git tags. Keep component publication before consumer pin commits. Docs are English-only; README pairs remain bilingual.

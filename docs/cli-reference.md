@@ -1,14 +1,10 @@
-# CLI reference
+# Shared v2 reference
 
-The shared CLI contract is maintained in [image-kit](https://github.com/ruicx/image-kit/blob/main/docs/cli-reference.md).
-This repository installs the component from its pinned submodule; run `uv sync --extra dev`
-after initializing or upgrading it. Existing `images` commands remain available, and
-`python -m image_kit` is the module entry point.
+The pinned component maintains the [shared contract](../vendor/image-kit/docs/cli-reference.md) and
+[v2 migration guide](../vendor/image-kit/docs/migration-v2.md). Both image repositories use
+the same schema, model and CLI. Initialize submodules and run `uv sync --locked --extra dev`.
 
-Run `uv run python -m tools.check_repository` after `uv run images validate` to enforce
-this repository's account contracts, explicit `mirror` and `runtime.ssh.mode` settings,
-and bilingual documentation. The component does not require these policies from other users.
-
-Registry and cache defaults, extra rebuild inputs, and shell validation inputs are declared
-in `[tool.image-kit]` in the root `pyproject.toml`. GitHub Actions retains this repository's
-permissions, native worker matrix, immutable release tags, and publication sequence.
+YAML `name` is authoritative; directory names are independent. This consumer additionally
+requires explicit `mirror`, `runtime.ssh.mode`, valid account fields, and bilingual root/family
+READMEs plus CONTRIBUTING. Documents under `docs/` are English-only. Run `images validate` and
+`python -m tools.check_repository`; consumer policy is not imposed on unrelated image-kit users.

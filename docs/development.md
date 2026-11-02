@@ -13,7 +13,8 @@ reviewed component commit, fetch it and check it out explicitly:
 ```bash
 git -C vendor/image-kit fetch origin
 git -C vendor/image-kit checkout <reviewed-component-commit>
-uv sync --extra dev
+uv lock
+uv sync --locked --extra dev
 uv run images validate
 uv run python -m tools.check_repository
 uv run ruff check .
@@ -33,10 +34,10 @@ owns the Python tooling, packaged schema, and tool tests. Do not create a second
 ## Adding an image family
 
 1. Copy the `src/cuda` shape into `src/<family>` without copying its image-specific values.
-2. Add a schema-valid `image.yml`; the manifest name must equal the directory name.
+2. Add a schema-valid `image.yml`; YAML `name` declares the published name independently of the directory.
 3. Give every external base an exact tag and a required `digest` key. Development images use
    explicit `null` to track updates to that tag; use a `sha256` pin when a fixed base is needed.
-4. Declare every shared script or asset in `inputs` and every internal base in `dependencies`.
+4. Declare every shared script or asset in `inputs` and every internal base using `base.target` and `base.context`.
 5. Add bilingual family documentation and at least one smoke-test script per variant.
 6. Run `images validate`, `python -m tools.check_repository`, Ruff, ty, pytest,
    ShellCheck, shfmt, and a local Bake build.
@@ -80,7 +81,6 @@ owns the Python tooling, packaged schema, and tool tests. Do not create a second
 
 ## Documentation rules
 
-English files are normative. Changes to a root guide or family README must update its `_zh`
-counterpart in the same pull request. User-visible changes update the affected family README.
-Removing a variant does not authorize deletion of published tags. `images validate` enforces the
-required bilingual guide set. See the [lifecycle policy](lifecycle.md) for compatibility rules.
+English files are normative. Root/family README and CONTRIBUTING pairs remain bilingual and synchronized. Documents under `docs/` are English-only. User-visible changes update the affected family README.
+Removing a variant does not authorize deletion of published tags. `python -m tools.check_repository` enforces the
+required bilingual README/CONTRIBUTING set. See the [lifecycle policy](lifecycle.md) for compatibility rules.

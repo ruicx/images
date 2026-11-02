@@ -7,3 +7,5 @@
 具有发布权限的维护者还必须遵循[发布指南](docs/release.md)。
 
 英文规范源见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+文档语言约定：README 和 CONTRIBUTING 保持中英双语并同步；`docs/` 内文档仅用英文维护。

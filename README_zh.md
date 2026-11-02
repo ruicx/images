@@ -164,7 +164,7 @@ cd images
 git submodule update --init --recursive
 
 # 使用 uv 安装依赖并同步开发环境
-uv sync --extra dev
+uv sync --locked --extra dev
 
 # 1. 校验清单合法性与格式规范
 uv run images validate
@@ -172,12 +172,12 @@ uv run python -m tools.check_repository
 
 # 2. 查看受支持变体并生成构建计划
 uv run images list
-uv run images plan --all --output build-plan.json
+uv run images plan --all --platform linux/amd64 --output build-plan.json
 
 # 3. 生成 Bake 定义并在本地执行构建与冒烟测试
 revision="$(git rev-parse HEAD)"
-uv run images bake --plan build-plan.json --owner ruicx --repository ruicx/images --revision "$revision" --mode load --output docker-bake.generated.json
-uv run images build-test --plan build-plan.json --bake docker-bake.generated.json --owner ruicx --revision "$revision"
+uv run images bake --plan build-plan.json --owner ruicx --repository ruicx/images --revision "$revision" --platform linux/amd64 --mode load --output docker-bake.generated.json
+uv run images build-test --plan build-plan.json --bake docker-bake.generated.json --owner ruicx --revision "$revision" --platform linux/amd64
 ```
 
 ---
@@ -196,3 +196,5 @@ Dockerfile、清单、镜像测试、账号/文档策略和发布流程仍由本
 
 > **面向 AI 编程助手（AI Agents）与自动化工作流**：
 > 本仓库的工程约定、Dockerfile 分层缓存规范、参数解析标准与 Git 提交要求均详见 [AGENTS.md](AGENTS.md)。所有参与仓库代码生成的 AI Agent 均须严格遵循该规范。
+
+发布名称由 YAML `name` 决定，不要求与目录名相同，并使用显式 variant 通道。已验证构建标签为 `<variant>-<sha12>-<run-id>-<attempt>`；正式 `<variant>-vMAJOR.MINOR.PATCH` 标签从成功的 main 发布收据提升。所有必需原生任务通过后才更新公开标签，历史制品保留。

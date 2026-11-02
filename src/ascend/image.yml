@@ -1,44 +1,45 @@
-schema_version: 1
+schema_version: 2
 name: ascend
 description: Kunpeng ARM64 and Ascend 910B TorchNPU development environment.
 dockerfile: src/ascend/Dockerfile
 context: .
 platforms:
-  - linux/arm64
+- linux/arm64
 inputs:
-  - vendor/image-kit/scripts/system/system.sh
-  - vendor/image-kit/scripts/dev/dev-tools.sh
-  - vendor/image-kit/scripts/python/python-install.sh
-  - vendor/image-kit/scripts/dev/cmake.sh
-  - vendor/image-kit/scripts/python/ascend-pip-packages.sh
-  - vendor/image-kit/assets/python-dev-requirements.txt
-  - vendor/image-kit/scripts/dev/devshell.sh
-  - vendor/image-kit/scripts/system/user.sh
-  - vendor/image-kit/scripts/system/ssh.sh
-  - vendor/image-kit/scripts/system/workspace.sh
-  - vendor/image-kit/scripts/system/finalize-mirror.sh
-  - vendor/image-kit/scripts/integrations/ascend-environment.sh
-  - vendor/image-kit/assets/docker-entrypoint.sh
-  - vendor/image-kit/assets/ascend-entrypoint.sh
-  - vendor/image-kit/assets/ascend-pip-check.sh
-  - src/ascend/tests/npu.sh
+- vendor/image-kit/scripts/system/system.sh
+- vendor/image-kit/scripts/dev/dev-tools.sh
+- vendor/image-kit/scripts/python/python-install.sh
+- vendor/image-kit/scripts/dev/cmake.sh
+- vendor/image-kit/scripts/python/ascend-pip-packages.sh
+- vendor/image-kit/assets/python-dev-requirements.txt
+- vendor/image-kit/scripts/dev/devshell.sh
+- vendor/image-kit/scripts/system/user.sh
+- vendor/image-kit/scripts/system/ssh.sh
+- vendor/image-kit/scripts/system/workspace.sh
+- vendor/image-kit/scripts/system/finalize-mirror.sh
+- vendor/image-kit/scripts/integrations/ascend-environment.sh
+- vendor/image-kit/assets/docker-entrypoint.sh
+- vendor/image-kit/assets/ascend-entrypoint.sh
+- vendor/image-kit/assets/ascend-pip-check.sh
+- src/ascend/tests/npu.sh
 publish: true
 variants:
-  - id: 2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12
-    base:
-      image: ascendai/torch-npu:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12
-      digest: null
-    build_args:
-      DEFAULT_USER: root
-      DEVSHELL: true
-      TZ: Asia/Shanghai
-      CMAKE_VERSION: 4.3.2
-      CMAKE_SHA256: 377079ab739f5765176f427609d9a2015b756ea20d5cba908d279c3731a2f481
-      WORKSPACE_DIR: /work
-    mirror: upstream
-    runtime:
-      ssh:
-        mode: key-only
-    dependencies: []
-    tests:
-      - src/ascend/tests/smoke.sh
+- id: 2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12
+  base:
+    image: ascendai/torch-npu:2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12
+    digest: null
+  build_args:
+    DEFAULT_USER: root
+    DEVSHELL: true
+    TZ: Asia/Shanghai
+    CMAKE_VERSION: 4.3.2
+    CMAKE_SHA256: 377079ab739f5765176f427609d9a2015b756ea20d5cba908d279c3731a2f481
+    WORKSPACE_DIR: /work
+  mirror: upstream
+  runtime:
+    ssh:
+      mode: key-only
+  tests:
+  - script: src/ascend/tests/smoke.sh
+    policy: required
+    entrypoint: bash

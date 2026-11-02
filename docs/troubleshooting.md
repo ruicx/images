@@ -21,9 +21,9 @@ README to reproduce image builds. Generated JSON files are disposable.
 
 - **A manifest path matches nothing:** fix the path or add the missing file. `inputs` must describe
   real build inputs so change detection cannot silently miss them.
-- **An unknown dependency or graph cycle is reported:** verify `family` and `variant`, then remove
+- **An unknown dependency or graph cycle is reported:** verify the YAML name and variant in `base.target`, then remove
   the edge that makes a target depend on itself transitively.
-- **A named context cannot be resolved:** make `dependencies[].context` exactly match the
+- **A named context cannot be resolved:** make `base.context` exactly match the
   Dockerfile `FROM <context>` name.
 - **A fork PR cannot push or write cache:** this is expected. PRs build locally with read-only
   permissions; only trusted main/manual workflows write Registry images and caches.
@@ -32,7 +32,7 @@ README to reproduce image builds. Generated JSON files are disposable.
 - **An immutable tag conflict is reported:** do not overwrite it. Confirm every stage received the
   same build ID and investigate why that batch produced different manifest digests. A new workflow
   run or attempt uses a separate immutable tag, allowing upstream changes without replacing history.
-- **An immutable tag is skipped:** its remote digest matches the preflight result; this is a safe
+- **An immutable tag is skipped:** its existing index matches the verified native source composition; this is a safe
   idempotent retry.
 - **Anonymous pull fails after publication:** new GHCR packages may be private. Set the package to
   Public and retry after `docker logout ghcr.io`.

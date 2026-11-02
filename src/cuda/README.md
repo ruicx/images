@@ -205,11 +205,10 @@ Add the complete custom variant under `variants` in `src/cuda/image.yml`, then f
 [repository build workflow](../../README.md#develop-this-repository), replacing `plan --all` with:
 
 ```bash
-images plan --family cuda --variant <variant-id> --output build-plan.json
+images plan --target cuda/<variant-id> --output build-plan.json
 ```
 
-In `load` mode, the resulting local image receives the floating tag
-`ghcr.io/ruicx/cuda:<variant-id>` in addition to its immutable revision tag.
+In `load` mode, the local image uses `<variant-id>-<sha12>-local` unless an explicit build ID is supplied. Floating variant channels advance only after verified main publication.
 
 ## Reproducibility and scope
 
@@ -250,3 +249,5 @@ llama.cpp is intentionally not bundled. Applications that need it should run an 
 llama.cpp image as a separate service and define that orchestration in the downstream project. The
 shared `llama-cpp.sh` script is an unreferenced migration capability and is not part of this
 family's supported contents.
+
+Publication uses YAML `name` independently of the directory and explicit variant channels. Verified build tags are `<variant>-<sha12>-<run-id>-<attempt>`; formal `<variant>-vMAJOR.MINOR.PATCH` tags promote an existing successful main publication receipt. All required native workers must pass before public tags advance. Historical tags remain available.

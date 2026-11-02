@@ -209,3 +209,5 @@ checksum。此例外仅适用于开发 shell 工具，不适用于 CANN、PyTorc
 因此，重建同一提交不保证得到逐字节相同的内容。设置 `DEVSHELL: false` 可跳过交互式 shell
 安装。CI 按 `<variant>-<short-sha>-<run-id>-<attempt>` 保留每次构建，包括同一提交的重跑。
 这些不可变标签和镜像 digest 标识实际构建产物，供回滚使用；不发布全局 `latest` 标签。
+
+发布名称由 YAML `name` 决定，不要求与目录名相同，并使用显式 variant 通道。已验证构建标签为 `<variant>-<sha12>-<run-id>-<attempt>`；正式 `<variant>-vMAJOR.MINOR.PATCH` 标签从成功的 main 发布收据提升。所有必需原生任务通过后才更新公开标签，历史制品保留。

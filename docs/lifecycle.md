@@ -2,7 +2,7 @@
 
 The manifest schema version, CLI command names, plan schema, image names, variant identifiers, and
 tag format are public compatibility surfaces. Compatible optional fields may be added to schema
-version `1`; removing or changing a field's meaning requires a new schema version and a documented
+version `2`; removing or changing a field's meaning requires a new schema version and a documented
 migration period.
 
 Changing a family name changes its GHCR package. Changing a variant identifier creates a new tag
@@ -17,13 +17,13 @@ backward is a deliberate maintainer operation outside the automatic workflow and
 
 New CI releases use `<variant>-<short-sha>-<run-id>-<attempt>` instead of the legacy
 `<variant>-<short-sha>` format. Existing immutable tags remain untouched. Local CLI calls without
-`--build-id` retain the legacy format; CI always supplies a build batch to support rolling rebuilds.
+`--build-id` use `<variant>-<sha12>-local` for load/test only; CI always supplies a build batch to support rolling rebuilds.
 
 Shared scripts that are not referenced by any manifest `inputs` entry are pending migration. They
 are retained but are not part of the supported phase-one build surface. A script becomes supported
 only after a manifest consumes it, it follows the current argument and safety rules, and relevant
 smoke tests cover the result.
 
-Each family supports one native platform, `linux/amd64` or `linux/arm64`. The repository does not
+Each family declares one or both native platforms, `linux/amd64` and `linux/arm64`; internal parents must cover their children. The repository does not
 promise SBOM, provenance, or vulnerability-gate artifacts. Adding these features must preserve the manifest and tag contracts or introduce an
 explicit versioned migration.

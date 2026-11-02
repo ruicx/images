@@ -1,99 +1,59 @@
-# Architecture
+# Build architecture
 
-## Repository model
+The pinned image-kit 0.2 package owns the schema v2, repository model, planner, native Bake
+renderer, smoke execution and digest publication. YAML `name` controls package identity;
+directories only locate manifests and explicitly referenced files. Both Luciole and utils/images
+use the same interface. See the shared [manifest reference](../vendor/image-kit/docs/manifest-reference.md),
+[CLI contract](../vendor/image-kit/docs/cli-reference.md) and
+[migration](../vendor/image-kit/docs/migration-v2.md).
 
-An image family is a directory under `src/` containing `image.yml`, one parameterized Dockerfile,
-bilingual documentation, and smoke tests. The manifest is the source of truth; workflows do not
-contain a hand-written image matrix.
+Dockerfiles retain installation order and direct-build defaults. Manifests own software choices,
+platforms, build arguments, internal bases, inputs and test contracts. Consumer checks retain
+account validity, explicit mirror/SSH declarations and bilingual README rules. Documents in `docs/`
+are English-only. Generated plans, Bake files and publication receipts are CI artifacts.
 
-This separation keeps release intent declarative: manifests describe variants and dependency
-edges, Dockerfiles describe build order, shared scripts provide capability-level installation,
-and the Python tooling turns those inputs into one validated execution graph. See the
-[manifest reference](manifest-reference.md) for the complete contract.
+## Selection and native execution
 
-`images plan` maps changed files to families through each manifest's `inputs`, expands transitive
-dependents, and adds the ancestors needed to build the result. The generated Bake graph maps every
-internal dependency to a `target:<name>` build context. A pull request therefore tests the base
-image built from the same commit instead of a previously published GHCR image.
+`plan --all`, `--family <YAML-name>` or `--target <name/variant>` select outputs. Git-based planning
+uses actual manifest, Dockerfile, installation and smoke inputs and propagates to downstream
+consumers. README and Compose changes alone do not rebuild images. Infrastructure and component
+pin changes rebuild all targets. Explicit Git diffs retain deleted and renamed input paths.
 
-Disconnected dependency graphs become independent Bake component groups. CI attempts every group
-before reporting the combined result, so a failure in one image family does not suppress useful
-results from unrelated families. Exact change-impact rules are documented in
-[CI/CD behavior](ci-cd.md).
+Ancestors are added without expanding publication selection and build only on required native
+platforms. A parent may cover more platforms than its child. Internal `base.target` and
+`base.context` connect to the same checkout via Bake named contexts. The plan derives workers
+for amd64 and arm64; no QEMU is configured. `build-test` validates the generated Bake graph,
+builds and tests independent components, then reports aggregate failures.
 
-External bases have two explicit resolution policies. A non-null `base.digest` pins BuildKit to
-`image:tag@digest` and provides reproducible base resolution. A null or blank value follows the
-exact `image:tag`, allowing deliberate rolling updates without manifest edits. The `digest` key
-remains required to make the resolution policy explicit. Development manifests use null digests,
-and generated Bake targets set `pull: true` to check for upstream updates. Rebuilding the same Git
-commit may produce a different image; each CI build batch has a separate immutable release tag.
-Existing layer caches remain enabled, so unchanged base images do not force package steps to rerun.
+Hosted workers remove unused SDKs and preloaded Docker images before creating Buildx, retain
+Python/Node/Docker, limit BuildKit solver parallelism to one, and report disk usage on failure.
+Capacity must cover both build cache and locally loaded smoke images. Load graphs import
+architecture-scoped Actions caches only; trusted publication can export them. Direct shell
+builds expose the Actions cache runtime through the pinned helper action.
 
-## Image composition and cache boundaries
+Luciole tests explicitly retain the image entrypoint/user and source their declared helper.
+utils tests explicitly override the entrypoint with Bash. Both use read-only test mounts,
+disable image pulls, and receive `SMOKE_HARD_GATE`. Advisory suppression belongs to the helper;
+container startup, missing scripts and Docker errors remain fatal. Hardware checks are separate.
 
-Shared installation scripts and assets are maintained in the public `ruicx/image-kit` repository,
-consumed as a commit-pinned submodule at `vendor/image-kit/scripts/` and `vendor/image-kit/assets/`.
-Initialize it before validation or builds, then install it with `uv sync --extra dev`. The
-`image_kit` Python package owns validation, planning, Bake generation, and the bundled schema.
-Image manifests, Dockerfiles, smoke tests, and publication policy remain local. Account/runtime
-and bilingual-documentation checks run separately through `python -m tools.check_repository`. Component updates are explicit parent
-repository changes; they rebuild every variant without following the component's moving branch.
+## Publication and formal releases
 
-Shared scripts own capability behavior and validation; Dockerfiles own only capability selection,
-argument wiring, and execution order. Build arguments are passed through named script options, so
-value branches such as user selection, workspace ownership, and package-mirror selection stay in
-the relevant script instead of being duplicated as Dockerfile shell expressions.
+PRs have read-only contents access and never log in, push images or export caches. Main and
+manual publications first complete validation and native smoke tests, push selected targets
+by digest, and collect file-loaded Bake metadata. Full provenance is transferred through
+`toJSON` inside a quoted Node heredoc, never an environment variable or command argument.
+Build ID is `<run-id>-<attempt>` and is passed unchanged through every pipeline stage.
 
-An independently changeable capability uses an adjacent `COPY` and `RUN`. Combining several
-scripts in one `COPY` would make a change to any one of them invalidate every following capability,
-even if the Dockerfile used separate `RUN` instructions. After dependency constraints are met,
-stable or expensive capabilities go first and cheap or frequently changed capabilities go last.
-This intentionally accepts a few small OCI layers in exchange for useful BuildKit cache boundaries,
-clear build logs, and failures attributable to one capability. It is not a rule to split every shell
-command: package installation and its apt-list cleanup remain in the same `RUN`.
+The merge job waits for every native worker. It verifies the exact expected platform set and
+shared build identity, composes indexes with provenance, and checks all existing build tags
+before writing public tags. Build tags are `<variant>-<sha12>-<run-id>-<attempt>` and are never
+overwritten with different content. Only after all build tags succeed does main advance the
+floating `<variant>` channels. Other refs receive build tags only. No global `latest`, `main`,
+bare SHA or unprefixed version tag is generated; historical artifacts remain available.
 
-Identity, SSH, and workspace setup are separate capabilities. User setup first reuses the existing
-root account or creates the exact non-root name selected by `DEFAULT_USER`; SSH policy then targets
-that resolved account; workspace setup finally creates `WORKSPACE_DIR` and assigns its ownership.
-The workspace path is configurable, must be absolute, and cannot be `/` or contain `.`/`..` path
-components. Keeping workspace layout out of user management allows either capability to be reused
-without importing image-specific directory policy.
-
-The container command and login shell are deliberately independent. An image may keep Bash as its
-default command while a developer-shell capability changes the account's login shell to zsh for SSH
-sessions. `docker exec` callers select the command they want explicitly; no wrapper guesses a shell
-from the invocation environment.
-
-Package installation uses the base image's upstream sources. The manifest `mirror` value becomes
-`PACKAGE_MIRROR`, and a final mirror capability owns validation and persisted-source selection only
-after all build-time installation is complete. `upstream` is a no-op; `aliyun` rewrites apt and pip
-configuration. This improves GitHub-hosted build performance while still allowing a China-oriented
-runtime image, and it avoids nondeterministic runtime network probing. `PACKAGE_MIRROR` may remain
-visible in the final environment for introspection, but runtime startup never acts on it.
-
-## Tag lifecycle
-
-The CI immutable tag is `<variant>-<short-sha>-<run-id>-<attempt>`. The run ID and attempt identify
-each build batch, so rerunning the same commit can publish upstream fixes without overwriting an
-earlier build. Build, smoke tests, preflight, publication, and promotion share this identifier.
-The OCI revision label keeps the full source SHA; the version label includes the build batch.
-Before publishing, CI calculates the local manifest digest and inspects GHCR. A missing tag is
-pushed, a matching tag is skipped, and a conflicting tag within the same batch fails the release.
-Only after all immutable tags exist does CI update the floating `<variant>` tags. Historical
-`<variant>-<short-sha>` tags remain available and are never rewritten by this migration.
-
-Consumers that need reproducibility must pin an immutable tag or digest. Floating variant tags are
-convenience channels and can change after every successful merge.
-
-## Trust boundaries
-
-Pull requests have read-only repository access, do not log in to GHCR, and never push images or
-caches. The main-branch publisher receives only `contents: read` and `packages: write`. Build
-secrets must use BuildKit secret mounts; they must never be passed through `ARG`, `ENV`, or `COPY`.
-
-SSH is an explicit runtime policy with `disabled`, `key-only`, and `password` modes. `key-only`
-fails closed without mounted authorized keys. Every variant explicitly declares its mode, while
-the SSH account is always the image's `DEFAULT_USER`; `AllowUsers` limits SSH to that account. In
-password mode, `SSH_PASSWORD_FILE` may set its password from a runtime-mounted file; passwords must
-never be stored in an image layer, manifest, build argument, or environment value. The account
-remains locked when no runtime password file is supplied.
+Merge emits `publication.json` with source identity, platforms and final index digests. The
+separate release workflow selects a successful main publication run and attempt, validates its
+receipt and creates `<variant>-vMAJOR.MINOR.PATCH` from existing digests without rebuilding.
+Artifacts are attempt-qualified and receipts retained for 90 days. Registry writes across tags
+are sequential, not transactional; failures stop later promotion. Keep a digest for fixed use.
+Native image builds and NPU tests remain distinct from static tooling checks.

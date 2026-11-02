@@ -1,62 +1,64 @@
-schema_version: 1
+schema_version: 2
 name: cuda
 description: Parameterized NVIDIA CUDA development images for Linux amd64.
 dockerfile: src/cuda/Dockerfile
 context: .
 platforms:
-  - linux/amd64
+- linux/amd64
 inputs:
-  - vendor/image-kit/scripts/system/system.sh
-  - vendor/image-kit/scripts/dev/dev-tools.sh
-  - vendor/image-kit/scripts/python/python-install.sh
-  - vendor/image-kit/scripts/dev/cmake.sh
-  - vendor/image-kit/scripts/python/cuda-pip-packages.sh
-  - vendor/image-kit/assets/python-dev-requirements.txt
-  - vendor/image-kit/scripts/dev/devshell.sh
-  - vendor/image-kit/scripts/system/user.sh
-  - vendor/image-kit/scripts/system/ssh.sh
-  - vendor/image-kit/scripts/system/workspace.sh
-  - vendor/image-kit/scripts/system/finalize-mirror.sh
-  - vendor/image-kit/assets/docker-entrypoint.sh
+- vendor/image-kit/scripts/system/system.sh
+- vendor/image-kit/scripts/dev/dev-tools.sh
+- vendor/image-kit/scripts/python/python-install.sh
+- vendor/image-kit/scripts/dev/cmake.sh
+- vendor/image-kit/scripts/python/cuda-pip-packages.sh
+- vendor/image-kit/assets/python-dev-requirements.txt
+- vendor/image-kit/scripts/dev/devshell.sh
+- vendor/image-kit/scripts/system/user.sh
+- vendor/image-kit/scripts/system/ssh.sh
+- vendor/image-kit/scripts/system/workspace.sh
+- vendor/image-kit/scripts/system/finalize-mirror.sh
+- vendor/image-kit/assets/docker-entrypoint.sh
 publish: true
 variants:
-  - id: 12.6.3-devel-ubuntu24.04
-    base:
-      image: nvidia/cuda:12.6.3-devel-ubuntu24.04
-      digest: null
-    build_args:
-      DEFAULT_USER: luciole
-      DEFAULT_UID: 1000
-      DEFAULT_GID: 1000
-      DEFAULT_GROUPS: ""
-      DEVSHELL: true
-      TZ: Asia/Shanghai
-      CMAKE_VERSION: 4.3.2
-      WORKSPACE_DIR: /work
-    mirror: upstream
-    runtime:
-      ssh:
-        mode: password
-    dependencies: []
-    tests:
-      - src/cuda/tests/smoke.sh
-  - id: 12.8.2-devel-ubuntu24.04
-    base:
-      image: nvidia/cuda:12.8.2-devel-ubuntu24.04
-      digest: null
-    build_args:
-      DEFAULT_USER: luciole
-      DEFAULT_UID: 1000
-      DEFAULT_GID: 1000
-      DEFAULT_GROUPS: ""
-      DEVSHELL: true
-      TZ: Asia/Shanghai
-      CMAKE_VERSION: 4.3.2
-      WORKSPACE_DIR: /work
-    mirror: upstream
-    runtime:
-      ssh:
-        mode: password
-    dependencies: []
-    tests:
-      - src/cuda/tests/smoke.sh
+- id: 12.6.3-devel-ubuntu24.04
+  base:
+    image: nvidia/cuda:12.6.3-devel-ubuntu24.04
+    digest: null
+  build_args:
+    DEFAULT_USER: luciole
+    DEFAULT_UID: 1000
+    DEFAULT_GID: 1000
+    DEFAULT_GROUPS: ''
+    DEVSHELL: true
+    TZ: Asia/Shanghai
+    CMAKE_VERSION: 4.3.2
+    WORKSPACE_DIR: /work
+  mirror: upstream
+  runtime:
+    ssh:
+      mode: password
+  tests:
+  - script: src/cuda/tests/smoke.sh
+    policy: required
+    entrypoint: bash
+- id: 12.8.2-devel-ubuntu24.04
+  base:
+    image: nvidia/cuda:12.8.2-devel-ubuntu24.04
+    digest: null
+  build_args:
+    DEFAULT_USER: luciole
+    DEFAULT_UID: 1000
+    DEFAULT_GID: 1000
+    DEFAULT_GROUPS: ''
+    DEVSHELL: true
+    TZ: Asia/Shanghai
+    CMAKE_VERSION: 4.3.2
+    WORKSPACE_DIR: /work
+  mirror: upstream
+  runtime:
+    ssh:
+      mode: password
+  tests:
+  - script: src/cuda/tests/smoke.sh
+    policy: required
+    entrypoint: bash
